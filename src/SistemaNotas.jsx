@@ -44,18 +44,6 @@ export default function SistemaNotas() {
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [emailLogin, setEmailLogin] = useState('');
   const [showDeleteMenu, setShowDeleteMenu] = useState(null);
-
-  // Fechar menu ao clicar fora
-  React.useEffect(() => {
-    const handleClickOutside = (e) => {
-      if (showDeleteMenu && !e.target.closest('.delete-menu-container')) {
-        setShowDeleteMenu(null);
-      }
-    };
-    
-    document.addEventListener('click', handleClickOutside);
-    return () => document.removeEventListener('click', handleClickOutside);
-  }, [showDeleteMenu]);
   const calcularMedia = (d) => {
     if (d.notaFinal !== null) return d.notaFinal;
     if (d.ga !== null && d.gb !== null) return (d.ga + d.gb) / 2;
@@ -691,7 +679,7 @@ export default function SistemaNotas() {
                                 )}
                                 
                                 {!isEditingNotas && (
-                                  <div className="relative delete-menu-container">
+                                  <div className="relative">
                                     <button 
                                       onClick={() => setShowDeleteMenu(showDeleteMenu === d.id ? null : d.id)} 
                                       className="p-2 text-red-400 hover:bg-red-500/10 rounded-lg"
@@ -700,29 +688,48 @@ export default function SistemaNotas() {
                                     </button>
                                     
                                     {showDeleteMenu === d.id && (
-                                      <div className="absolute right-0 bottom-full mb-2 z-50 bg-slate-800 border border-slate-600 rounded-lg shadow-xl min-w-[220px] overflow-hidden">
-                                        {d.status !== 'NAO_INICIADA' && (
+                                      <div className="fixed inset-0 z-[9999]" onClick={() => setShowDeleteMenu(null)}>
+                                        <div 
+                                          className="absolute bg-slate-800 border border-slate-600 rounded-lg shadow-2xl min-w-[220px] overflow-hidden"
+                                          style={{
+                                            top: '50%',
+                                            left: '50%',
+                                            transform: 'translate(-50%, -50%)'
+                                          }}
+                                          onClick={e => e.stopPropagation()}
+                                        >
+                                          <div className="px-4 py-3 border-b border-slate-700 bg-slate-700/50">
+                                            <div className="text-sm font-medium text-white truncate max-w-[200px]">{d.nome}</div>
+                                          </div>
+                                          {d.status !== 'NAO_INICIADA' && (
+                                            <button
+                                              onClick={() => resetarDisciplina(d.id)}
+                                              className="w-full flex items-center gap-3 px-4 py-3 text-left text-yellow-400 hover:bg-slate-700 transition-colors"
+                                            >
+                                              <RotateCcw size={16} />
+                                              <div>
+                                                <div className="font-medium">Resetar andamento</div>
+                                                <div className="text-xs text-slate-400">Volta para "Não Iniciada"</div>
+                                              </div>
+                                            </button>
+                                          )}
                                           <button
-                                            onClick={() => resetarDisciplina(d.id)}
-                                            className="w-full flex items-center gap-3 px-4 py-3 text-left text-yellow-400 hover:bg-slate-700 transition-colors"
+                                            onClick={() => removerDisciplina(d.id)}
+                                            className={`w-full flex items-center gap-3 px-4 py-3 text-left text-red-400 hover:bg-slate-700 transition-colors ${d.status !== 'NAO_INICIADA' ? 'border-t border-slate-700' : ''}`}
                                           >
-                                            <RotateCcw size={16} />
+                                            <Trash2 size={16} />
                                             <div>
-                                              <div className="font-medium">Resetar andamento</div>
-                                              <div className="text-xs text-slate-400">Volta para "Não Iniciada"</div>
+                                              <div className="font-medium">Excluir disciplina</div>
+                                              <div className="text-xs text-slate-400">Remove permanentemente</div>
                                             </div>
                                           </button>
-                                        )}
-                                        <button
-                                          onClick={() => removerDisciplina(d.id)}
-                                          className={`w-full flex items-center gap-3 px-4 py-3 text-left text-red-400 hover:bg-slate-700 transition-colors ${d.status !== 'NAO_INICIADA' ? 'border-t border-slate-700' : ''}`}
-                                        >
-                                          <Trash2 size={16} />
-                                          <div>
-                                            <div className="font-medium">Excluir disciplina</div>
-                                            <div className="text-xs text-slate-400">Remove permanentemente</div>
-                                          </div>
-                                        </button>
+                                          <button
+                                            onClick={() => setShowDeleteMenu(null)}
+                                            className="w-full px-4 py-2 text-sm text-slate-400 hover:bg-slate-700 border-t border-slate-700"
+                                          >
+                                            Cancelar
+                                          </button>
+                                        </div>
                                       </div>
                                     )}
                                   </div>
