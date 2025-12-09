@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, RadialBarChart, RadialBar } from 'recharts';
-import { Plus, Trash2, BookOpen, Award, TrendingUp, AlertCircle, CheckCircle, GraduationCap, Edit2, X, Clock, PlayCircle, ChevronDown, ChevronUp, Search, Save, Cloud, CloudOff, RefreshCw, LogOut, User, Wifi, WifiOff, Download, RotateCcw, Calendar } from 'lucide-react';
+import { Plus, Trash2, BookOpen, Award, TrendingUp, AlertCircle, CheckCircle, GraduationCap, Edit2, X, Clock, PlayCircle, ChevronDown, ChevronUp, Search, Save, Cloud, CloudOff, RefreshCw, LogOut, User, Wifi, WifiOff, Download, RotateCcw } from 'lucide-react';
 import { useNotas } from './useNotas';
 
 const STATUS = {
@@ -40,12 +40,10 @@ export default function SistemaNotas() {
   const [showIniciarModal, setShowIniciarModal] = useState(null);
   const [semestreIniciar, setSemestreIniciar] = useState('2024.2');
   const [editingNotas, setEditingNotas] = useState(null);
-  const [notasTemp, setNotasTemp] = useState({ ga: '', gb: '', notaFinal: '' });
+  const [notasTemp, setNotasTemp] = useState({ ga: '', gb: '', notaFinal: '', semestreCursado: '' });
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [emailLogin, setEmailLogin] = useState('');
   const [showDeleteMenu, setShowDeleteMenu] = useState(null);
-  const [editingSemestre, setEditingSemestre] = useState(null);
-  const [semestreTemp, setSemestreTemp] = useState('');
 
   // Fechar menu ao clicar fora
   React.useEffect(() => {
@@ -53,14 +51,11 @@ export default function SistemaNotas() {
       if (showDeleteMenu && !e.target.closest('.delete-menu-container')) {
         setShowDeleteMenu(null);
       }
-      if (editingSemestre && !e.target.closest('.semestre-edit-container')) {
-        setEditingSemestre(null);
-      }
     };
     
     document.addEventListener('click', handleClickOutside);
     return () => document.removeEventListener('click', handleClickOutside);
-  }, [showDeleteMenu, editingSemestre]);
+  }, [showDeleteMenu]);
   const calcularMedia = (d) => {
     if (d.notaFinal !== null) return d.notaFinal;
     if (d.ga !== null && d.gb !== null) return (d.ga + d.gb) / 2;
@@ -184,21 +179,6 @@ export default function SistemaNotas() {
     setShowDeleteMenu(null);
   };
 
-  const abrirEdicaoSemestre = (d) => {
-    setEditingSemestre(d.id);
-    setSemestreTemp(d.semestreCursado || '');
-    setShowDeleteMenu(null);
-  };
-
-  const salvarSemestre = (id) => {
-    setDisciplinas(disciplinas.map(d => d.id === id ? { 
-      ...d, 
-      semestreCursado: semestreTemp.trim() || null 
-    } : d));
-    setEditingSemestre(null);
-    setSemestreTemp('');
-  };
-
   const atualizarDisciplina = (id, updates) => {
     setDisciplinas(disciplinas.map(d => d.id === id ? { ...d, ...updates } : d));
   };
@@ -220,7 +200,8 @@ export default function SistemaNotas() {
     setNotasTemp({
       ga: d.ga !== null ? d.ga.toString() : '',
       gb: d.gb !== null ? d.gb.toString() : '',
-      notaFinal: d.notaFinal !== null ? d.notaFinal.toString() : ''
+      notaFinal: d.notaFinal !== null ? d.notaFinal.toString() : '',
+      semestreCursado: d.semestreCursado || ''
     });
   };
 
@@ -228,10 +209,11 @@ export default function SistemaNotas() {
     atualizarDisciplina(id, {
       ga: notasTemp.ga !== '' ? parseFloat(notasTemp.ga) : null,
       gb: notasTemp.gb !== '' ? parseFloat(notasTemp.gb) : null,
-      notaFinal: notasTemp.notaFinal !== '' ? parseFloat(notasTemp.notaFinal) : null
+      notaFinal: notasTemp.notaFinal !== '' ? parseFloat(notasTemp.notaFinal) : null,
+      semestreCursado: notasTemp.semestreCursado.trim() || null
     });
     setEditingNotas(null);
-    setNotasTemp({ ga: '', gb: '', notaFinal: '' });
+    setNotasTemp({ ga: '', gb: '', notaFinal: '', semestreCursado: '' });
   };
 
   const togglePeriodo = (periodo) => {
@@ -612,12 +594,82 @@ export default function SistemaNotas() {
                                 )}
 
                                 {isEditingNotas && (
-                                  <div className="flex items-center gap-2">
-                                    <input type="number" step="0.1" min="0" max="10" value={notasTemp.ga} onChange={e => setNotasTemp({...notasTemp, ga: e.target.value})} placeholder="GA" className="w-16 px-2 py-1 bg-slate-700 rounded border border-slate-600 focus:border-indigo-500 focus:outline-none text-center" />
-                                    <input type="number" step="0.1" min="0" max="10" value={notasTemp.gb} onChange={e => setNotasTemp({...notasTemp, gb: e.target.value})} placeholder="GB" className="w-16 px-2 py-1 bg-slate-700 rounded border border-slate-600 focus:border-indigo-500 focus:outline-none text-center" />
-                                    <input type="number" step="0.1" min="0" max="10" value={notasTemp.notaFinal} onChange={e => setNotasTemp({...notasTemp, notaFinal: e.target.value})} placeholder="NF" className="w-16 px-2 py-1 bg-slate-700 rounded border border-slate-600 focus:border-indigo-500 focus:outline-none text-center" />
-                                    <button onClick={() => salvarNotas(d.id)} className="p-2 bg-green-600 hover:bg-green-700 rounded-lg"><Save size={16} /></button>
-                                    <button onClick={() => setEditingNotas(null)} className="p-2 bg-slate-600 hover:bg-slate-500 rounded-lg"><X size={16} /></button>
+                                  <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setEditingNotas(null)}>
+                                    <div className="bg-slate-800 border border-slate-600 rounded-xl shadow-2xl p-5 min-w-[320px] max-w-[90vw]" onClick={e => e.stopPropagation()}>
+                                      <div className="flex justify-between items-center mb-4">
+                                        <h3 className="text-lg font-semibold text-white">Editar Notas</h3>
+                                        <button onClick={() => setEditingNotas(null)} className="p-1 text-slate-400 hover:text-white"><X size={20} /></button>
+                                      </div>
+                                      
+                                      <div className="grid grid-cols-3 gap-3 mb-4">
+                                        <div>
+                                          <label className="block text-xs text-slate-400 mb-1">Grau A</label>
+                                          <input 
+                                            type="number" 
+                                            step="0.1" 
+                                            min="0" 
+                                            max="10" 
+                                            value={notasTemp.ga} 
+                                            onChange={e => setNotasTemp({...notasTemp, ga: e.target.value})} 
+                                            placeholder="0.0" 
+                                            className="w-full px-3 py-2 bg-slate-700 rounded-lg border border-slate-600 focus:border-indigo-500 focus:outline-none text-center text-lg" 
+                                          />
+                                        </div>
+                                        <div>
+                                          <label className="block text-xs text-slate-400 mb-1">Grau B</label>
+                                          <input 
+                                            type="number" 
+                                            step="0.1" 
+                                            min="0" 
+                                            max="10" 
+                                            value={notasTemp.gb} 
+                                            onChange={e => setNotasTemp({...notasTemp, gb: e.target.value})} 
+                                            placeholder="0.0" 
+                                            className="w-full px-3 py-2 bg-slate-700 rounded-lg border border-slate-600 focus:border-indigo-500 focus:outline-none text-center text-lg" 
+                                          />
+                                        </div>
+                                        <div>
+                                          <label className="block text-xs text-slate-400 mb-1">Nota Final</label>
+                                          <input 
+                                            type="number" 
+                                            step="0.1" 
+                                            min="0" 
+                                            max="10" 
+                                            value={notasTemp.notaFinal} 
+                                            onChange={e => setNotasTemp({...notasTemp, notaFinal: e.target.value})} 
+                                            placeholder="0.0" 
+                                            className="w-full px-3 py-2 bg-slate-700 rounded-lg border border-slate-600 focus:border-indigo-500 focus:outline-none text-center text-lg" 
+                                          />
+                                        </div>
+                                      </div>
+                                      
+                                      <div className="mb-4">
+                                        <label className="block text-xs text-slate-400 mb-1">Semestre Cursado (opcional)</label>
+                                        <input 
+                                          type="text" 
+                                          value={notasTemp.semestreCursado} 
+                                          onChange={e => setNotasTemp({...notasTemp, semestreCursado: e.target.value})} 
+                                          placeholder="Ex: 2025/1" 
+                                          className="w-full px-3 py-2 bg-slate-700 rounded-lg border border-slate-600 focus:border-indigo-500 focus:outline-none" 
+                                        />
+                                      </div>
+                                      
+                                      <div className="flex gap-3">
+                                        <button 
+                                          onClick={() => setEditingNotas(null)} 
+                                          className="flex-1 px-4 py-2 bg-slate-700 hover:bg-slate-600 rounded-lg transition-colors"
+                                        >
+                                          Cancelar
+                                        </button>
+                                        <button 
+                                          onClick={() => salvarNotas(d.id)} 
+                                          className="flex-1 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 rounded-lg transition-colors flex items-center justify-center gap-2"
+                                        >
+                                          <Save size={16} />
+                                          Salvar
+                                        </button>
+                                      </div>
+                                    </div>
                                   </div>
                                 )}
                                 
@@ -627,7 +679,7 @@ export default function SistemaNotas() {
                                 
                                 {d.status === 'EM_CURSO' && !isEditingNotas && (
                                   <>
-                                    <button onClick={() => abrirEdicaoNotas(d)} className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 rounded-lg text-sm">Notas</button>
+                                    <button onClick={() => abrirEdicaoNotas(d)} className="p-2 text-slate-400 hover:text-white hover:bg-slate-700 rounded-lg"><Edit2 size={16} /></button>
                                     {(d.ga !== null && d.gb !== null) && (
                                       <button onClick={() => finalizarDisciplina(d.id)} className="px-3 py-1.5 bg-green-600 hover:bg-green-700 rounded-lg text-sm">Finalizar</button>
                                     )}
@@ -648,32 +700,18 @@ export default function SistemaNotas() {
                                     </button>
                                     
                                     {showDeleteMenu === d.id && (
-                                      <div className="absolute right-0 top-10 z-50 bg-slate-800 border border-slate-600 rounded-lg shadow-xl min-w-[220px] overflow-hidden">
+                                      <div className="absolute right-0 bottom-full mb-2 z-50 bg-slate-800 border border-slate-600 rounded-lg shadow-xl min-w-[220px] overflow-hidden">
                                         {d.status !== 'NAO_INICIADA' && (
-                                          <>
-                                            <button
-                                              onClick={() => abrirEdicaoSemestre(d)}
-                                              className="w-full flex items-center gap-3 px-4 py-3 text-left text-blue-400 hover:bg-slate-700 transition-colors"
-                                            >
-                                              <Calendar size={16} />
-                                              <div>
-                                                <div className="font-medium">Editar semestre</div>
-                                                <div className="text-xs text-slate-400">
-                                                  {d.semestreCursado ? `Atual: ${d.semestreCursado}` : 'Não informado'}
-                                                </div>
-                                              </div>
-                                            </button>
-                                            <button
-                                              onClick={() => resetarDisciplina(d.id)}
-                                              className="w-full flex items-center gap-3 px-4 py-3 text-left text-yellow-400 hover:bg-slate-700 transition-colors border-t border-slate-700"
-                                            >
-                                              <RotateCcw size={16} />
-                                              <div>
-                                                <div className="font-medium">Resetar andamento</div>
-                                                <div className="text-xs text-slate-400">Volta para "Não Iniciada"</div>
-                                              </div>
-                                            </button>
-                                          </>
+                                          <button
+                                            onClick={() => resetarDisciplina(d.id)}
+                                            className="w-full flex items-center gap-3 px-4 py-3 text-left text-yellow-400 hover:bg-slate-700 transition-colors"
+                                          >
+                                            <RotateCcw size={16} />
+                                            <div>
+                                              <div className="font-medium">Resetar andamento</div>
+                                              <div className="text-xs text-slate-400">Volta para "Não Iniciada"</div>
+                                            </div>
+                                          </button>
                                         )}
                                         <button
                                           onClick={() => removerDisciplina(d.id)}
@@ -685,34 +723,6 @@ export default function SistemaNotas() {
                                             <div className="text-xs text-slate-400">Remove permanentemente</div>
                                           </div>
                                         </button>
-                                      </div>
-                                    )}
-
-                                    {editingSemestre === d.id && (
-                                      <div className="semestre-edit-container absolute right-0 top-10 z-50 bg-slate-800 border border-slate-600 rounded-lg shadow-xl p-4 min-w-[220px]">
-                                        <div className="text-sm text-slate-300 mb-2">Semestre cursado:</div>
-                                        <input
-                                          type="text"
-                                          value={semestreTemp}
-                                          onChange={(e) => setSemestreTemp(e.target.value)}
-                                          placeholder="Ex: 2025/1"
-                                          className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white text-sm mb-3"
-                                          autoFocus
-                                        />
-                                        <div className="flex gap-2">
-                                          <button
-                                            onClick={() => setEditingSemestre(null)}
-                                            className="flex-1 px-3 py-2 text-sm text-slate-400 hover:bg-slate-700 rounded-lg"
-                                          >
-                                            Cancelar
-                                          </button>
-                                          <button
-                                            onClick={() => salvarSemestre(d.id)}
-                                            className="flex-1 px-3 py-2 text-sm bg-blue-600 hover:bg-blue-700 text-white rounded-lg"
-                                          >
-                                            Salvar
-                                          </button>
-                                        </div>
                                       </div>
                                     )}
                                   </div>
