@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, RadialBarChart, RadialBar } from 'recharts';
-import { Plus, Trash2, BookOpen, Award, TrendingUp, AlertCircle, CheckCircle, GraduationCap, Edit2, X, Clock, PlayCircle, ChevronDown, ChevronUp, Search, Save, Cloud, CloudOff, RefreshCw, LogOut, User, Wifi, WifiOff, Download } from 'lucide-react';
+import { Plus, Trash2, BookOpen, Award, TrendingUp, AlertCircle, CheckCircle, GraduationCap, Edit2, X, Clock, PlayCircle, ChevronDown, ChevronUp, Search, Save, Cloud, CloudOff, RefreshCw, LogOut, User, Wifi, WifiOff, Download, RotateCcw } from 'lucide-react';
 import { useNotas } from './useNotas';
 
 const STATUS = {
@@ -43,7 +43,7 @@ export default function SistemaNotas() {
   const [notasTemp, setNotasTemp] = useState({ ga: '', gb: '', notaFinal: '' });
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [emailLogin, setEmailLogin] = useState('');
-
+  const [showDeleteMenu, setShowDeleteMenu] = useState(null);
   const calcularMedia = (d) => {
     if (d.notaFinal !== null) return d.notaFinal;
     if (d.ga !== null && d.gb !== null) return (d.ga + d.gb) / 2;
@@ -150,9 +150,21 @@ export default function SistemaNotas() {
   };
 
   const removerDisciplina = (id) => {
-    if (confirm('Tem certeza que deseja remover esta disciplina?')) {
-      setDisciplinas(disciplinas.filter(d => d.id !== id));
-    }
+    setDisciplinas(disciplinas.filter(d => d.id !== id));
+    setShowDeleteMenu(null);
+  };
+
+  const resetarDisciplina = (id) => {
+    setDisciplinas(disciplinas.map(d => d.id === id ? { 
+      ...d, 
+      status: 'NAO_INICIADA', 
+      ga: null, 
+      gb: null, 
+      notaFinal: null, 
+      faltas: 0, 
+      semestreCursado: null 
+    } : d));
+    setShowDeleteMenu(null);
   };
 
   const atualizarDisciplina = (id, updates) => {
@@ -595,7 +607,47 @@ export default function SistemaNotas() {
                                 )}
                                 
                                 {!isEditingNotas && (
-                                  <button onClick={() => removerDisciplina(d.id)} className="p-2 text-red-400 hover:bg-red-500/10 rounded-lg"><Trash2 size={16} /></button>
+                                  <div className="relative">
+                                    <button 
+                                      onClick={() => setShowDeleteMenu(showDeleteMenu === d.id ? null : d.id)} 
+                                      className="p-2 text-red-400 hover:bg-red-500/10 rounded-lg"
+                                    >
+                                      <Trash2 size={16} />
+                                    </button>
+                                    
+                                    {showDeleteMenu === d.id && (
+                                      <div className="absolute right-0 top-10 z-50 bg-slate-800 border border-slate-600 rounded-lg shadow-xl min-w-[200px] overflow-hidden">
+                                        {d.status !== 'NAO_INICIADA' && (
+                                          <button
+                                            onClick={() => resetarDisciplina(d.id)}
+                                            className="w-full flex items-center gap-3 px-4 py-3 text-left text-yellow-400 hover:bg-slate-700 transition-colors"
+                                          >
+                                            <RotateCcw size={16} />
+                                            <div>
+                                              <div className="font-medium">Resetar andamento</div>
+                                              <div className="text-xs text-slate-400">Volta para "Não Iniciada"</div>
+                                            </div>
+                                          </button>
+                                        )}
+                                        <button
+                                          onClick={() => removerDisciplina(d.id)}
+                                          className="w-full flex items-center gap-3 px-4 py-3 text-left text-red-400 hover:bg-slate-700 transition-colors border-t border-slate-700"
+                                        >
+                                          <Trash2 size={16} />
+                                          <div>
+                                            <div className="font-medium">Excluir disciplina</div>
+                                            <div className="text-xs text-slate-400">Remove permanentemente</div>
+                                          </div>
+                                        </button>
+                                        <button
+                                          onClick={() => setShowDeleteMenu(null)}
+                                          className="w-full px-4 py-2 text-center text-xs text-slate-500 hover:bg-slate-700 border-t border-slate-700"
+                                        >
+                                          Cancelar
+                                        </button>
+                                      </div>
+                                    )}
+                                  </div>
                                 )}
                               </div>
                             </div>
