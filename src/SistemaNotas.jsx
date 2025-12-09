@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, RadialBarChart, RadialBar } from 'recharts';
-import { Plus, Trash2, BookOpen, Award, TrendingUp, AlertCircle, CheckCircle, GraduationCap, Edit2, X, Clock, PlayCircle, ChevronDown, ChevronUp, Search, Save, Cloud, CloudOff, RefreshCw, LogOut, User, Wifi, WifiOff } from 'lucide-react';
+import { Plus, Trash2, BookOpen, Award, TrendingUp, AlertCircle, CheckCircle, GraduationCap, Edit2, X, Clock, PlayCircle, ChevronDown, ChevronUp, Search, Save, Cloud, CloudOff, RefreshCw, LogOut, User, Wifi, WifiOff, Download } from 'lucide-react';
 import { useNotas } from './useNotas';
 
 const STATUS = {
@@ -201,6 +201,123 @@ export default function SistemaNotas() {
     setEmailLogin('');
   };
 
+  const exportarPDF = () => {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+    
+    // Título
+    doc.setFontSize(20);
+    doc.setTextColor(99, 102, 241); // Indigo
+    doc.text('Histórico Acadêmico', 105, 20, { align: 'center' });
+    
+    // Informações do aluno
+    doc.setFontSize(10);
+    doc.setTextColor(100);
+    doc.text(`Gerado em: ${new Date().toLocaleDateString('pt-BR')}`, 105, 28, { align: 'center' });
+    if (user?.email) {
+      doc.text(`Aluno: ${user.email}`, 105, 34, { align: 'center' });
+    }
+    
+    // Resumo
+    doc.setFontSize(12);
+    doc.setTextColor(50);
+    doc.text('Resumo do Curso', 14, 45);
+    
+    doc.setFontSize(10);
+    doc.setTextColor(80);
+    const resumoY = 52;
+    doc.text(`Total de Disciplinas: ${estatisticas.total}`, 14, resumoY);
+    doc.text(`Aprovadas: ${estatisticas.aprovadas} (${estatisticas.progressoCurso.toFixed(1)}%)`, 14, resumoY + 6);
+    doc.text(`Em Curso: ${estatisticas.emCurso}`, 14, resumoY + 12);
+    doc.text(`Reprovadas: ${estatisticas.reprovadas}`, 14, resumoY + 18);
+    doc.text(`Não Iniciadas: ${estatisticas.naoIniciadas}`, 14, resumoY + 24);
+    
+    doc.text(`Média Geral: ${estatisticas.mediaGeral.toFixed(2)}`, 105, resumoY);
+    doc.text(`Créditos Aprovados: ${estatisticas.creditosAprovados}/${estatisticas.totalCreditos}`, 105, resumoY + 6);
+    doc.text(`Carga Horária: ${estatisticas.cargaHorariaConcluida}/${estatisticas.totalCargaHoraria}h`, 105, resumoY + 12);
+    
+    // Tabela de disciplinas por período
+    let currentY = resumoY + 35;
+    
+    periodos.forEach(periodo => {
+      const discs = disciplinas.filter(d => d.periodo === periodo);
+      
+      if (currentY > 250) {
+        doc.addPage();
+        currentY = 20;
+      }
+      
+      // Cabeçalho do período
+      doc.setFontSize(11);
+      doc.setTextColor(99, 102, 241);
+      doc.text(`${periodo}º Período`, 14, currentY);
+      currentY += 5;
+      
+      // Dados da tabela
+      const tableData = discs.map(d => {
+        const media = calcularMedia(d);
+        return [
+          d.nome.length > 40 ? d.nome.substring(0, 37) + '...' : d.nome,
+          d.ga !== null ? d.ga.toFixed(1) : '-',
+          d.gb !== null ? d.gb.toFixed(1) : '-',
+          media !== null ? media.toFixed(1) : '-',
+          STATUS[d.status].label
+        ];
+      });
+      
+      doc.autoTable({
+        startY: currentY,
+        head: [['Disciplina', 'GA', 'GB', 'Média', 'Situação']],
+        body: tableData,
+        theme: 'striped',
+        headStyles: { 
+          fillColor: [99, 102, 241],
+          textColor: 255,
+          fontSize: 9
+        },
+        bodyStyles: { 
+          fontSize: 8,
+          textColor: 50
+        },
+        columnStyles: {
+          0: { cellWidth: 90 },
+          1: { cellWidth: 20, halign: 'center' },
+          2: { cellWidth: 20, halign: 'center' },
+          3: { cellWidth: 20, halign: 'center' },
+          4: { cellWidth: 30, halign: 'center' }
+        },
+        margin: { left: 14, right: 14 },
+        didParseCell: function(data) {
+          if (data.section === 'body' && data.column.index === 4) {
+            const status = data.cell.raw;
+            if (status === 'Aprovada') {
+              data.cell.styles.textColor = [16, 185, 129];
+            } else if (status === 'Reprovada') {
+              data.cell.styles.textColor = [239, 68, 68];
+            } else if (status === 'Em Curso') {
+              data.cell.styles.textColor = [59, 130, 246];
+            }
+          }
+        }
+      });
+      
+      currentY = doc.lastAutoTable.finalY + 10;
+    });
+    
+    // Rodapé
+    const pageCount = doc.internal.getNumberOfPages();
+    for (let i = 1; i <= pageCount; i++) {
+      doc.setPage(i);
+      doc.setFontSize(8);
+      doc.setTextColor(150);
+      doc.text(`Página ${i} de ${pageCount}`, 105, 290, { align: 'center' });
+      doc.text('Sistema de Notas Acadêmicas', 14, 290);
+    }
+    
+    // Salvar
+    doc.save('historico-academico.pdf');
+  };
+
   const StatusIcon = ({ status }) => {
     switch (status) {
       case 'APROVADA': return <CheckCircle size={16} className="text-green-400" />;
@@ -361,6 +478,14 @@ export default function SistemaNotas() {
                 </select>
               </div>
               <div className="flex gap-2">
+                <button
+                  onClick={exportarPDF}
+                  className="flex items-center gap-2 px-3 py-2 bg-green-600 hover:bg-green-700 rounded-lg transition-colors text-sm"
+                  title="Exportar PDF"
+                >
+                  <Download size={18} />
+                  <span className="hidden sm:inline">PDF</span>
+                </button>
                 <button
                   onClick={() => setShowAddMultiplas(true)}
                   className="flex items-center gap-2 px-3 py-2 bg-purple-600 hover:bg-purple-700 rounded-lg transition-colors text-sm"
