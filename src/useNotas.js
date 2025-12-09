@@ -132,9 +132,13 @@ export function useNotas() {
 
   // Carregar do Supabase
   const loadFromSupabase = useCallback(async (userId) => {
-    if (!isSupabaseConfigured() || !userId) return null
+    if (!supabase || !userId) {
+      console.log('loadFromSupabase: supabase ou userId não disponível')
+      return null
+    }
 
     try {
+      console.log('Carregando do Supabase para user:', userId)
       const { data: rows, error } = await supabase
         .from('notas_usuarios')
         .select('*')
@@ -147,6 +151,7 @@ export function useNotas() {
       }
 
       if (rows) {
+        console.log('Dados carregados do Supabase:', rows.disciplinas?.length, 'disciplinas')
         return {
           disciplinas: rows.disciplinas || [],
           lastUpdated: rows.updated_at
@@ -160,10 +165,20 @@ export function useNotas() {
 
   // Salvar no Supabase
   const saveToSupabase = useCallback(async (userId, newData) => {
-    if (!isSupabaseConfigured() || !userId || !isOnline) return false
+    if (!supabase || !userId) {
+      console.log('saveToSupabase: supabase ou userId não disponível')
+      return false
+    }
+
+    if (!isOnline) {
+      console.log('saveToSupabase: offline, não salvando')
+      return false
+    }
 
     setSyncing(true)
     try {
+      console.log('Salvando no Supabase para user:', userId, 'disciplinas:', newData.disciplinas?.length)
+      
       const { error } = await supabase
         .from('notas_usuarios')
         .upsert({
@@ -179,6 +194,7 @@ export function useNotas() {
         return false
       }
 
+      console.log('Salvo no Supabase com sucesso!')
       setLastSync(new Date())
       return true
     } catch (error) {
@@ -197,32 +213,37 @@ export function useNotas() {
       // Carregar usuário
       const savedUser = loadUser()
       setUser(savedUser)
+      console.log('Usuário carregado:', savedUser?.email)
 
       // Carregar do localStorage primeiro (rápido)
       const localData = loadFromLocalStorage()
       if (localData) {
         setData(localData)
+        console.log('Dados locais carregados:', localData.disciplinas?.length, 'disciplinas')
       }
 
       // Se tem Supabase configurado e usuário, sincronizar
-      if (isSupabaseConfigured() && savedUser?.id && isOnline) {
+      if (supabase && savedUser?.id && isOnline) {
+        console.log('Tentando sincronizar com Supabase...')
         const cloudData = await loadFromSupabase(savedUser.id)
         
-        if (cloudData) {
+        if (cloudData && cloudData.disciplinas?.length > 0) {
           // Se dados da nuvem são mais recentes, usar eles
           const localTime = localData?.lastUpdated ? new Date(localData.lastUpdated) : new Date(0)
           const cloudTime = cloudData.lastUpdated ? new Date(cloudData.lastUpdated) : new Date(0)
           
           if (cloudTime > localTime) {
+            console.log('Usando dados da nuvem (mais recentes)')
             setData(cloudData)
             saveToLocalStorage(cloudData)
-          } else if (localData && localTime > cloudTime) {
-            // Dados locais mais recentes, enviar para nuvem
+          } else if (localData) {
+            console.log('Dados locais mais recentes, enviando para nuvem')
             await saveToSupabase(savedUser.id, localData)
           }
           setLastSync(new Date())
-        } else if (localData) {
+        } else if (localData && localData.disciplinas?.length > 0) {
           // Não tem dados na nuvem, enviar dados locais
+          console.log('Nuvem vazia, enviando dados locais')
           await saveToSupabase(savedUser.id, localData)
         }
       }
@@ -232,13 +253,6 @@ export function useNotas() {
 
     init()
   }, [])
-
-  // Sincronizar quando voltar online
-  useEffect(() => {
-    if (isOnline && user?.id && data.disciplinas.length > 0) {
-      saveToSupabase(user.id, data)
-    }
-  }, [isOnline])
 
   // Atualizar disciplinas
   const setDisciplinas = useCallback(async (disciplinasOrUpdater) => {
@@ -254,8 +268,9 @@ export function useNotas() {
     setData(newData)
     saveToLocalStorage(newData)
 
-    // Sincronizar com Supabase se configurado
-    if (user?.id) {
+    // Sincronizar com Supabase se configurado e logado
+    if (supabase && user?.id) {
+      console.log('Salvando alteração no Supabase...')
       await saveToSupabase(user.id, newData)
     }
   }, [data.disciplinas, user, saveToLocalStorage, saveToSupabase])
@@ -265,23 +280,28 @@ export function useNotas() {
     const userId = btoa(email).replace(/[^a-zA-Z0-9]/g, '')
     const userData = { id: userId, email, createdAt: new Date().toISOString() }
     
+    console.log('Login com email:', email, 'userId:', userId)
     saveUser(userData)
 
     // Tentar carregar dados existentes do Supabase
-    if (isSupabaseConfigured() && isOnline) {
+    if (supabase && isOnline) {
+      console.log('Verificando dados na nuvem...')
       const cloudData = await loadFromSupabase(userId)
-      if (cloudData) {
+      if (cloudData && cloudData.disciplinas?.length > 0) {
+        console.log('Dados encontrados na nuvem, carregando...')
         setData(cloudData)
         saveToLocalStorage(cloudData)
         setLastSync(new Date())
-      } else if (data.disciplinas.length > 0) {
+      } else {
         // Enviar dados locais para a nuvem
-        await saveToSupabase(userId, data)
+        console.log('Nenhum dado na nuvem, enviando dados locais...')
+        const localData = loadFromLocalStorage() || data
+        await saveToSupabase(userId, localData)
       }
     }
 
     return userData
-  }, [data, saveUser, loadFromSupabase, saveToSupabase, saveToLocalStorage, isOnline])
+  }, [data, saveUser, loadFromSupabase, saveToSupabase, saveToLocalStorage, isOnline, loadFromLocalStorage])
 
   // Logout
   const logout = useCallback(() => {
@@ -291,23 +311,40 @@ export function useNotas() {
 
   // Forçar sincronização
   const forceSync = useCallback(async () => {
-    if (!user?.id || !isOnline) return false
+    if (!user?.id) {
+      console.log('forceSync: usuário não logado')
+      return false
+    }
+    
+    if (!isOnline) {
+      console.log('forceSync: offline')
+      return false
+    }
+
+    if (!supabase) {
+      console.log('forceSync: supabase não configurado')
+      return false
+    }
     
     setSyncing(true)
     try {
+      console.log('Forçando sincronização...')
       const cloudData = await loadFromSupabase(user.id)
       
-      if (cloudData) {
+      if (cloudData && cloudData.disciplinas?.length > 0) {
         const localTime = data.lastUpdated ? new Date(data.lastUpdated) : new Date(0)
         const cloudTime = cloudData.lastUpdated ? new Date(cloudData.lastUpdated) : new Date(0)
         
         if (cloudTime > localTime) {
+          console.log('Atualizando com dados da nuvem')
           setData(cloudData)
           saveToLocalStorage(cloudData)
         } else {
+          console.log('Enviando dados locais para nuvem')
           await saveToSupabase(user.id, data)
         }
       } else {
+        console.log('Nuvem vazia, enviando dados locais')
         await saveToSupabase(user.id, data)
       }
       
