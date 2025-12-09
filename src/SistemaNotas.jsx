@@ -44,6 +44,18 @@ export default function SistemaNotas() {
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [emailLogin, setEmailLogin] = useState('');
   const [showDeleteMenu, setShowDeleteMenu] = useState(null);
+
+  // Fechar menu ao clicar fora
+  React.useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (showDeleteMenu && !e.target.closest('.delete-menu-container')) {
+        setShowDeleteMenu(null);
+      }
+    };
+    
+    document.addEventListener('click', handleClickOutside);
+    return () => document.removeEventListener('click', handleClickOutside);
+  }, [showDeleteMenu]);
   const calcularMedia = (d) => {
     if (d.notaFinal !== null) return d.notaFinal;
     if (d.ga !== null && d.gb !== null) return (d.ga + d.gb) / 2;
@@ -607,7 +619,7 @@ export default function SistemaNotas() {
                                 )}
                                 
                                 {!isEditingNotas && (
-                                  <div className="relative">
+                                  <div className="relative delete-menu-container">
                                     <button 
                                       onClick={() => setShowDeleteMenu(showDeleteMenu === d.id ? null : d.id)} 
                                       className="p-2 text-red-400 hover:bg-red-500/10 rounded-lg"
@@ -638,12 +650,6 @@ export default function SistemaNotas() {
                                             <div className="font-medium">Excluir disciplina</div>
                                             <div className="text-xs text-slate-400">Remove permanentemente</div>
                                           </div>
-                                        </button>
-                                        <button
-                                          onClick={() => setShowDeleteMenu(null)}
-                                          className="w-full px-4 py-2 text-center text-xs text-slate-500 hover:bg-slate-700 border-t border-slate-700"
-                                        >
-                                          Cancelar
                                         </button>
                                       </div>
                                     )}
