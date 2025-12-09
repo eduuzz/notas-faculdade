@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, RadialBarChart, RadialBar } from 'recharts';
-import { Plus, Trash2, BookOpen, Award, TrendingUp, AlertCircle, CheckCircle, GraduationCap, Edit2, X, Clock, PlayCircle, ChevronDown, ChevronUp, Search, Save, Cloud, CloudOff, RefreshCw, LogOut, User, Wifi, WifiOff, Download, RotateCcw } from 'lucide-react';
+import { Plus, Trash2, BookOpen, Award, TrendingUp, AlertCircle, CheckCircle, GraduationCap, Edit2, X, Clock, PlayCircle, ChevronDown, ChevronUp, Search, Save, Cloud, CloudOff, RefreshCw, LogOut, User, Wifi, WifiOff, Download, RotateCcw, Calendar } from 'lucide-react';
 import { useNotas } from './useNotas';
 
 const STATUS = {
@@ -44,6 +44,8 @@ export default function SistemaNotas() {
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [emailLogin, setEmailLogin] = useState('');
   const [showDeleteMenu, setShowDeleteMenu] = useState(null);
+  const [editingSemestre, setEditingSemestre] = useState(null);
+  const [semestreTemp, setSemestreTemp] = useState('');
 
   // Fechar menu ao clicar fora
   React.useEffect(() => {
@@ -51,11 +53,14 @@ export default function SistemaNotas() {
       if (showDeleteMenu && !e.target.closest('.delete-menu-container')) {
         setShowDeleteMenu(null);
       }
+      if (editingSemestre && !e.target.closest('.semestre-edit-container')) {
+        setEditingSemestre(null);
+      }
     };
     
     document.addEventListener('click', handleClickOutside);
     return () => document.removeEventListener('click', handleClickOutside);
-  }, [showDeleteMenu]);
+  }, [showDeleteMenu, editingSemestre]);
   const calcularMedia = (d) => {
     if (d.notaFinal !== null) return d.notaFinal;
     if (d.ga !== null && d.gb !== null) return (d.ga + d.gb) / 2;
@@ -177,6 +182,21 @@ export default function SistemaNotas() {
       semestreCursado: null 
     } : d));
     setShowDeleteMenu(null);
+  };
+
+  const abrirEdicaoSemestre = (d) => {
+    setEditingSemestre(d.id);
+    setSemestreTemp(d.semestreCursado || '');
+    setShowDeleteMenu(null);
+  };
+
+  const salvarSemestre = (id) => {
+    setDisciplinas(disciplinas.map(d => d.id === id ? { 
+      ...d, 
+      semestreCursado: semestreTemp.trim() || null 
+    } : d));
+    setEditingSemestre(null);
+    setSemestreTemp('');
   };
 
   const atualizarDisciplina = (id, updates) => {
@@ -628,22 +648,36 @@ export default function SistemaNotas() {
                                     </button>
                                     
                                     {showDeleteMenu === d.id && (
-                                      <div className="absolute right-0 top-10 z-50 bg-slate-800 border border-slate-600 rounded-lg shadow-xl min-w-[200px] overflow-hidden">
+                                      <div className="absolute right-0 top-10 z-50 bg-slate-800 border border-slate-600 rounded-lg shadow-xl min-w-[220px] overflow-hidden">
                                         {d.status !== 'NAO_INICIADA' && (
-                                          <button
-                                            onClick={() => resetarDisciplina(d.id)}
-                                            className="w-full flex items-center gap-3 px-4 py-3 text-left text-yellow-400 hover:bg-slate-700 transition-colors"
-                                          >
-                                            <RotateCcw size={16} />
-                                            <div>
-                                              <div className="font-medium">Resetar andamento</div>
-                                              <div className="text-xs text-slate-400">Volta para "Não Iniciada"</div>
-                                            </div>
-                                          </button>
+                                          <>
+                                            <button
+                                              onClick={() => abrirEdicaoSemestre(d)}
+                                              className="w-full flex items-center gap-3 px-4 py-3 text-left text-blue-400 hover:bg-slate-700 transition-colors"
+                                            >
+                                              <Calendar size={16} />
+                                              <div>
+                                                <div className="font-medium">Editar semestre</div>
+                                                <div className="text-xs text-slate-400">
+                                                  {d.semestreCursado ? `Atual: ${d.semestreCursado}` : 'Não informado'}
+                                                </div>
+                                              </div>
+                                            </button>
+                                            <button
+                                              onClick={() => resetarDisciplina(d.id)}
+                                              className="w-full flex items-center gap-3 px-4 py-3 text-left text-yellow-400 hover:bg-slate-700 transition-colors border-t border-slate-700"
+                                            >
+                                              <RotateCcw size={16} />
+                                              <div>
+                                                <div className="font-medium">Resetar andamento</div>
+                                                <div className="text-xs text-slate-400">Volta para "Não Iniciada"</div>
+                                              </div>
+                                            </button>
+                                          </>
                                         )}
                                         <button
                                           onClick={() => removerDisciplina(d.id)}
-                                          className="w-full flex items-center gap-3 px-4 py-3 text-left text-red-400 hover:bg-slate-700 transition-colors border-t border-slate-700"
+                                          className={`w-full flex items-center gap-3 px-4 py-3 text-left text-red-400 hover:bg-slate-700 transition-colors ${d.status !== 'NAO_INICIADA' ? 'border-t border-slate-700' : ''}`}
                                         >
                                           <Trash2 size={16} />
                                           <div>
@@ -651,6 +685,34 @@ export default function SistemaNotas() {
                                             <div className="text-xs text-slate-400">Remove permanentemente</div>
                                           </div>
                                         </button>
+                                      </div>
+                                    )}
+
+                                    {editingSemestre === d.id && (
+                                      <div className="semestre-edit-container absolute right-0 top-10 z-50 bg-slate-800 border border-slate-600 rounded-lg shadow-xl p-4 min-w-[220px]">
+                                        <div className="text-sm text-slate-300 mb-2">Semestre cursado:</div>
+                                        <input
+                                          type="text"
+                                          value={semestreTemp}
+                                          onChange={(e) => setSemestreTemp(e.target.value)}
+                                          placeholder="Ex: 2025/1"
+                                          className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white text-sm mb-3"
+                                          autoFocus
+                                        />
+                                        <div className="flex gap-2">
+                                          <button
+                                            onClick={() => setEditingSemestre(null)}
+                                            className="flex-1 px-3 py-2 text-sm text-slate-400 hover:bg-slate-700 rounded-lg"
+                                          >
+                                            Cancelar
+                                          </button>
+                                          <button
+                                            onClick={() => salvarSemestre(d.id)}
+                                            className="flex-1 px-3 py-2 text-sm bg-blue-600 hover:bg-blue-700 text-white rounded-lg"
+                                          >
+                                            Salvar
+                                          </button>
+                                        </div>
                                       </div>
                                     )}
                                   </div>
