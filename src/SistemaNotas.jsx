@@ -604,25 +604,31 @@ export default function SistemaNotas() {
                   <option value="REPROVADA">Reprovadas</option>
                 </select>
                 <button
-                  onClick={() => {
-                    const todosExpandidos = periodos.every(p => expandedPeriodos[p]);
-                    const novosExpandidos = {};
-                    periodos.forEach(p => novosExpandidos[p] = !todosExpandidos);
-                    setExpandedPeriodos(novosExpandidos);
-                  }}
-                  className="flex items-center gap-2 px-3 py-2 bg-slate-700 hover:bg-slate-600 rounded-lg transition-colors text-sm"
-                  title={periodos.every(p => expandedPeriodos[p]) ? "Minimizar todos" : "Expandir todos"}
-                >
-                  {periodos.every(p => expandedPeriodos[p]) ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
-                  <span className="hidden sm:inline">{periodos.every(p => expandedPeriodos[p]) ? "Minimizar" : "Expandir"}</span>
-                </button>
-                <button
                   onClick={toggleModoCompacto}
                   className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-colors text-sm ${modoCompacto ? 'bg-indigo-600 hover:bg-indigo-700' : 'bg-slate-700 hover:bg-slate-600'}`}
                   title={modoCompacto ? "Modo normal" : "Modo compacto"}
                 >
                   {modoCompacto ? <LayoutGrid size={18} /> : <List size={18} />}
                   <span className="hidden sm:inline">{modoCompacto ? "Normal" : "Compacto"}</span>
+                </button>
+                <button
+                  onClick={() => {
+                    if (modoCompacto) return;
+                    const todosExpandidos = periodos.every(p => expandedPeriodos[p]);
+                    const novosExpandidos = {};
+                    periodos.forEach(p => novosExpandidos[p] = !todosExpandidos);
+                    setExpandedPeriodos(novosExpandidos);
+                  }}
+                  disabled={modoCompacto}
+                  className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-colors text-sm ${
+                    modoCompacto 
+                      ? 'bg-slate-800 text-slate-600 cursor-not-allowed opacity-50' 
+                      : 'bg-slate-700 hover:bg-slate-600'
+                  }`}
+                  title={modoCompacto ? "Não disponível no modo compacto" : (periodos.every(p => expandedPeriodos[p]) ? "Minimizar todos" : "Expandir todos")}
+                >
+                  {periodos.every(p => expandedPeriodos[p]) ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+                  <span className="hidden sm:inline">{periodos.every(p => expandedPeriodos[p]) ? "Minimizar" : "Expandir"}</span>
                 </button>
               </div>
               <div className="flex gap-2">
@@ -818,83 +824,6 @@ export default function SistemaNotas() {
                                   </div>
                                 )}
 
-                                {isEditingNotas && (
-                                  <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setEditingNotas(null)}>
-                                    <div className="bg-slate-800 border border-slate-600 rounded-xl shadow-2xl p-5 min-w-[320px] max-w-[90vw]" onClick={e => e.stopPropagation()}>
-                                      <div className="flex justify-between items-center mb-4">
-                                        <h3 className="text-lg font-semibold text-white">Editar Notas</h3>
-                                        <button onClick={() => setEditingNotas(null)} className="p-1 text-slate-400 hover:text-white"><X size={20} /></button>
-                                      </div>
-                                      
-                                      <div className="grid grid-cols-2 gap-3 mb-4">
-                                        <div>
-                                          <label className="block text-xs text-slate-400 mb-1">Grau A</label>
-                                          <input 
-                                            type="number" 
-                                            step="0.1" 
-                                            min="0" 
-                                            max="10" 
-                                            value={notasTemp.ga} 
-                                            onChange={e => setNotasTemp({...notasTemp, ga: e.target.value})} 
-                                            placeholder="0.0" 
-                                            className="w-full px-3 py-2 bg-slate-700 rounded-lg border border-slate-600 focus:border-indigo-500 focus:outline-none text-center text-lg" 
-                                          />
-                                        </div>
-                                        <div>
-                                          <label className="block text-xs text-slate-400 mb-1">Grau B</label>
-                                          <input 
-                                            type="number" 
-                                            step="0.1" 
-                                            min="0" 
-                                            max="10" 
-                                            value={notasTemp.gb} 
-                                            onChange={e => setNotasTemp({...notasTemp, gb: e.target.value})} 
-                                            placeholder="0.0" 
-                                            className="w-full px-3 py-2 bg-slate-700 rounded-lg border border-slate-600 focus:border-indigo-500 focus:outline-none text-center text-lg" 
-                                          />
-                                        </div>
-                                      </div>
-                                      
-                                      <div className="mb-4">
-                                        <label className="block text-xs text-slate-400 mb-1">Semestre Cursado (opcional)</label>
-                                        <input 
-                                          type="text" 
-                                          value={notasTemp.semestreCursado} 
-                                          onChange={e => setNotasTemp({...notasTemp, semestreCursado: e.target.value})} 
-                                          placeholder="Ex: 2025/1" 
-                                          className="w-full px-3 py-2 bg-slate-700 rounded-lg border border-slate-600 focus:border-indigo-500 focus:outline-none" 
-                                        />
-                                      </div>
-                                      
-                                      <div className="mb-4">
-                                        <label className="block text-xs text-slate-400 mb-1">Observação (opcional)</label>
-                                        <textarea 
-                                          value={notasTemp.observacao} 
-                                          onChange={e => setNotasTemp({...notasTemp, observacao: e.target.value})} 
-                                          placeholder="Ex: Professor João, sala 302, provas difíceis..." 
-                                          rows={2}
-                                          className="w-full px-3 py-2 bg-slate-700 rounded-lg border border-slate-600 focus:border-indigo-500 focus:outline-none resize-none" 
-                                        />
-                                      </div>
-                                      
-                                      <div className="flex gap-3">
-                                        <button 
-                                          onClick={() => setEditingNotas(null)} 
-                                          className="flex-1 px-4 py-2 bg-slate-700 hover:bg-slate-600 rounded-lg transition-colors"
-                                        >
-                                          Cancelar
-                                        </button>
-                                        <button 
-                                          onClick={() => salvarNotas(d.id)} 
-                                          className="flex-1 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 rounded-lg transition-colors flex items-center justify-center gap-2"
-                                        >
-                                          <Save size={16} />
-                                          Salvar
-                                        </button>
-                                      </div>
-                                    </div>
-                                  </div>
-                                )}
                                 
                                 {isAdmin && d.status === 'NAO_INICIADA' && (
                                   <button onClick={() => setShowIniciarModal(d.id)} className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 rounded-lg text-sm">Iniciar</button>
@@ -914,60 +843,12 @@ export default function SistemaNotas() {
                                 )}
                                 
                                 {isAdmin && !isEditingNotas && (
-                                  <div className="relative">
-                                    <button 
-                                      onClick={() => setShowDeleteMenu(showDeleteMenu === d.id ? null : d.id)} 
-                                      className="p-2 text-red-400 hover:bg-red-500/10 rounded-lg"
-                                    >
-                                      <Trash2 size={16} />
-                                    </button>
-                                    
-                                    {showDeleteMenu === d.id && (
-                                      <div className="fixed inset-0 z-[9999]" onClick={() => setShowDeleteMenu(null)}>
-                                        <div 
-                                          className="absolute bg-slate-800 border border-slate-600 rounded-lg shadow-2xl min-w-[220px] overflow-hidden"
-                                          style={{
-                                            top: '50%',
-                                            left: '50%',
-                                            transform: 'translate(-50%, -50%)'
-                                          }}
-                                          onClick={e => e.stopPropagation()}
-                                        >
-                                          <div className="px-4 py-3 border-b border-slate-700 bg-slate-700/50">
-                                            <div className="text-sm font-medium text-white truncate max-w-[200px]">{d.nome}</div>
-                                          </div>
-                                          {d.status !== 'NAO_INICIADA' && (
-                                            <button
-                                              onClick={() => resetarDisciplina(d.id)}
-                                              className="w-full flex items-center gap-3 px-4 py-3 text-left text-yellow-400 hover:bg-slate-700 transition-colors"
-                                            >
-                                              <RotateCcw size={16} />
-                                              <div>
-                                                <div className="font-medium">Resetar andamento</div>
-                                                <div className="text-xs text-slate-400">Volta para "Não Iniciada"</div>
-                                              </div>
-                                            </button>
-                                          )}
-                                          <button
-                                            onClick={() => removerDisciplina(d.id)}
-                                            className={`w-full flex items-center gap-3 px-4 py-3 text-left text-red-400 hover:bg-slate-700 transition-colors ${d.status !== 'NAO_INICIADA' ? 'border-t border-slate-700' : ''}`}
-                                          >
-                                            <Trash2 size={16} />
-                                            <div>
-                                              <div className="font-medium">Excluir disciplina</div>
-                                              <div className="text-xs text-slate-400">Remove permanentemente</div>
-                                            </div>
-                                          </button>
-                                          <button
-                                            onClick={() => setShowDeleteMenu(null)}
-                                            className="w-full px-4 py-2 text-sm text-slate-400 hover:bg-slate-700 border-t border-slate-700"
-                                          >
-                                            Cancelar
-                                          </button>
-                                        </div>
-                                      </div>
-                                    )}
-                                  </div>
+                                  <button 
+                                    onClick={() => setShowDeleteMenu(d.id)} 
+                                    className="p-2 text-red-400 hover:bg-red-500/10 rounded-lg"
+                                  >
+                                    <Trash2 size={16} />
+                                  </button>
                                 )}
                               </div>
                             </div>
@@ -1406,6 +1287,128 @@ export default function SistemaNotas() {
                   {loginLoading ? 'Entrando...' : 'Entrar'}
                 </button>
               </div>
+            </div>
+          </div>
+        )}
+
+        {/* Modal de Edição de Notas Global */}
+        {editingNotas && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setEditingNotas(null)}>
+            <div className="bg-slate-800 border border-slate-600 rounded-xl shadow-2xl p-5 min-w-[320px] max-w-[90vw]" onClick={e => e.stopPropagation()}>
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-lg font-semibold text-white">Editar Notas</h3>
+                <button onClick={() => setEditingNotas(null)} className="p-1 text-slate-400 hover:text-white"><X size={20} /></button>
+              </div>
+              <div className="text-sm text-slate-400 mb-4">{disciplinas.find(d => d.id === editingNotas)?.nome}</div>
+              
+              <div className="grid grid-cols-2 gap-3 mb-4">
+                <div>
+                  <label className="block text-xs text-slate-400 mb-1">Grau A</label>
+                  <input 
+                    type="number" 
+                    step="0.1" 
+                    min="0" 
+                    max="10" 
+                    value={notasTemp.ga} 
+                    onChange={e => setNotasTemp({...notasTemp, ga: e.target.value})} 
+                    placeholder="0.0" 
+                    className="w-full px-3 py-2 bg-slate-700 rounded-lg border border-slate-600 focus:border-indigo-500 focus:outline-none text-center text-lg" 
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs text-slate-400 mb-1">Grau B</label>
+                  <input 
+                    type="number" 
+                    step="0.1" 
+                    min="0" 
+                    max="10" 
+                    value={notasTemp.gb} 
+                    onChange={e => setNotasTemp({...notasTemp, gb: e.target.value})} 
+                    placeholder="0.0" 
+                    className="w-full px-3 py-2 bg-slate-700 rounded-lg border border-slate-600 focus:border-indigo-500 focus:outline-none text-center text-lg" 
+                  />
+                </div>
+              </div>
+              
+              <div className="mb-4">
+                <label className="block text-xs text-slate-400 mb-1">Semestre Cursado (opcional)</label>
+                <input 
+                  type="text" 
+                  value={notasTemp.semestreCursado} 
+                  onChange={e => setNotasTemp({...notasTemp, semestreCursado: e.target.value})} 
+                  placeholder="Ex: 2025/1" 
+                  className="w-full px-3 py-2 bg-slate-700 rounded-lg border border-slate-600 focus:border-indigo-500 focus:outline-none" 
+                />
+              </div>
+              
+              <div className="mb-4">
+                <label className="block text-xs text-slate-400 mb-1">Observação (opcional)</label>
+                <textarea 
+                  value={notasTemp.observacao} 
+                  onChange={e => setNotasTemp({...notasTemp, observacao: e.target.value})} 
+                  placeholder="Ex: Professor João, sala 302, provas difíceis..." 
+                  rows={2}
+                  className="w-full px-3 py-2 bg-slate-700 rounded-lg border border-slate-600 focus:border-indigo-500 focus:outline-none resize-none" 
+                />
+              </div>
+              
+              <div className="flex gap-3">
+                <button 
+                  onClick={() => setEditingNotas(null)} 
+                  className="flex-1 px-4 py-2 bg-slate-700 hover:bg-slate-600 rounded-lg transition-colors"
+                >
+                  Cancelar
+                </button>
+                <button 
+                  onClick={() => salvarNotas(editingNotas)} 
+                  className="flex-1 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 rounded-lg transition-colors flex items-center justify-center gap-2"
+                >
+                  <Save size={16} />
+                  Salvar
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Modal de Exclusão Global */}
+        {showDeleteMenu && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[9999]" onClick={() => setShowDeleteMenu(null)}>
+            <div 
+              className="bg-slate-800 border border-slate-600 rounded-xl shadow-2xl min-w-[280px] overflow-hidden"
+              onClick={e => e.stopPropagation()}
+            >
+              <div className="px-4 py-3 border-b border-slate-700 bg-slate-700/50">
+                <div className="text-sm font-medium text-white truncate">{disciplinas.find(d => d.id === showDeleteMenu)?.nome}</div>
+              </div>
+              {disciplinas.find(d => d.id === showDeleteMenu)?.status !== 'NAO_INICIADA' && (
+                <button
+                  onClick={() => resetarDisciplina(showDeleteMenu)}
+                  className="w-full flex items-center gap-3 px-4 py-3 text-left text-yellow-400 hover:bg-slate-700 transition-colors"
+                >
+                  <RotateCcw size={16} />
+                  <div>
+                    <div className="font-medium">Resetar andamento</div>
+                    <div className="text-xs text-slate-400">Volta para "Não Iniciada"</div>
+                  </div>
+                </button>
+              )}
+              <button
+                onClick={() => removerDisciplina(showDeleteMenu)}
+                className={`w-full flex items-center gap-3 px-4 py-3 text-left text-red-400 hover:bg-slate-700 transition-colors ${disciplinas.find(d => d.id === showDeleteMenu)?.status !== 'NAO_INICIADA' ? 'border-t border-slate-700' : ''}`}
+              >
+                <Trash2 size={16} />
+                <div>
+                  <div className="font-medium">Excluir disciplina</div>
+                  <div className="text-xs text-slate-400">Remove permanentemente</div>
+                </div>
+              </button>
+              <button
+                onClick={() => setShowDeleteMenu(null)}
+                className="w-full px-4 py-2 text-sm text-slate-400 hover:bg-slate-700 border-t border-slate-700"
+              >
+                Cancelar
+              </button>
             </div>
           </div>
         )}
