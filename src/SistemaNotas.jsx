@@ -51,9 +51,9 @@ export default function SistemaNotas() {
   const [showDeleteMenu, setShowDeleteMenu] = useState(null);
   const calcularMedia = (d) => {
     if (d.notaFinal !== null) return d.notaFinal;
-    if (d.ga !== null && d.gb !== null) return (d.ga + d.gb) / 2;
-    if (d.ga !== null) return d.ga;
-    if (d.gb !== null) return d.gb;
+    if (d.ga !== null && d.gb !== null) return d.ga * 0.33 + d.gb * 0.67;
+    if (d.ga !== null) return d.ga * 0.33;
+    if (d.gb !== null) return d.gb * 0.67;
     return null;
   };
 
@@ -847,9 +847,10 @@ export default function SistemaNotas() {
                   const isEditingNotas = editingNotas === d.id;
                   let notaNecessariaGB = null;
                   if (d.ga !== null && d.gb === null) {
-                    notaNecessariaGB = (d.notaMinima * 2) - d.ga;
+                    // Fórmula: GA * 0.33 + GB * 0.67 >= notaMinima
+                    // GB >= (notaMinima - GA * 0.33) / 0.67
+                    notaNecessariaGB = (d.notaMinima - d.ga * 0.33) / 0.67;
                     if (notaNecessariaGB < 0) notaNecessariaGB = 0;
-                    if (notaNecessariaGB > 10) notaNecessariaGB = 10;
                   }
                   
                   return (
