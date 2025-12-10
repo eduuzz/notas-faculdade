@@ -52,6 +52,29 @@ export default function SistemaNotas() {
   const [showDeleteMenu, setShowDeleteMenu] = useState(null);
   const [theme, setTheme] = useState(() => localStorage.getItem('theme') || 'system');
   const [showThemeMenu, setShowThemeMenu] = useState(false);
+  
+  // Estados do simulador de formatura
+  const [semestreAtualAno, setSemestreAtualAno] = useState(() => {
+    const saved = localStorage.getItem('semestreAtualAno');
+    return saved ? parseInt(saved) : new Date().getFullYear();
+  });
+  const [semestreAtualNum, setSemestreAtualNum] = useState(() => {
+    const saved = localStorage.getItem('semestreAtualNum');
+    return saved ? parseInt(saved) : (new Date().getMonth() < 6 ? 1 : 2);
+  });
+  const [ritmoSimulado, setRitmoSimulado] = useState(() => {
+    const saved = localStorage.getItem('ritmoSimulado');
+    return saved ? parseFloat(saved) : 0;
+  });
+
+  // Salvar preferências do simulador
+  useEffect(() => {
+    localStorage.setItem('semestreAtualAno', semestreAtualAno.toString());
+    localStorage.setItem('semestreAtualNum', semestreAtualNum.toString());
+    if (ritmoSimulado > 0) {
+      localStorage.setItem('ritmoSimulado', ritmoSimulado.toString());
+    }
+  }, [semestreAtualAno, semestreAtualNum, ritmoSimulado]);
 
   // Lógica do tema
   useEffect(() => {
@@ -559,9 +582,9 @@ export default function SistemaNotas() {
         <div className="flex flex-wrap gap-2 mb-6 bg-slate-800/50 p-1 rounded-lg w-fit">
           {[
             { id: 'grade', label: 'Grade', icon: BookOpen },
-            { id: 'dashboard', label: 'Dashboard', icon: TrendingUp },
             { id: 'emcurso', label: 'Em Curso', icon: PlayCircle },
-            { id: 'graficos', label: 'Gráficos', icon: Award }
+            { id: 'dashboard', label: 'Dashboard', icon: TrendingUp },
+            { id: 'formatura', label: 'Formatura', icon: GraduationCap }
           ].map(tab => (
             <button
               key={tab.id}
@@ -1085,80 +1108,305 @@ export default function SistemaNotas() {
           </div>
         )}
 
-        {/* Gráficos */}
-        {activeTab === 'graficos' && (
-          <div className="space-y-6">
-            <div className="bg-slate-800/50 backdrop-blur rounded-xl p-6 border border-slate-700">
-              <h3 className="text-lg font-semibold mb-4">Médias por Disciplina</h3>
-              <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={disciplinas.filter(d => calcularMedia(d) !== null).map(d => ({
-                  nome: d.nome.length > 12 ? d.nome.substring(0, 12) + '...' : d.nome,
-                  media: parseFloat(calcularMedia(d).toFixed(2)),
-                  minima: d.notaMinima
-                }))}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-                  <XAxis dataKey="nome" stroke="#9ca3af" fontSize={11} angle={-20} textAnchor="end" height={60} />
-                  <YAxis stroke="#9ca3af" domain={[0, 10]} />
-                  <Tooltip contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #374151', borderRadius: '8px' }} />
-                  <Legend />
-                  <Bar dataKey="media" fill="#6366f1" name="Média" radius={[4, 4, 0, 0]} />
-                  <Bar dataKey="minima" fill="#ef4444" name="Mínima" radius={[4, 4, 0, 0]} opacity={0.3} />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-
-            <div className="grid md:grid-cols-2 gap-6">
-              <div className="bg-slate-800/50 backdrop-blur rounded-xl p-6 border border-slate-700">
-                <h3 className="text-lg font-semibold mb-4">Créditos</h3>
-                <ResponsiveContainer width="100%" height={250}>
-                  <PieChart>
-                    <Pie
-                      data={[
-                        { name: 'Concluídos', value: estatisticas.creditosAprovados, color: '#10b981' },
-                        { name: 'Em Curso', value: estatisticas.creditosEmCurso, color: '#3b82f6' },
-                        { name: 'Pendentes', value: estatisticas.totalCreditos - estatisticas.creditosAprovados - estatisticas.creditosEmCurso, color: '#64748b' }
-                      ].filter(d => d.value > 0)}
-                      cx="50%" cy="50%" outerRadius={80} dataKey="value"
-                      label={({ name, value }) => `${value}`}
-                    >
-                      {[
-                        { color: '#10b981' },
-                        { color: '#3b82f6' },
-                        { color: '#64748b' }
-                      ].map((entry, index) => (<Cell key={`cell-${index}`} fill={entry.color} />))}
-                    </Pie>
-                    <Tooltip />
-                    <Legend />
-                  </PieChart>
-                </ResponsiveContainer>
-              </div>
-
-              <div className="bg-slate-800/50 backdrop-blur rounded-xl p-6 border border-slate-700">
-                <h3 className="text-lg font-semibold mb-4">Resumo</h3>
-                <div className="space-y-3">
-                  <div className="flex justify-between items-center p-3 bg-slate-700/30 rounded-lg">
-                    <span className="text-slate-400">IRA</span>
-                    <span className="font-bold text-indigo-400">{estatisticas.mediaGeral.toFixed(2)}</span>
+        {/* Formatura - Simulador */}
+        {activeTab === 'formatura' && (() => {
+          // Cálculos do simulador
+          const disciplinasAprovadas = disciplinas.filter(d => d.status === 'APROVADA').length;
+          const disciplinasEmCurso = disciplinas.filter(d => d.status === 'EM_CURSO').length;
+          const disciplinasRestantes = disciplinas.filter(d => d.status === 'NAO_INICIADA').length;
+          const totalDisciplinas = disciplinas.length;
+          
+          // Calcular semestres cursados com disciplinas aprovadas
+          const semestresComAprovacoes = [...new Set(
+            disciplinas
+              .filter(d => d.status === 'APROVADA' && d.semestreCursado)
+              .map(d => d.semestreCursado)
+          )];
+          
+          // Média de disciplinas por semestre (baseado no histórico real)
+          const mediaHistorica = semestresComAprovacoes.length > 0 
+            ? disciplinasAprovadas / semestresComAprovacoes.length 
+            : 5; // valor padrão se não houver histórico
+          
+          // Usar ritmo simulado se definido, senão usar média histórica
+          const ritmoAtual = ritmoSimulado > 0 ? ritmoSimulado : mediaHistorica;
+          
+          // Calcular semestres restantes
+          const disciplinasParaConcluir = disciplinasRestantes + disciplinasEmCurso;
+          const semestresRestantes = ritmoAtual > 0 ? Math.ceil(disciplinasParaConcluir / ritmoAtual) : 0;
+          
+          // Calcular data prevista de formatura
+          const calcularDataFormatura = () => {
+            let ano = semestreAtualAno;
+            let sem = semestreAtualNum;
+            
+            for (let i = 0; i < semestresRestantes; i++) {
+              sem++;
+              if (sem > 2) {
+                sem = 1;
+                ano++;
+              }
+            }
+            
+            return { ano, semestre: sem };
+          };
+          
+          const previsao = calcularDataFormatura();
+          const progressoTotal = totalDisciplinas > 0 ? ((disciplinasAprovadas / totalDisciplinas) * 100) : 0;
+          
+          // Gerar linha do tempo
+          const gerarLinhaDoTempo = () => {
+            const timeline = [];
+            let ano = semestreAtualAno;
+            let sem = semestreAtualNum;
+            let disciplinasRestantesTemp = disciplinasParaConcluir;
+            
+            // Semestre atual (em curso)
+            if (disciplinasEmCurso > 0) {
+              timeline.push({
+                periodo: `${ano}/${sem}`,
+                disciplinas: disciplinasEmCurso,
+                tipo: 'atual',
+                acumulado: disciplinasAprovadas + disciplinasEmCurso
+              });
+              sem++;
+              if (sem > 2) { sem = 1; ano++; }
+              disciplinasRestantesTemp -= disciplinasEmCurso;
+            }
+            
+            // Semestres futuros
+            while (disciplinasRestantesTemp > 0 && timeline.length < 12) {
+              const discsSemestre = Math.min(Math.round(ritmoAtual), disciplinasRestantesTemp);
+              timeline.push({
+                periodo: `${ano}/${sem}`,
+                disciplinas: discsSemestre,
+                tipo: 'futuro',
+                acumulado: totalDisciplinas - disciplinasRestantesTemp + discsSemestre
+              });
+              disciplinasRestantesTemp -= discsSemestre;
+              sem++;
+              if (sem > 2) { sem = 1; ano++; }
+            }
+            
+            return timeline;
+          };
+          
+          const timeline = gerarLinhaDoTempo();
+          
+          return (
+            <div className="space-y-6">
+              {/* Card Principal - Previsão */}
+              <div className="bg-gradient-to-br from-indigo-600/20 to-purple-600/20 backdrop-blur rounded-xl p-6 border border-indigo-500/30">
+                <div className="flex items-center gap-3 mb-4">
+                  <GraduationCap className="text-indigo-400" size={28} />
+                  <h3 className="text-xl font-bold">Previsão de Formatura</h3>
+                </div>
+                
+                <div className="grid md:grid-cols-3 gap-6">
+                  <div className="text-center p-4 bg-slate-800/50 rounded-xl">
+                    <div className="text-4xl font-bold text-indigo-400 mb-1">
+                      {previsao.ano}/{previsao.semestre}
+                    </div>
+                    <div className="text-slate-400 text-sm">Conclusão Prevista</div>
                   </div>
-                  <div className="flex justify-between items-center p-3 bg-slate-700/30 rounded-lg">
-                    <span className="text-slate-400">Cursadas</span>
-                    <span className="font-bold">{estatisticas.aprovadas + estatisticas.reprovadas + estatisticas.emCurso}</span>
+                  
+                  <div className="text-center p-4 bg-slate-800/50 rounded-xl">
+                    <div className="text-4xl font-bold text-amber-400 mb-1">
+                      {semestresRestantes}
+                    </div>
+                    <div className="text-slate-400 text-sm">Semestres Restantes</div>
                   </div>
-                  <div className="flex justify-between items-center p-3 bg-slate-700/30 rounded-lg">
-                    <span className="text-slate-400">Taxa Sucesso</span>
-                    <span className="font-bold text-green-400">
-                      {estatisticas.aprovadas + estatisticas.reprovadas > 0 ? ((estatisticas.aprovadas / (estatisticas.aprovadas + estatisticas.reprovadas)) * 100).toFixed(1) : 0}%
-                    </span>
-                  </div>
-                  <div className="flex justify-between items-center p-3 bg-slate-700/30 rounded-lg">
-                    <span className="text-slate-400">Carga Total</span>
-                    <span className="font-bold text-amber-400">{estatisticas.totalCargaHoraria}h</span>
+                  
+                  <div className="text-center p-4 bg-slate-800/50 rounded-xl">
+                    <div className="text-4xl font-bold text-green-400 mb-1">
+                      {progressoTotal.toFixed(0)}%
+                    </div>
+                    <div className="text-slate-400 text-sm">Progresso do Curso</div>
                   </div>
                 </div>
               </div>
+              
+              {/* Configurações do Simulador */}
+              <div className="grid md:grid-cols-2 gap-6">
+                <div className="bg-slate-800/50 backdrop-blur rounded-xl p-6 border border-slate-700">
+                  <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                    <Clock size={20} className="text-slate-400" />
+                    Semestre Atual
+                  </h3>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm text-slate-400 mb-2">Ano</label>
+                      <input
+                        type="number"
+                        value={semestreAtualAno}
+                        onChange={e => setSemestreAtualAno(parseInt(e.target.value) || 2025)}
+                        className="w-full px-4 py-3 bg-slate-700 rounded-lg border border-slate-600 focus:border-indigo-500 focus:outline-none text-center text-lg font-semibold"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm text-slate-400 mb-2">Semestre</label>
+                      <select
+                        value={semestreAtualNum}
+                        onChange={e => setSemestreAtualNum(parseInt(e.target.value))}
+                        className="w-full px-4 py-3 bg-slate-700 rounded-lg border border-slate-600 focus:border-indigo-500 focus:outline-none text-center text-lg font-semibold"
+                      >
+                        <option value={1}>1º Semestre</option>
+                        <option value={2}>2º Semestre</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="bg-slate-800/50 backdrop-blur rounded-xl p-6 border border-slate-700">
+                  <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                    <TrendingUp size={20} className="text-slate-400" />
+                    Ritmo de Estudo
+                  </h3>
+                  <div>
+                    <label className="block text-sm text-slate-400 mb-2">
+                      Disciplinas por semestre 
+                      <span className="text-xs ml-2">(média histórica: {mediaHistorica.toFixed(1)})</span>
+                    </label>
+                    <div className="flex items-center gap-4">
+                      <input
+                        type="range"
+                        min="1"
+                        max="10"
+                        step="0.5"
+                        value={ritmoSimulado > 0 ? ritmoSimulado : mediaHistorica}
+                        onChange={e => setRitmoSimulado(parseFloat(e.target.value))}
+                        className="flex-1 h-2 bg-slate-600 rounded-lg appearance-none cursor-pointer accent-indigo-500"
+                      />
+                      <div className="w-16 text-center">
+                        <span className="text-2xl font-bold text-indigo-400">
+                          {(ritmoSimulado > 0 ? ritmoSimulado : mediaHistorica).toFixed(1)}
+                        </span>
+                      </div>
+                    </div>
+                    {ritmoSimulado > 0 && ritmoSimulado !== mediaHistorica && (
+                      <button
+                        onClick={() => setRitmoSimulado(0)}
+                        className="mt-2 text-xs text-slate-400 hover:text-indigo-400"
+                      >
+                        ↩ Usar média histórica
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+              
+              {/* Estatísticas */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="bg-slate-800/50 backdrop-blur rounded-xl p-4 border border-slate-700 text-center">
+                  <div className="text-2xl font-bold text-green-400">{disciplinasAprovadas}</div>
+                  <div className="text-sm text-slate-400">Aprovadas</div>
+                </div>
+                <div className="bg-slate-800/50 backdrop-blur rounded-xl p-4 border border-slate-700 text-center">
+                  <div className="text-2xl font-bold text-blue-400">{disciplinasEmCurso}</div>
+                  <div className="text-sm text-slate-400">Em Curso</div>
+                </div>
+                <div className="bg-slate-800/50 backdrop-blur rounded-xl p-4 border border-slate-700 text-center">
+                  <div className="text-2xl font-bold text-slate-400">{disciplinasRestantes}</div>
+                  <div className="text-sm text-slate-400">Restantes</div>
+                </div>
+                <div className="bg-slate-800/50 backdrop-blur rounded-xl p-4 border border-slate-700 text-center">
+                  <div className="text-2xl font-bold text-purple-400">{totalDisciplinas}</div>
+                  <div className="text-sm text-slate-400">Total</div>
+                </div>
+              </div>
+              
+              {/* Barra de Progresso Visual */}
+              <div className="bg-slate-800/50 backdrop-blur rounded-xl p-6 border border-slate-700">
+                <h3 className="text-lg font-semibold mb-4">Progresso Geral</h3>
+                <div className="relative h-8 bg-slate-700 rounded-full overflow-hidden">
+                  <div 
+                    className="absolute h-full bg-gradient-to-r from-green-500 to-green-400 transition-all duration-500"
+                    style={{ width: `${(disciplinasAprovadas / totalDisciplinas) * 100}%` }}
+                  />
+                  <div 
+                    className="absolute h-full bg-gradient-to-r from-blue-500 to-blue-400 transition-all duration-500"
+                    style={{ 
+                      left: `${(disciplinasAprovadas / totalDisciplinas) * 100}%`,
+                      width: `${(disciplinasEmCurso / totalDisciplinas) * 100}%` 
+                    }}
+                  />
+                  <div className="absolute inset-0 flex items-center justify-center text-sm font-semibold">
+                    {disciplinasAprovadas} + {disciplinasEmCurso} / {totalDisciplinas}
+                  </div>
+                </div>
+                <div className="flex justify-between mt-2 text-xs text-slate-400">
+                  <span className="flex items-center gap-1"><span className="w-3 h-3 bg-green-500 rounded"></span> Aprovadas</span>
+                  <span className="flex items-center gap-1"><span className="w-3 h-3 bg-blue-500 rounded"></span> Em Curso</span>
+                  <span className="flex items-center gap-1"><span className="w-3 h-3 bg-slate-600 rounded"></span> Restantes</span>
+                </div>
+              </div>
+              
+              {/* Linha do Tempo */}
+              {timeline.length > 0 && (
+                <div className="bg-slate-800/50 backdrop-blur rounded-xl p-6 border border-slate-700">
+                  <h3 className="text-lg font-semibold mb-4">Projeção por Semestre</h3>
+                  <div className="overflow-x-auto">
+                    <div className="flex gap-3 min-w-max pb-2">
+                      {/* Semestres passados */}
+                      {semestresComAprovacoes.slice(-3).map((sem, i) => {
+                        const discs = disciplinas.filter(d => d.semestreCursado === sem && d.status === 'APROVADA').length;
+                        return (
+                          <div key={`past-${i}`} className="flex flex-col items-center">
+                            <div className="w-16 h-16 rounded-xl bg-green-500/20 border border-green-500/30 flex items-center justify-center">
+                              <span className="text-xl font-bold text-green-400">{discs}</span>
+                            </div>
+                            <span className="text-xs text-slate-500 mt-1">{sem}</span>
+                            <span className="text-xs text-green-400">✓</span>
+                          </div>
+                        );
+                      })}
+                      
+                      {/* Divisor */}
+                      {semestresComAprovacoes.length > 0 && (
+                        <div className="flex items-center px-2">
+                          <div className="w-8 h-0.5 bg-slate-600"></div>
+                        </div>
+                      )}
+                      
+                      {/* Semestres futuros */}
+                      {timeline.map((item, i) => (
+                        <div key={i} className="flex flex-col items-center">
+                          <div className={`w-16 h-16 rounded-xl flex items-center justify-center ${
+                            item.tipo === 'atual' 
+                              ? 'bg-blue-500/20 border-2 border-blue-500' 
+                              : 'bg-slate-700/50 border border-slate-600'
+                          }`}>
+                            <span className={`text-xl font-bold ${item.tipo === 'atual' ? 'text-blue-400' : 'text-slate-300'}`}>
+                              {item.disciplinas}
+                            </span>
+                          </div>
+                          <span className={`text-xs mt-1 ${item.tipo === 'atual' ? 'text-blue-400 font-semibold' : 'text-slate-500'}`}>
+                            {item.periodo}
+                          </span>
+                          {item.tipo === 'atual' && (
+                            <span className="text-xs text-blue-400">atual</span>
+                          )}
+                          {i === timeline.length - 1 && (
+                            <span className="text-xs text-indigo-400 font-semibold">🎓</span>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+              
+              {/* Dica */}
+              <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-4 flex items-start gap-3">
+                <AlertCircle className="text-amber-400 shrink-0 mt-0.5" size={20} />
+                <div className="text-sm text-amber-200/80">
+                  <strong>Dica:</strong> Para uma previsão mais precisa, marque o semestre em que cursou cada disciplina aprovada. 
+                  Ajuste o controle de ritmo para simular diferentes cenários.
+                </div>
+              </div>
             </div>
-          </div>
-        )}
+          );
+        })()}
 
         {/* Modais */}
         {showAddDisciplina && (
