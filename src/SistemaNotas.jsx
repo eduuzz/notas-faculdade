@@ -1,6 +1,6 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, RadialBarChart, RadialBar } from 'recharts';
-import { Plus, Trash2, BookOpen, Award, TrendingUp, AlertCircle, CheckCircle, GraduationCap, Edit2, X, Clock, PlayCircle, ChevronDown, ChevronUp, Search, Save, Cloud, CloudOff, RefreshCw, LogOut, User, Wifi, WifiOff, Download, RotateCcw, Lock, Eye } from 'lucide-react';
+import { Plus, Trash2, BookOpen, Award, TrendingUp, AlertCircle, CheckCircle, GraduationCap, Edit2, X, Clock, PlayCircle, ChevronDown, ChevronUp, Search, Save, Cloud, CloudOff, RefreshCw, LogOut, User, Wifi, WifiOff, Download, RotateCcw, Lock, Eye, Sun, Moon, Monitor } from 'lucide-react';
 import { useNotas } from './useNotas';
 
 const STATUS = {
@@ -49,6 +49,42 @@ export default function SistemaNotas() {
   const [loginError, setLoginError] = useState('');
   const [loginLoading, setLoginLoading] = useState(false);
   const [showDeleteMenu, setShowDeleteMenu] = useState(null);
+  const [theme, setTheme] = useState(() => localStorage.getItem('theme') || 'system');
+  const [showThemeMenu, setShowThemeMenu] = useState(false);
+
+  // Lógica do tema
+  useEffect(() => {
+    const applyTheme = () => {
+      const root = document.documentElement;
+      let isDark;
+      
+      if (theme === 'system') {
+        isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      } else {
+        isDark = theme === 'dark';
+      }
+      
+      if (isDark) {
+        root.classList.add('dark');
+        root.classList.remove('light');
+      } else {
+        root.classList.add('light');
+        root.classList.remove('dark');
+      }
+    };
+    
+    applyTheme();
+    localStorage.setItem('theme', theme);
+    
+    // Listener para mudanças do sistema
+    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+    const handleChange = () => {
+      if (theme === 'system') applyTheme();
+    };
+    mediaQuery.addEventListener('change', handleChange);
+    return () => mediaQuery.removeEventListener('change', handleChange);
+  }, [theme]);
+
   const calcularMedia = (d) => {
     if (d.notaFinal !== null) return d.notaFinal;
     if (d.ga !== null && d.gb !== null) return d.ga * 0.33 + d.gb * 0.67;
@@ -467,10 +503,47 @@ export default function SistemaNotas() {
               <h1 className="text-2xl font-bold bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">
                 Sistema de Notas
               </h1>
-              <p className="text-slate-400 text-sm">Gerencie suas disciplinas</p>
+              <p className="text-slate-400 dark:text-slate-400 text-sm">Gerencie suas disciplinas</p>
             </div>
           </div>
-          <SyncStatus />
+          <div className="flex items-center gap-3">
+            {/* Seletor de Tema */}
+            <div className="relative">
+              <button
+                onClick={() => setShowThemeMenu(!showThemeMenu)}
+                className="p-2 bg-slate-700 dark:bg-slate-700 light:bg-slate-200 hover:bg-slate-600 dark:hover:bg-slate-600 light:hover:bg-slate-300 rounded-lg transition-colors"
+                title="Alterar tema"
+              >
+                {theme === 'light' ? <Sun size={20} /> : theme === 'dark' ? <Moon size={20} /> : <Monitor size={20} />}
+              </button>
+              {showThemeMenu && (
+                <div className="absolute right-0 top-full mt-2 bg-slate-800 dark:bg-slate-800 light:bg-white border border-slate-700 dark:border-slate-700 light:border-slate-300 rounded-lg shadow-xl z-50 overflow-hidden">
+                  <button
+                    onClick={() => { setTheme('light'); setShowThemeMenu(false); }}
+                    className={`flex items-center gap-2 w-full px-4 py-2 hover:bg-slate-700 dark:hover:bg-slate-700 light:hover:bg-slate-100 transition-colors ${theme === 'light' ? 'text-indigo-400' : ''}`}
+                  >
+                    <Sun size={16} />
+                    Claro
+                  </button>
+                  <button
+                    onClick={() => { setTheme('dark'); setShowThemeMenu(false); }}
+                    className={`flex items-center gap-2 w-full px-4 py-2 hover:bg-slate-700 dark:hover:bg-slate-700 light:hover:bg-slate-100 transition-colors ${theme === 'dark' ? 'text-indigo-400' : ''}`}
+                  >
+                    <Moon size={16} />
+                    Escuro
+                  </button>
+                  <button
+                    onClick={() => { setTheme('system'); setShowThemeMenu(false); }}
+                    className={`flex items-center gap-2 w-full px-4 py-2 hover:bg-slate-700 dark:hover:bg-slate-700 light:hover:bg-slate-100 transition-colors ${theme === 'system' ? 'text-indigo-400' : ''}`}
+                  >
+                    <Monitor size={16} />
+                    Sistema
+                  </button>
+                </div>
+              )}
+            </div>
+            <SyncStatus />
+          </div>
         </div>
 
         {/* Tabs */}
