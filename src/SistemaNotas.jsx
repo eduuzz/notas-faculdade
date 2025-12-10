@@ -285,7 +285,7 @@ export default function SistemaNotas() {
       // Cabeçalho do período
       doc.setFontSize(11);
       doc.setTextColor(99, 102, 241);
-      doc.text(`${periodo}º Período`, 14, currentY);
+      doc.text(`${periodo}º Semestre`, 14, currentY);
       currentY += 5;
       
       // Dados da tabela
@@ -548,18 +548,35 @@ export default function SistemaNotas() {
               </div>
             </div>
 
-            {/* Períodos */}
-            {periodos.map(periodo => (
+            {/* Semestres */}
+            {periodos.map(periodo => {
+              const discsPeriodo = disciplinasPorPeriodo[periodo] || [];
+              const concluidas = discsPeriodo.filter(d => d.status === 'APROVADA' || d.status === 'REPROVADA').length;
+              const total = discsPeriodo.length;
+              const notasSemestre = discsPeriodo
+                .filter(d => (d.status === 'APROVADA' || d.status === 'REPROVADA') && (d.ga !== null || d.gb !== null))
+                .map(d => calcularMedia(d))
+                .filter(m => m !== null);
+              const mediaSemestre = notasSemestre.length > 0 
+                ? notasSemestre.reduce((a, b) => a + b, 0) / notasSemestre.length 
+                : null;
+              
+              return (
               <div key={periodo} className="bg-slate-800/50 backdrop-blur rounded-xl border border-slate-700 overflow-hidden">
                 <button
                   onClick={() => togglePeriodo(periodo)}
                   className="w-full flex items-center justify-between p-4 hover:bg-slate-700/30 transition-colors"
                 >
-                  <div className="flex items-center gap-3">
-                    <span className="text-xl font-bold text-indigo-400">{periodo}º Período</span>
+                  <div className="flex items-center gap-4">
+                    <span className="text-xl font-bold text-indigo-400">{periodo}º Semestre</span>
                     <span className="text-sm text-slate-400">
-                      {disciplinasPorPeriodo[periodo]?.length || 0} disc.
+                      {concluidas}/{total} concluídas
                     </span>
+                    {mediaSemestre !== null && (
+                      <span className={`text-sm font-medium px-2 py-0.5 rounded ${mediaSemestre >= 6 ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}>
+                        Média: {mediaSemestre.toFixed(1)}
+                      </span>
+                    )}
                   </div>
                   {expandedPeriodos[periodo] ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
                 </button>
@@ -760,7 +777,8 @@ export default function SistemaNotas() {
                   </div>
                 )}
               </div>
-            ))}
+            );
+            })}
 
             {periodos.length === 0 && (
               <div className="bg-slate-800/50 rounded-xl p-8 text-center border border-slate-700">
@@ -802,7 +820,7 @@ export default function SistemaNotas() {
                       <div className="flex flex-wrap items-start justify-between gap-4 mb-4">
                         <div>
                           <h3 className="text-xl font-semibold">{d.nome}</h3>
-                          <div className="text-slate-400 text-sm">{d.periodo}º Período • {d.semestreCursado}</div>
+                          <div className="text-slate-400 text-sm">{d.periodo}º Semestre • {d.semestreCursado}</div>
                         </div>
                       </div>
                       
@@ -966,7 +984,7 @@ export default function SistemaNotas() {
               </div>
 
               <div className="bg-slate-800/50 backdrop-blur rounded-xl p-6 border border-slate-700">
-                <h3 className="text-lg font-semibold mb-4">Por Período</h3>
+                <h3 className="text-lg font-semibold mb-4">Por Semestre</h3>
                 <ResponsiveContainer width="100%" height={250}>
                   <BarChart data={dadosPorPeriodo}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
@@ -1067,7 +1085,7 @@ export default function SistemaNotas() {
                 <input type="text" placeholder="Nome da disciplina" value={novaDisciplina.nome} onChange={e => setNovaDisciplina({...novaDisciplina, nome: e.target.value})} className="w-full px-4 py-2 bg-slate-700 rounded-lg border border-slate-600 focus:border-indigo-500 focus:outline-none" />
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="text-sm text-slate-400 block mb-1">Período</label>
+                    <label className="text-sm text-slate-400 block mb-1">Semestre</label>
                     <input type="number" value={novaDisciplina.periodo} onChange={e => setNovaDisciplina({...novaDisciplina, periodo: parseInt(e.target.value) || 1})} className="w-full px-4 py-2 bg-slate-700 rounded-lg border border-slate-600 focus:border-indigo-500 focus:outline-none" />
                   </div>
                   <div>
@@ -1090,7 +1108,7 @@ export default function SistemaNotas() {
               <h3 className="text-xl font-semibold mb-4">Adicionar Várias</h3>
               <div className="space-y-4">
                 <div>
-                  <label className="text-sm text-slate-400 block mb-1">Período</label>
+                  <label className="text-sm text-slate-400 block mb-1">Semestre</label>
                   <input type="number" value={periodoMultiplas} onChange={e => setPeriodoMultiplas(parseInt(e.target.value) || 1)} className="w-full px-4 py-2 bg-slate-700 rounded-lg border border-slate-600 focus:border-indigo-500 focus:outline-none" />
                 </div>
                 <div>
