@@ -64,7 +64,7 @@ export default function SistemaNotas() {
   });
   const [ritmoSimulado, setRitmoSimulado] = useState(() => {
     const saved = localStorage.getItem('ritmoSimulado');
-    return saved ? parseFloat(saved) : 0;
+    return saved ? parseInt(saved) : 6;
   });
 
   // Salvar preferências do simulador
@@ -1123,13 +1123,8 @@ export default function SistemaNotas() {
               .map(d => d.semestreCursado)
           )];
           
-          // Média de disciplinas por semestre (baseado no histórico real)
-          const mediaHistorica = semestresComAprovacoes.length > 0 
-            ? disciplinasAprovadas / semestresComAprovacoes.length 
-            : 5; // valor padrão se não houver histórico
-          
-          // Usar ritmo simulado se definido, senão usar média histórica
-          const ritmoAtual = ritmoSimulado > 0 ? ritmoSimulado : mediaHistorica;
+          // Usar ritmo definido pelo usuário (padrão: 6)
+          const ritmoAtual = ritmoSimulado;
           
           // Calcular semestres restantes
           const disciplinasParaConcluir = disciplinasRestantes + disciplinasEmCurso;
@@ -1265,30 +1260,30 @@ export default function SistemaNotas() {
                   <div>
                     <label className="block text-sm text-slate-400 mb-2">
                       Disciplinas por semestre 
-                      <span className="text-xs ml-2">(média histórica: {mediaHistorica.toFixed(1)})</span>
+                      <span className="text-xs ml-2">(padrão: 6)</span>
                     </label>
                     <div className="flex items-center gap-4">
                       <input
                         type="range"
                         min="1"
                         max="10"
-                        step="0.5"
-                        value={ritmoSimulado > 0 ? ritmoSimulado : mediaHistorica}
-                        onChange={e => setRitmoSimulado(parseFloat(e.target.value))}
+                        step="1"
+                        value={ritmoSimulado}
+                        onChange={e => setRitmoSimulado(parseInt(e.target.value))}
                         className="flex-1 h-2 bg-slate-600 rounded-lg appearance-none cursor-pointer accent-indigo-500"
                       />
                       <div className="w-16 text-center">
                         <span className="text-2xl font-bold text-indigo-400">
-                          {(ritmoSimulado > 0 ? ritmoSimulado : mediaHistorica).toFixed(1)}
+                          {ritmoSimulado}
                         </span>
                       </div>
                     </div>
-                    {ritmoSimulado > 0 && ritmoSimulado !== mediaHistorica && (
+                    {ritmoSimulado !== 6 && (
                       <button
-                        onClick={() => setRitmoSimulado(0)}
+                        onClick={() => setRitmoSimulado(6)}
                         className="mt-2 text-xs text-slate-400 hover:text-indigo-400"
                       >
-                        ↩ Usar média histórica
+                        ↩ Voltar ao padrão (6)
                       </button>
                     )}
                   </div>
