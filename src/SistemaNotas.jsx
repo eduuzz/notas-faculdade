@@ -582,7 +582,11 @@ export default function SistemaNotas() {
                 >
                   <div className="flex items-center gap-4">
                     <span className="text-xl font-bold text-indigo-400">{periodo}º Semestre</span>
-                    <span className="text-sm text-slate-400">
+                    <span className={`text-sm ${
+                      concluidas === total ? 'text-green-400' : 
+                      concluidas > 0 ? 'text-yellow-400' : 
+                      'text-red-400'
+                    }`}>
                       {concluidas}/{total} concluídas
                     </span>
                     {mediaSemestre !== null && (
