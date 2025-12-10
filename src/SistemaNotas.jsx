@@ -600,7 +600,6 @@ export default function SistemaNotas() {
                                   <div className="flex gap-2">
                                     <NotaDisplay label="GA" valor={d.ga} minima={d.notaMinima} />
                                     <NotaDisplay label="GB" valor={d.gb} minima={d.notaMinima} />
-                                    {d.notaFinal !== null && <NotaDisplay label="NF" valor={d.notaFinal} minima={d.notaMinima} />}
                                     {media !== null && (
                                       <div className={`text-center p-2 rounded-lg min-w-[70px] ${media >= d.notaMinima ? 'bg-green-500/30 border border-green-500/50' : 'bg-red-500/30 border border-red-500/50'}`}>
                                         <div className="text-xs text-slate-300">Média</div>
@@ -620,7 +619,7 @@ export default function SistemaNotas() {
                                         <button onClick={() => setEditingNotas(null)} className="p-1 text-slate-400 hover:text-white"><X size={20} /></button>
                                       </div>
                                       
-                                      <div className="grid grid-cols-3 gap-3 mb-4">
+                                      <div className="grid grid-cols-2 gap-3 mb-4">
                                         <div>
                                           <label className="block text-xs text-slate-400 mb-1">Grau A</label>
                                           <input 
@@ -643,19 +642,6 @@ export default function SistemaNotas() {
                                             max="10" 
                                             value={notasTemp.gb} 
                                             onChange={e => setNotasTemp({...notasTemp, gb: e.target.value})} 
-                                            placeholder="0.0" 
-                                            className="w-full px-3 py-2 bg-slate-700 rounded-lg border border-slate-600 focus:border-indigo-500 focus:outline-none text-center text-lg" 
-                                          />
-                                        </div>
-                                        <div>
-                                          <label className="block text-xs text-slate-400 mb-1">Nota Final</label>
-                                          <input 
-                                            type="number" 
-                                            step="0.1" 
-                                            min="0" 
-                                            max="10" 
-                                            value={notasTemp.notaFinal} 
-                                            onChange={e => setNotasTemp({...notasTemp, notaFinal: e.target.value})} 
                                             placeholder="0.0" 
                                             className="w-full px-3 py-2 bg-slate-700 rounded-lg border border-slate-600 focus:border-indigo-500 focus:outline-none text-center text-lg" 
                                           />
@@ -836,14 +822,6 @@ export default function SistemaNotas() {
                                   {d.gb !== null ? d.gb.toFixed(1) : '-'}
                                 </div>
                               </div>
-                              {d.notaFinal !== null && (
-                                <div className={`text-center p-4 rounded-xl min-w-[100px] ${d.notaFinal >= d.notaMinima ? 'bg-green-500/20' : 'bg-red-500/20'}`}>
-                                  <div className="text-sm text-slate-400">NF</div>
-                                  <div className={`text-3xl font-bold ${d.notaFinal >= d.notaMinima ? 'text-green-400' : 'text-red-400'}`}>
-                                    {d.notaFinal.toFixed(1)}
-                                  </div>
-                                </div>
-                              )}
                               {media !== null && (
                                 <div className={`text-center p-4 rounded-xl min-w-[100px] border-2 ${media >= d.notaMinima ? 'bg-green-500/30 border-green-500' : 'bg-amber-500/30 border-amber-500'}`}>
                                   <div className="text-sm text-slate-300">Média</div>
@@ -866,16 +844,8 @@ export default function SistemaNotas() {
                               <div className={notaNecessariaGB <= 10 ? 'text-blue-400' : 'text-red-400'}>
                                 {notaNecessariaGB <= 10 
                                   ? `📊 Precisa de ${notaNecessariaGB.toFixed(1)} no GB para aprovar`
-                                  : `⚠️ Não é possível aprovar só com GB. Vai precisar de NF.`
+                                  : `⚠️ Não é possível aprovar só com GB.`
                                 }
-                              </div>
-                            </div>
-                          )}
-
-                          {d.ga !== null && d.gb !== null && media < d.notaMinima && d.notaFinal === null && (
-                            <div className="p-4 bg-amber-500/10 rounded-lg border border-amber-500/30">
-                              <div className="text-amber-400">
-                                ⚠️ Precisa de {((d.notaMinima * 2) - media).toFixed(1)} na NF para aprovar
                               </div>
                             </div>
                           )}
@@ -891,7 +861,7 @@ export default function SistemaNotas() {
                         </>
                       ) : (
                         <div className="p-4 bg-slate-700/30 rounded-lg border border-slate-600">
-                          <div className="grid grid-cols-3 gap-4 mb-4">
+                          <div className="grid grid-cols-2 gap-4 mb-4">
                             <div>
                               <label className="text-sm text-slate-400 block mb-2">GA</label>
                               <input type="number" step="0.1" min="0" max="10" value={notasTemp.ga} onChange={e => setNotasTemp({...notasTemp, ga: e.target.value})} className="w-full px-4 py-3 bg-slate-700 rounded-lg border border-slate-600 focus:border-indigo-500 focus:outline-none text-center text-xl" />
@@ -899,10 +869,6 @@ export default function SistemaNotas() {
                             <div>
                               <label className="text-sm text-slate-400 block mb-2">GB</label>
                               <input type="number" step="0.1" min="0" max="10" value={notasTemp.gb} onChange={e => setNotasTemp({...notasTemp, gb: e.target.value})} className="w-full px-4 py-3 bg-slate-700 rounded-lg border border-slate-600 focus:border-indigo-500 focus:outline-none text-center text-xl" />
-                            </div>
-                            <div>
-                              <label className="text-sm text-slate-400 block mb-2">NF</label>
-                              <input type="number" step="0.1" min="0" max="10" value={notasTemp.notaFinal} onChange={e => setNotasTemp({...notasTemp, notaFinal: e.target.value})} className="w-full px-4 py-3 bg-slate-700 rounded-lg border border-slate-600 focus:border-indigo-500 focus:outline-none text-center text-xl" />
                             </div>
                           </div>
                           <div className="flex gap-3">
