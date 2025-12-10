@@ -35,14 +35,14 @@ export default function SistemaNotas() {
   const [filtroStatus, setFiltroStatus] = useState('TODOS');
   const [busca, setBusca] = useState('');
   const [novaDisciplina, setNovaDisciplina] = useState({
-    nome: '', periodo: 1, creditos: 4, cargaHoraria: 60, notaMinima: 6.0, status: 'NAO_INICIADA', ga: null, gb: null, notaFinal: null, semestreCursado: null
+    nome: '', periodo: 1, creditos: 4, cargaHoraria: 60, notaMinima: 6.0, status: 'NAO_INICIADA', ga: null, gb: null, notaFinal: null, semestreCursado: null, observacao: ''
   });
   const [disciplinasMultiplas, setDisciplinasMultiplas] = useState('');
   const [periodoMultiplas, setPeriodoMultiplas] = useState(1);
   const [showIniciarModal, setShowIniciarModal] = useState(null);
   const [semestreIniciar, setSemestreIniciar] = useState('2024.2');
   const [editingNotas, setEditingNotas] = useState(null);
-  const [notasTemp, setNotasTemp] = useState({ ga: '', gb: '', notaFinal: '', semestreCursado: '' });
+  const [notasTemp, setNotasTemp] = useState({ ga: '', gb: '', notaFinal: '', semestreCursado: '', observacao: '' });
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [emailLogin, setEmailLogin] = useState('');
   const [senhaLogin, setSenhaLogin] = useState('');
@@ -127,7 +127,7 @@ export default function SistemaNotas() {
   const adicionarDisciplina = () => {
     if (!novaDisciplina.nome) return;
     setDisciplinas([...disciplinas, { ...novaDisciplina, id: Date.now() }]);
-    setNovaDisciplina({ nome: '', periodo: 1, creditos: 4, cargaHoraria: 60, notaMinima: 6.0, status: 'NAO_INICIADA', ga: null, gb: null, notaFinal: null, semestreCursado: null });
+    setNovaDisciplina({ nome: '', periodo: 1, creditos: 4, cargaHoraria: 60, notaMinima: 6.0, status: 'NAO_INICIADA', ga: null, gb: null, notaFinal: null, semestreCursado: null, observacao: '' });
     setShowAddDisciplina(false);
   };
 
@@ -147,7 +147,8 @@ export default function SistemaNotas() {
         ga: null,
         gb: null,
         notaFinal: null,
-        semestreCursado: null
+        semestreCursado: null,
+        observacao: ''
       }));
     setDisciplinas([...disciplinas, ...novas]);
     setDisciplinasMultiplas('');
@@ -167,7 +168,8 @@ export default function SistemaNotas() {
       gb: null, 
       notaFinal: null, 
       faltas: 0, 
-      semestreCursado: null 
+      semestreCursado: null,
+      observacao: ''
     } : d));
     setShowDeleteMenu(null);
   };
@@ -194,7 +196,8 @@ export default function SistemaNotas() {
       ga: d.ga !== null ? d.ga.toString() : '',
       gb: d.gb !== null ? d.gb.toString() : '',
       notaFinal: d.notaFinal !== null ? d.notaFinal.toString() : '',
-      semestreCursado: d.semestreCursado || ''
+      semestreCursado: d.semestreCursado || '',
+      observacao: d.observacao || ''
     });
   };
 
@@ -203,10 +206,11 @@ export default function SistemaNotas() {
       ga: notasTemp.ga !== '' ? parseFloat(notasTemp.ga) : null,
       gb: notasTemp.gb !== '' ? parseFloat(notasTemp.gb) : null,
       notaFinal: notasTemp.notaFinal !== '' ? parseFloat(notasTemp.notaFinal) : null,
-      semestreCursado: notasTemp.semestreCursado.trim() || null
+      semestreCursado: notasTemp.semestreCursado.trim() || null,
+      observacao: notasTemp.observacao.trim() || ''
     });
     setEditingNotas(null);
-    setNotasTemp({ ga: '', gb: '', notaFinal: '', semestreCursado: '' });
+    setNotasTemp({ ga: '', gb: '', notaFinal: '', semestreCursado: '', observacao: '' });
   };
 
   const togglePeriodo = (periodo) => {
@@ -627,6 +631,11 @@ export default function SistemaNotas() {
                                   <span>{d.cargaHoraria}h</span>
                                   {d.semestreCursado && <span className="text-indigo-400">{d.semestreCursado}</span>}
                                 </div>
+                                {d.observacao && (
+                                  <div className="text-xs text-slate-500 mt-1 italic">
+                                    📝 {d.observacao}
+                                  </div>
+                                )}
                               </div>
                               
                               <div className="flex items-center gap-3">
@@ -690,6 +699,17 @@ export default function SistemaNotas() {
                                           onChange={e => setNotasTemp({...notasTemp, semestreCursado: e.target.value})} 
                                           placeholder="Ex: 2025/1" 
                                           className="w-full px-3 py-2 bg-slate-700 rounded-lg border border-slate-600 focus:border-indigo-500 focus:outline-none" 
+                                        />
+                                      </div>
+                                      
+                                      <div className="mb-4">
+                                        <label className="block text-xs text-slate-400 mb-1">Observação (opcional)</label>
+                                        <textarea 
+                                          value={notasTemp.observacao} 
+                                          onChange={e => setNotasTemp({...notasTemp, observacao: e.target.value})} 
+                                          placeholder="Ex: Professor João, sala 302, provas difíceis..." 
+                                          rows={2}
+                                          className="w-full px-3 py-2 bg-slate-700 rounded-lg border border-slate-600 focus:border-indigo-500 focus:outline-none resize-none" 
                                         />
                                       </div>
                                       
