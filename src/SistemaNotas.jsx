@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, RadialBarChart, RadialBar } from 'recharts';
-import { Plus, Trash2, BookOpen, Award, TrendingUp, AlertCircle, CheckCircle, GraduationCap, Edit2, X, Clock, PlayCircle, ChevronDown, ChevronUp, Search, Save, Cloud, CloudOff, RefreshCw, LogOut, User, Wifi, WifiOff, Download, RotateCcw, Lock, Eye, Sun, Moon, Monitor } from 'lucide-react';
+import { Plus, Trash2, BookOpen, Award, TrendingUp, AlertCircle, CheckCircle, GraduationCap, Edit2, X, Clock, PlayCircle, ChevronDown, ChevronUp, Search, Save, Cloud, CloudOff, RefreshCw, LogOut, User, Wifi, WifiOff, Download, RotateCcw, Lock, Eye, Sun, Moon, Monitor, List, LayoutGrid } from 'lucide-react';
 import { useNotas } from './useNotas';
 
 const STATUS = {
@@ -33,6 +33,7 @@ export default function SistemaNotas() {
   const [editingDisciplina, setEditingDisciplina] = useState(null);
   const [expandedPeriodos, setExpandedPeriodos] = useState({1: true, 2: true, 3: true, 4: true, 5: true, 6: true, 7: true, 8: true});
   const [filtroStatus, setFiltroStatus] = useState('TODOS');
+  const [modoCompacto, setModoCompacto] = useState(() => localStorage.getItem('modoCompacto') === 'true');
   const [busca, setBusca] = useState('');
   const [novaDisciplina, setNovaDisciplina] = useState({
     nome: '', periodo: 1, creditos: 4, cargaHoraria: 60, notaMinima: 6.0, status: 'NAO_INICIADA', ga: null, gb: null, notaFinal: null, semestreCursado: null, observacao: ''
@@ -84,6 +85,14 @@ export default function SistemaNotas() {
     mediaQuery.addEventListener('change', handleChange);
     return () => mediaQuery.removeEventListener('change', handleChange);
   }, [theme]);
+
+  const toggleModoCompacto = () => {
+    setModoCompacto(prev => {
+      const novo = !prev;
+      localStorage.setItem('modoCompacto', novo);
+      return novo;
+    });
+  };
 
   const calcularMedia = (d) => {
     if (d.notaFinal !== null) return d.notaFinal;
@@ -607,6 +616,14 @@ export default function SistemaNotas() {
                   {periodos.every(p => expandedPeriodos[p]) ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
                   <span className="hidden sm:inline">{periodos.every(p => expandedPeriodos[p]) ? "Minimizar" : "Expandir"}</span>
                 </button>
+                <button
+                  onClick={toggleModoCompacto}
+                  className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-colors text-sm ${modoCompacto ? 'bg-indigo-600 hover:bg-indigo-700' : 'bg-slate-700 hover:bg-slate-600'}`}
+                  title={modoCompacto ? "Modo normal" : "Modo compacto"}
+                >
+                  {modoCompacto ? <LayoutGrid size={18} /> : <List size={18} />}
+                  <span className="hidden sm:inline">{modoCompacto ? "Normal" : "Compacto"}</span>
+                </button>
               </div>
               <div className="flex gap-2">
                 <button
@@ -639,7 +656,81 @@ export default function SistemaNotas() {
             </div>
 
             {/* Semestres */}
-            {periodos.map(periodo => {
+            {modoCompacto ? (
+              /* Modo Compacto */
+              <div className="bg-slate-800/50 backdrop-blur rounded-xl border border-slate-700 overflow-hidden">
+                <table className="w-full">
+                  <thead>
+                    <tr className="border-b border-slate-700">
+                      <th className="text-left p-3 text-slate-400 text-sm font-medium">Disciplina</th>
+                      <th className="text-center p-3 text-slate-400 text-sm font-medium w-20">Sem.</th>
+                      <th className="text-center p-3 text-slate-400 text-sm font-medium w-24">Status</th>
+                      <th className="text-center p-3 text-slate-400 text-sm font-medium w-16">GA</th>
+                      <th className="text-center p-3 text-slate-400 text-sm font-medium w-16">GB</th>
+                      <th className="text-center p-3 text-slate-400 text-sm font-medium w-20">Média</th>
+                      {isAdmin && <th className="text-center p-3 text-slate-400 text-sm font-medium w-20">Ações</th>}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {periodos.map(periodo => {
+                      const discsPeriodo = disciplinasPorPeriodo[periodo] || [];
+                      return discsPeriodo.map((d, idx) => {
+                        const media = calcularMedia(d);
+                        return (
+                          <tr 
+                            key={d.id} 
+                            className={`border-b border-slate-700/50 hover:bg-slate-700/30 transition-colors ${
+                              idx === 0 ? 'border-t-2 border-t-slate-600' : ''
+                            }`}
+                          >
+                            <td className="p-3">
+                              <div className="font-medium">{d.nome}</div>
+                              {d.observacao && <div className="text-xs text-slate-500 italic">📝 {d.observacao}</div>}
+                            </td>
+                            <td className="text-center p-3 text-indigo-400 font-medium">{periodo}º</td>
+                            <td className="text-center p-3">
+                              <span className={`text-xs px-2 py-1 rounded-full ${STATUS[d.status].bg} ${STATUS[d.status].text}`}>
+                                {d.status === 'APROVADA' ? '✓' : d.status === 'REPROVADA' ? '✗' : d.status === 'EM_CURSO' ? '⏳' : '○'}
+                              </span>
+                            </td>
+                            <td className={`text-center p-3 font-bold ${d.ga !== null ? (d.ga >= d.notaMinima ? 'text-green-400' : 'text-red-400') : 'text-slate-600'}`}>
+                              {d.ga !== null ? d.ga.toFixed(1) : '-'}
+                            </td>
+                            <td className={`text-center p-3 font-bold ${d.gb !== null ? (d.gb >= d.notaMinima ? 'text-green-400' : 'text-red-400') : 'text-slate-600'}`}>
+                              {d.gb !== null ? d.gb.toFixed(1) : '-'}
+                            </td>
+                            <td className={`text-center p-3 font-bold ${media !== null ? (media >= d.notaMinima ? 'text-green-400' : 'text-red-400') : 'text-slate-600'}`}>
+                              {media !== null ? media.toFixed(1) : '-'}
+                            </td>
+                            {isAdmin && (
+                              <td className="text-center p-3">
+                                <div className="flex justify-center gap-1">
+                                  {d.status === 'NAO_INICIADA' && (
+                                    <button onClick={() => setShowIniciarModal(d.id)} className="p-1 text-blue-400 hover:bg-blue-500/20 rounded" title="Iniciar">
+                                      <PlayCircle size={16} />
+                                    </button>
+                                  )}
+                                  {(d.status === 'EM_CURSO' || d.status === 'APROVADA' || d.status === 'REPROVADA') && (
+                                    <button onClick={() => abrirEdicaoNotas(d)} className="p-1 text-slate-400 hover:bg-slate-600 rounded" title="Editar">
+                                      <Edit2 size={16} />
+                                    </button>
+                                  )}
+                                  <button onClick={() => setShowDeleteMenu(d.id)} className="p-1 text-red-400 hover:bg-red-500/20 rounded" title="Excluir">
+                                    <Trash2 size={16} />
+                                  </button>
+                                </div>
+                              </td>
+                            )}
+                          </tr>
+                        );
+                      });
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              /* Modo Normal */
+              periodos.map(periodo => {
               const discsPeriodo = disciplinasPorPeriodo[periodo] || [];
               const concluidas = discsPeriodo.filter(d => d.status === 'APROVADA' || d.status === 'REPROVADA').length;
               const total = discsPeriodo.length;
@@ -888,7 +979,8 @@ export default function SistemaNotas() {
                 )}
               </div>
             );
-            })}
+            })
+            )}
 
             {periodos.length === 0 && (
               <div className="bg-slate-800/50 rounded-xl p-8 text-center border border-slate-700">
