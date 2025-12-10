@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, RadialBarChart, RadialBar } from 'recharts';
-import { Plus, Trash2, BookOpen, Award, TrendingUp, AlertCircle, CheckCircle, GraduationCap, Edit2, X, Clock, PlayCircle, ChevronDown, ChevronUp, Search, Save, Cloud, CloudOff, RefreshCw, LogOut, User, Wifi, WifiOff, Download, RotateCcw } from 'lucide-react';
+import { Plus, Trash2, BookOpen, Award, TrendingUp, AlertCircle, CheckCircle, GraduationCap, Edit2, X, Clock, PlayCircle, ChevronDown, ChevronUp, Search, Save, Cloud, CloudOff, RefreshCw, LogOut, User, Wifi, WifiOff, Download, RotateCcw, Lock, Eye } from 'lucide-react';
 import { useNotas } from './useNotas';
 
 const STATUS = {
@@ -15,7 +15,9 @@ export default function SistemaNotas() {
     disciplinas,
     setDisciplinas,
     user,
+    isAdmin,
     login,
+    register,
     logout,
     loading,
     syncing,
@@ -43,6 +45,9 @@ export default function SistemaNotas() {
   const [notasTemp, setNotasTemp] = useState({ ga: '', gb: '', notaFinal: '', semestreCursado: '' });
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [emailLogin, setEmailLogin] = useState('');
+  const [senhaLogin, setSenhaLogin] = useState('');
+  const [loginError, setLoginError] = useState('');
+  const [loginLoading, setLoginLoading] = useState(false);
   const [showDeleteMenu, setShowDeleteMenu] = useState(null);
   const calcularMedia = (d) => {
     if (d.notaFinal !== null) return d.notaFinal;
@@ -209,10 +214,26 @@ export default function SistemaNotas() {
   };
 
   const handleLogin = async () => {
-    if (!emailLogin.trim()) return;
-    await login(emailLogin.trim().toLowerCase());
+    if (!emailLogin.trim() || !senhaLogin.trim()) {
+      setLoginError('Preencha email e senha');
+      return;
+    }
+    
+    setLoginLoading(true);
+    setLoginError('');
+    
+    const result = await login(emailLogin.trim().toLowerCase(), senhaLogin);
+    
+    if (result.error) {
+      setLoginError(result.error.message || 'Erro ao fazer login');
+      setLoginLoading(false);
+      return;
+    }
+    
     setShowLoginModal(false);
     setEmailLogin('');
+    setSenhaLogin('');
+    setLoginLoading(false);
   };
 
   const exportarPDF = () => {
@@ -376,7 +397,7 @@ export default function SistemaNotas() {
         <WifiOff size={16} className="text-red-400" />
       )}
       
-      {user ? (
+      {user && isAdmin ? (
         <>
           {syncing ? (
             <RefreshCw size={16} className="text-blue-400 animate-spin" />
@@ -385,6 +406,8 @@ export default function SistemaNotas() {
           ) : (
             <CloudOff size={16} className="text-slate-400" />
           )}
+          <span className="text-green-400 hidden sm:inline font-medium">Admin</span>
+          <span className="text-slate-500 hidden sm:inline">•</span>
           <span className="text-slate-400 hidden sm:inline">{user.email}</span>
           <button
             onClick={forceSync}
@@ -403,13 +426,17 @@ export default function SistemaNotas() {
           </button>
         </>
       ) : (
-        <button
-          onClick={() => setShowLoginModal(true)}
-          className="flex items-center gap-1 px-2 py-1 bg-indigo-600 hover:bg-indigo-700 rounded text-xs transition-colors"
-        >
-          <User size={14} />
-          Sincronizar
-        </button>
+        <>
+          <Eye size={16} className="text-slate-400" />
+          <span className="text-slate-400 hidden sm:inline">Modo Visualização</span>
+          <button
+            onClick={() => setShowLoginModal(true)}
+            className="flex items-center gap-1 px-2 py-1 bg-indigo-600 hover:bg-indigo-700 rounded text-xs transition-colors"
+          >
+            <Lock size={14} />
+            Admin
+          </button>
+        </>
       )}
     </div>
   );
@@ -500,20 +527,24 @@ export default function SistemaNotas() {
                   <Download size={18} />
                   <span className="hidden sm:inline">PDF</span>
                 </button>
-                <button
-                  onClick={() => setShowAddMultiplas(true)}
-                  className="flex items-center gap-2 px-3 py-2 bg-purple-600 hover:bg-purple-700 rounded-lg transition-colors text-sm"
-                >
-                  <Plus size={18} />
-                  <span className="hidden sm:inline">Várias</span>
-                </button>
-                <button
-                  onClick={() => setShowAddDisciplina(true)}
-                  className="flex items-center gap-2 px-3 py-2 bg-indigo-600 hover:bg-indigo-700 rounded-lg transition-colors text-sm"
-                >
-                  <Plus size={18} />
-                  <span className="hidden sm:inline">Nova</span>
-                </button>
+                {isAdmin && (
+                  <>
+                    <button
+                      onClick={() => setShowAddMultiplas(true)}
+                      className="flex items-center gap-2 px-3 py-2 bg-purple-600 hover:bg-purple-700 rounded-lg transition-colors text-sm"
+                    >
+                      <Plus size={18} />
+                      <span className="hidden sm:inline">Várias</span>
+                    </button>
+                    <button
+                      onClick={() => setShowAddDisciplina(true)}
+                      className="flex items-center gap-2 px-3 py-2 bg-indigo-600 hover:bg-indigo-700 rounded-lg transition-colors text-sm"
+                    >
+                      <Plus size={18} />
+                      <span className="hidden sm:inline">Nova</span>
+                    </button>
+                  </>
+                )}
               </div>
             </div>
 
@@ -661,11 +692,11 @@ export default function SistemaNotas() {
                                   </div>
                                 )}
                                 
-                                {d.status === 'NAO_INICIADA' && (
+                                {isAdmin && d.status === 'NAO_INICIADA' && (
                                   <button onClick={() => setShowIniciarModal(d.id)} className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 rounded-lg text-sm">Iniciar</button>
                                 )}
                                 
-                                {d.status === 'EM_CURSO' && !isEditingNotas && (
+                                {isAdmin && d.status === 'EM_CURSO' && !isEditingNotas && (
                                   <>
                                     <button onClick={() => abrirEdicaoNotas(d)} className="p-2 text-slate-400 hover:text-white hover:bg-slate-700 rounded-lg"><Edit2 size={16} /></button>
                                     {(d.ga !== null && d.gb !== null) && (
@@ -674,11 +705,11 @@ export default function SistemaNotas() {
                                   </>
                                 )}
 
-                                {(d.status === 'APROVADA' || d.status === 'REPROVADA') && !isEditingNotas && (
+                                {isAdmin && (d.status === 'APROVADA' || d.status === 'REPROVADA') && !isEditingNotas && (
                                   <button onClick={() => abrirEdicaoNotas(d)} className="p-2 text-slate-400 hover:text-white hover:bg-slate-700 rounded-lg"><Edit2 size={16} /></button>
                                 )}
                                 
-                                {!isEditingNotas && (
+                                {isAdmin && !isEditingNotas && (
                                   <div className="relative">
                                     <button 
                                       onClick={() => setShowDeleteMenu(showDeleteMenu === d.id ? null : d.id)} 
@@ -822,10 +853,12 @@ export default function SistemaNotas() {
                                 </div>
                               )}
                             </div>
-                            <button onClick={() => abrirEdicaoNotas(d)} className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 rounded-lg flex items-center gap-2">
-                              <Edit2 size={18} />
-                              Lançar Notas
-                            </button>
+                            {isAdmin && (
+                              <button onClick={() => abrirEdicaoNotas(d)} className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 rounded-lg flex items-center gap-2">
+                                <Edit2 size={18} />
+                                Lançar Notas
+                              </button>
+                            )}
                           </div>
 
                           {notaNecessariaGB !== null && (
@@ -847,7 +880,7 @@ export default function SistemaNotas() {
                             </div>
                           )}
 
-                          {d.ga !== null && d.gb !== null && (
+                          {isAdmin && d.ga !== null && d.gb !== null && (
                             <div className="mt-4 flex justify-end">
                               <button onClick={() => finalizarDisciplina(d.id)} className="px-4 py-2 bg-green-600 hover:bg-green-700 rounded-lg flex items-center gap-2">
                                 <CheckCircle size={18} />
@@ -1127,15 +1160,64 @@ export default function SistemaNotas() {
         {showLoginModal && (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
             <div className="bg-slate-800 rounded-xl p-6 w-full max-w-sm border border-slate-700">
-              <h3 className="text-xl font-semibold mb-2">Sincronizar Dados</h3>
-              <p className="text-slate-400 text-sm mb-4">Digite seu email para sincronizar entre dispositivos</p>
-              <input type="email" placeholder="seu@email.com" value={emailLogin} onChange={e => setEmailLogin(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleLogin()} className="w-full px-4 py-2 bg-slate-700 rounded-lg border border-slate-600 focus:border-indigo-500 focus:outline-none" />
-              {!isSupabaseConfigured && (
-                <p className="text-amber-400 text-xs mt-2">⚠️ Supabase não configurado. Dados salvos apenas localmente.</p>
-              )}
+              <div className="flex items-center gap-3 mb-4">
+                <div className="p-2 bg-indigo-600 rounded-lg">
+                  <Lock size={20} />
+                </div>
+                <div>
+                  <h3 className="text-xl font-semibold">Login Admin</h3>
+                  <p className="text-slate-400 text-sm">Acesso para edição</p>
+                </div>
+              </div>
+              
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm text-slate-400 mb-1">Email</label>
+                  <input 
+                    type="email" 
+                    placeholder="seu@email.com" 
+                    value={emailLogin} 
+                    onChange={e => setEmailLogin(e.target.value)} 
+                    className="w-full px-4 py-2 bg-slate-700 rounded-lg border border-slate-600 focus:border-indigo-500 focus:outline-none" 
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm text-slate-400 mb-1">Senha</label>
+                  <input 
+                    type="password" 
+                    placeholder="••••••••" 
+                    value={senhaLogin} 
+                    onChange={e => setSenhaLogin(e.target.value)} 
+                    onKeyDown={e => e.key === 'Enter' && handleLogin()}
+                    className="w-full px-4 py-2 bg-slate-700 rounded-lg border border-slate-600 focus:border-indigo-500 focus:outline-none" 
+                  />
+                </div>
+                
+                {loginError && (
+                  <p className="text-red-400 text-sm">{loginError}</p>
+                )}
+                
+                {!isSupabaseConfigured && (
+                  <p className="text-amber-400 text-xs">⚠️ Supabase não configurado.</p>
+                )}
+              </div>
+              
               <div className="flex gap-3 mt-6">
-                <button onClick={() => { setShowLoginModal(false); setEmailLogin(''); }} className="flex-1 px-4 py-2 bg-slate-700 hover:bg-slate-600 rounded-lg">Cancelar</button>
-                <button onClick={handleLogin} className="flex-1 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 rounded-lg">Entrar</button>
+                <button 
+                  onClick={() => { setShowLoginModal(false); setEmailLogin(''); setSenhaLogin(''); setLoginError(''); }} 
+                  className="flex-1 px-4 py-2 bg-slate-700 hover:bg-slate-600 rounded-lg"
+                  disabled={loginLoading}
+                >
+                  Cancelar
+                </button>
+                <button 
+                  onClick={handleLogin} 
+                  className="flex-1 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 rounded-lg disabled:opacity-50"
+                  disabled={loginLoading}
+                >
+                  {loginLoading ? 'Entrando...' : 'Entrar'}
+                </button>
               </div>
             </div>
           </div>

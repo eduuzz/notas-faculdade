@@ -1,8 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
-import { supabase, isSupabaseConfigured } from './supabaseClient'
+import { supabase, isSupabaseConfigured, signIn, signUp, signOut, getSession, onAuthStateChange, ADMIN_EMAIL } from './supabaseClient'
 
 const STORAGE_KEY = 'notas-faculdade-data'
-const USER_KEY = 'notas-faculdade-user'
 
 // Dados iniciais com disciplinas reais
 const disciplinasIniciais = [
@@ -66,6 +65,7 @@ const initialData = {
 export function useNotas() {
   const [data, setData] = useState(initialData)
   const [user, setUser] = useState(null)
+  const [isAdmin, setIsAdmin] = useState(false)
   const [loading, setLoading] = useState(true)
   const [syncing, setSyncing] = useState(false)
   const [lastSync, setLastSync] = useState(null)
@@ -107,155 +107,128 @@ export function useNotas() {
     }
   }, [])
 
-  // Carregar usuário salvo
-  const loadUser = useCallback(() => {
-    try {
-      const stored = localStorage.getItem(USER_KEY)
-      if (stored) {
-        return JSON.parse(stored)
-      }
-    } catch (error) {
-      console.error('Erro ao carregar usuário:', error)
-    }
-    return null
-  }, [])
-
-  // Salvar usuário
-  const saveUser = useCallback((userData) => {
-    try {
-      localStorage.setItem(USER_KEY, JSON.stringify(userData))
-      setUser(userData)
-    } catch (error) {
-      console.error('Erro ao salvar usuário:', error)
-    }
-  }, [])
-
   // Carregar do Supabase
-  const loadFromSupabase = useCallback(async (userId) => {
-    if (!supabase || !userId) {
-      console.log('loadFromSupabase: supabase ou userId não disponível')
-      return null
-    }
-
-    try {
-      console.log('Carregando do Supabase para user:', userId)
-      const { data: rows, error } = await supabase
-        .from('notas_usuarios')
-        .select('*')
-        .eq('user_id', userId)
-        .single()
-
-      if (error && error.code !== 'PGRST116') {
-        console.error('Erro ao carregar Supabase:', error)
-        return null
-      }
-
-      if (rows) {
-        console.log('Dados carregados do Supabase:', rows.disciplinas?.length, 'disciplinas')
-        return {
-          disciplinas: rows.disciplinas || [],
-          lastUpdated: rows.updated_at
-        }
-      }
-    } catch (error) {
-      console.error('Erro ao carregar Supabase:', error)
-    }
-    return null
-  }, [])
-
-  // Salvar no Supabase
-  const saveToSupabase = useCallback(async (userId, newData) => {
-    if (!supabase || !userId) {
-      console.log('saveToSupabase: supabase ou userId não disponível')
-      return false
-    }
-
-    if (!isOnline) {
-      console.log('saveToSupabase: offline, não salvando')
-      return false
-    }
-
+  const loadFromSupabase = useCallback(async () => {
+    if (!supabase) return null
+    
     setSyncing(true)
     try {
-      console.log('Salvando no Supabase para user:', userId, 'disciplinas:', newData.disciplinas?.length)
+      // Carregar dados do admin (fixo)
+      const adminId = btoa(ADMIN_EMAIL).replace(/[^a-zA-Z0-9]/g, '')
+      
+      const { data: result, error } = await supabase
+        .from('notas_usuarios')
+        .select('disciplinas, updated_at')
+        .eq('user_id', adminId)
+        .single()
+      
+      if (error && error.code !== 'PGRST116') {
+        console.error('Erro ao carregar do Supabase:', error)
+        return null
+      }
+      
+      if (result?.disciplinas) {
+        return {
+          disciplinas: result.disciplinas,
+          lastUpdated: result.updated_at
+        }
+      }
+      return null
+    } catch (error) {
+      console.error('Erro ao carregar do Supabase:', error)
+      return null
+    } finally {
+      setSyncing(false)
+    }
+  }, [])
+
+  // Salvar no Supabase (apenas admin)
+  const saveToSupabase = useCallback(async (newData) => {
+    if (!supabase || !isAdmin) return false
+    
+    setSyncing(true)
+    try {
+      const adminId = btoa(ADMIN_EMAIL).replace(/[^a-zA-Z0-9]/g, '')
       
       const { error } = await supabase
         .from('notas_usuarios')
         .upsert({
-          user_id: userId,
+          user_id: adminId,
           disciplinas: newData.disciplinas,
           updated_at: new Date().toISOString()
-        }, {
-          onConflict: 'user_id'
-        })
-
+        }, { onConflict: 'user_id' })
+      
       if (error) {
-        console.error('Erro ao salvar Supabase:', error)
+        console.error('Erro ao salvar no Supabase:', error)
         return false
       }
-
-      console.log('Salvo no Supabase com sucesso!')
+      
       setLastSync(new Date())
       return true
     } catch (error) {
-      console.error('Erro ao salvar Supabase:', error)
+      console.error('Erro ao salvar no Supabase:', error)
       return false
     } finally {
       setSyncing(false)
     }
-  }, [isOnline])
+  }, [isAdmin])
 
-  // Inicialização
+  // Monitorar mudanças de autenticação
   useEffect(() => {
     const init = async () => {
       setLoading(true)
       
-      // Carregar usuário
-      const savedUser = loadUser()
-      setUser(savedUser)
-      console.log('Usuário carregado:', savedUser?.email)
-
-      // Carregar do localStorage primeiro (rápido)
+      // Verificar sessão existente
+      const { data: { session } } = await getSession()
+      
+      if (session?.user) {
+        const email = session.user.email
+        setUser({ id: session.user.id, email })
+        setIsAdmin(email === ADMIN_EMAIL)
+      }
+      
+      // Carregar dados
       const localData = loadFromLocalStorage()
-      if (localData) {
-        setData(localData)
-        console.log('Dados locais carregados:', localData.disciplinas?.length, 'disciplinas')
-      }
-
-      // Se tem Supabase configurado e usuário, sincronizar
-      if (supabase && savedUser?.id && isOnline) {
-        console.log('Tentando sincronizar com Supabase...')
-        const cloudData = await loadFromSupabase(savedUser.id)
-        
-        if (cloudData && cloudData.disciplinas?.length > 0) {
-          // Se dados da nuvem são mais recentes, usar eles
-          const localTime = localData?.lastUpdated ? new Date(localData.lastUpdated) : new Date(0)
-          const cloudTime = cloudData.lastUpdated ? new Date(cloudData.lastUpdated) : new Date(0)
-          
-          if (cloudTime > localTime) {
-            console.log('Usando dados da nuvem (mais recentes)')
-            setData(cloudData)
-            saveToLocalStorage(cloudData)
-          } else if (localData) {
-            console.log('Dados locais mais recentes, enviando para nuvem')
-            await saveToSupabase(savedUser.id, localData)
-          }
-          setLastSync(new Date())
-        } else if (localData && localData.disciplinas?.length > 0) {
-          // Não tem dados na nuvem, enviar dados locais
-          console.log('Nuvem vazia, enviando dados locais')
-          await saveToSupabase(savedUser.id, localData)
+      
+      if (supabase && isOnline) {
+        const cloudData = await loadFromSupabase()
+        if (cloudData?.disciplinas?.length > 0) {
+          setData(cloudData)
+          saveToLocalStorage(cloudData)
+        } else if (localData?.disciplinas?.length > 0) {
+          setData(localData)
         }
+      } else if (localData?.disciplinas?.length > 0) {
+        setData(localData)
       }
-
+      
       setLoading(false)
     }
 
     init()
+
+    // Listener para mudanças de auth
+    const { data: { subscription } } = onAuthStateChange((event, session) => {
+      if (session?.user) {
+        const email = session.user.email
+        setUser({ id: session.user.id, email })
+        setIsAdmin(email === ADMIN_EMAIL)
+      } else {
+        setUser(null)
+        setIsAdmin(false)
+      }
+    })
+
+    return () => subscription?.unsubscribe()
   }, [])
 
-  // Atualizar disciplinas
+  // Atualizar disciplinas (apenas admin)
   const setDisciplinas = useCallback(async (disciplinasOrUpdater) => {
+    if (!isAdmin) {
+      console.warn('Apenas o administrador pode modificar dados')
+      return
+    }
+
     const newDisciplinas = typeof disciplinasOrUpdater === 'function'
       ? disciplinasOrUpdater(data.disciplinas)
       : disciplinasOrUpdater
@@ -268,101 +241,88 @@ export function useNotas() {
     setData(newData)
     saveToLocalStorage(newData)
 
-    // Sincronizar com Supabase se configurado e logado
-    if (supabase && user?.id) {
-      console.log('Salvando alteração no Supabase...')
-      await saveToSupabase(user.id, newData)
-    }
-  }, [data.disciplinas, user, saveToLocalStorage, saveToSupabase])
-
-  // Login/Registro
-  const login = useCallback(async (email) => {
-    const userId = btoa(email).replace(/[^a-zA-Z0-9]/g, '')
-    const userData = { id: userId, email, createdAt: new Date().toISOString() }
-    
-    console.log('Login com email:', email, 'userId:', userId)
-    saveUser(userData)
-
-    // Tentar carregar dados existentes do Supabase
+    // Sincronizar com Supabase
     if (supabase && isOnline) {
-      console.log('Verificando dados na nuvem...')
-      const cloudData = await loadFromSupabase(userId)
-      if (cloudData && cloudData.disciplinas?.length > 0) {
-        console.log('Dados encontrados na nuvem, carregando...')
-        setData(cloudData)
-        saveToLocalStorage(cloudData)
-        setLastSync(new Date())
-      } else {
-        // Enviar dados locais para a nuvem
-        console.log('Nenhum dado na nuvem, enviando dados locais...')
-        const localData = loadFromLocalStorage() || data
-        await saveToSupabase(userId, localData)
-      }
+      await saveToSupabase(newData)
     }
+  }, [data.disciplinas, isAdmin, isOnline, saveToLocalStorage, saveToSupabase])
 
-    return userData
-  }, [data, saveUser, loadFromSupabase, saveToSupabase, saveToLocalStorage, isOnline, loadFromLocalStorage])
+  // Login com senha
+  const login = useCallback(async (email, password) => {
+    const { data: authData, error } = await signIn(email, password)
+    
+    if (error) {
+      return { error }
+    }
+    
+    if (authData?.user) {
+      setUser({ id: authData.user.id, email: authData.user.email })
+      setIsAdmin(authData.user.email === ADMIN_EMAIL)
+      
+      // Carregar dados mais recentes
+      if (supabase && isOnline) {
+        const cloudData = await loadFromSupabase()
+        if (cloudData?.disciplinas?.length > 0) {
+          setData(cloudData)
+          saveToLocalStorage(cloudData)
+        }
+      }
+      
+      return { user: authData.user }
+    }
+    
+    return { error: { message: 'Erro desconhecido' } }
+  }, [isOnline, loadFromSupabase, saveToLocalStorage])
+
+  // Registrar conta
+  const register = useCallback(async (email, password) => {
+    const { data: authData, error } = await signUp(email, password)
+    
+    if (error) {
+      return { error }
+    }
+    
+    return { user: authData?.user, message: 'Verifique seu email para confirmar a conta' }
+  }, [])
 
   // Logout
-  const logout = useCallback(() => {
-    localStorage.removeItem(USER_KEY)
+  const logout = useCallback(async () => {
+    await signOut()
     setUser(null)
+    setIsAdmin(false)
   }, [])
 
   // Forçar sincronização
   const forceSync = useCallback(async () => {
-    if (!user?.id) {
-      console.log('forceSync: usuário não logado')
-      return false
-    }
-    
-    if (!isOnline) {
-      console.log('forceSync: offline')
-      return false
-    }
-
-    if (!supabase) {
-      console.log('forceSync: supabase não configurado')
-      return false
-    }
+    if (!isOnline || !supabase) return false
     
     setSyncing(true)
     try {
-      console.log('Forçando sincronização...')
-      const cloudData = await loadFromSupabase(user.id)
+      const cloudData = await loadFromSupabase()
       
-      if (cloudData && cloudData.disciplinas?.length > 0) {
-        const localTime = data.lastUpdated ? new Date(data.lastUpdated) : new Date(0)
-        const cloudTime = cloudData.lastUpdated ? new Date(cloudData.lastUpdated) : new Date(0)
-        
-        if (cloudTime > localTime) {
-          console.log('Atualizando com dados da nuvem')
-          setData(cloudData)
-          saveToLocalStorage(cloudData)
-        } else {
-          console.log('Enviando dados locais para nuvem')
-          await saveToSupabase(user.id, data)
-        }
-      } else {
-        console.log('Nuvem vazia, enviando dados locais')
-        await saveToSupabase(user.id, data)
+      if (cloudData?.disciplinas?.length > 0) {
+        setData(cloudData)
+        saveToLocalStorage(cloudData)
+        setLastSync(new Date())
+        return true
       }
       
-      setLastSync(new Date())
-      return true
+      return false
     } catch (error) {
       console.error('Erro na sincronização:', error)
       return false
     } finally {
       setSyncing(false)
     }
-  }, [user, data, isOnline, loadFromSupabase, saveToSupabase, saveToLocalStorage])
+  }, [isOnline, loadFromSupabase, saveToLocalStorage])
 
   return {
     disciplinas: data.disciplinas,
     setDisciplinas,
     user,
+    isAdmin,
     login,
+    register,
     logout,
     loading,
     syncing,
