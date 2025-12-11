@@ -1172,6 +1172,13 @@ export default function SistemaNotas() {
             setPlanejamentoSemestres(novoPlano);
           };
           
+          // Atualizar período de um semestre
+          const atualizarPeriodo = (index, novoPeriodo) => {
+            const novoPlano = [...planejamentoSemestres];
+            novoPlano[index].periodo = novoPeriodo;
+            setPlanejamentoSemestres(novoPlano);
+          };
+          
           // Adicionar semestre
           const adicionarSemestre = () => {
             if (planejamentoSemestres.length === 0) {
@@ -1252,36 +1259,6 @@ export default function SistemaNotas() {
                 </div>
               </div>
               
-              {/* Configuração do Semestre Atual */}
-              <div className="bg-slate-800/50 backdrop-blur rounded-xl p-6 border border-slate-700">
-                <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                  <Clock size={20} className="text-slate-400" />
-                  Semestre Atual
-                </h3>
-                <div className="grid grid-cols-2 gap-4 max-w-md">
-                  <div>
-                    <label className="block text-sm text-slate-400 mb-2">Ano</label>
-                    <input
-                      type="number"
-                      value={semestreAtualAno}
-                      onChange={e => setSemestreAtualAno(parseInt(e.target.value) || 2025)}
-                      className="w-full px-4 py-3 bg-slate-700 rounded-lg border border-slate-600 focus:border-indigo-500 focus:outline-none text-center text-lg font-semibold"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm text-slate-400 mb-2">Semestre</label>
-                    <select
-                      value={semestreAtualNum}
-                      onChange={e => setSemestreAtualNum(parseInt(e.target.value))}
-                      className="w-full px-4 py-3 bg-slate-700 rounded-lg border border-slate-600 focus:border-indigo-500 focus:outline-none text-center text-lg font-semibold"
-                    >
-                      <option value={1}>1º Semestre</option>
-                      <option value={2}>2º Semestre</option>
-                    </select>
-                  </div>
-                </div>
-              </div>
-              
               {/* Estatísticas */}
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <div className="bg-slate-800/50 backdrop-blur rounded-xl p-4 border border-slate-700 text-center">
@@ -1347,55 +1324,64 @@ export default function SistemaNotas() {
                   </div>
                   
                   <div className="space-y-2 max-h-80 overflow-y-auto pr-2">
-                    {planejamentoSemestres.map((sem, index) => (
-                      <div 
-                        key={index} 
-                        className={`flex items-center gap-3 p-3 rounded-lg ${
-                          sem.tipo === 'atual' 
-                            ? 'bg-blue-500/20 border border-blue-500/30' 
-                            : 'bg-slate-700/50'
-                        }`}
-                      >
-                        <span className={`text-sm font-medium w-20 ${sem.tipo === 'atual' ? 'text-blue-400' : 'text-slate-300'}`}>
-                          {sem.periodo}
-                          {sem.tipo === 'atual' && <span className="text-xs ml-1">(atual)</span>}
-                        </span>
-                        
-                        <div className="flex items-center gap-2 flex-1">
-                          <button
-                            onClick={() => atualizarQuantidade(index, sem.quantidade - 1)}
-                            className="w-8 h-8 rounded-lg bg-slate-600 hover:bg-slate-500 flex items-center justify-center text-lg font-bold"
-                            disabled={sem.quantidade <= 0}
-                          >
-                            -
-                          </button>
-                          <input
-                            type="number"
-                            value={sem.quantidade}
-                            onChange={e => atualizarQuantidade(index, parseInt(e.target.value) || 0)}
-                            className="w-16 px-2 py-1 bg-slate-600 rounded-lg text-center font-bold text-lg border border-slate-500 focus:border-indigo-500 focus:outline-none"
-                            min="0"
-                            max="10"
-                          />
-                          <button
-                            onClick={() => atualizarQuantidade(index, sem.quantidade + 1)}
-                            className="w-8 h-8 rounded-lg bg-slate-600 hover:bg-slate-500 flex items-center justify-center text-lg font-bold"
-                            disabled={sem.quantidade >= 10}
-                          >
-                            +
-                          </button>
+                    {planejamentoSemestres.map((sem, index) => {
+                      const isAtual = index === 0;
+                      return (
+                        <div 
+                          key={index} 
+                          className={`flex items-center gap-3 p-3 rounded-lg ${
+                            isAtual 
+                              ? 'bg-blue-500/20 border border-blue-500/30' 
+                              : 'bg-slate-700/50'
+                          }`}
+                        >
+                          <div className="flex items-center gap-1">
+                            <input
+                              type="text"
+                              value={sem.periodo}
+                              onChange={e => atualizarPeriodo(index, e.target.value)}
+                              className={`w-20 px-2 py-1 bg-slate-600 rounded-lg text-center text-sm font-medium border border-slate-500 focus:border-indigo-500 focus:outline-none ${isAtual ? 'text-blue-400' : 'text-slate-300'}`}
+                              placeholder="2025/1"
+                            />
+                            {isAtual && <span className="text-xs text-blue-400">(atual)</span>}
+                          </div>
+                          
+                          <div className="flex items-center gap-2 flex-1">
+                            <button
+                              onClick={() => atualizarQuantidade(index, sem.quantidade - 1)}
+                              className="w-8 h-8 rounded-lg bg-slate-600 hover:bg-slate-500 flex items-center justify-center text-lg font-bold"
+                              disabled={sem.quantidade <= 0}
+                            >
+                              -
+                            </button>
+                            <input
+                              type="number"
+                              value={sem.quantidade}
+                              onChange={e => atualizarQuantidade(index, parseInt(e.target.value) || 0)}
+                              className="w-16 px-2 py-1 bg-slate-600 rounded-lg text-center font-bold text-lg border border-slate-500 focus:border-indigo-500 focus:outline-none"
+                              min="0"
+                              max="10"
+                            />
+                            <button
+                              onClick={() => atualizarQuantidade(index, sem.quantidade + 1)}
+                              className="w-8 h-8 rounded-lg bg-slate-600 hover:bg-slate-500 flex items-center justify-center text-lg font-bold"
+                              disabled={sem.quantidade >= 10}
+                            >
+                              +
+                            </button>
+                          </div>
+                          
+                          {planejamentoSemestres.length > 1 && (
+                            <button
+                              onClick={() => removerSemestre(index)}
+                              className="p-2 text-red-400 hover:bg-red-500/20 rounded-lg"
+                            >
+                              <Trash2 size={16} />
+                            </button>
+                          )}
                         </div>
-                        
-                        {planejamentoSemestres.length > 1 && (
-                          <button
-                            onClick={() => removerSemestre(index)}
-                            className="p-2 text-red-400 hover:bg-red-500/20 rounded-lg"
-                          >
-                            <Trash2 size={16} />
-                          </button>
-                        )}
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                   
                   <button
@@ -1437,10 +1423,11 @@ export default function SistemaNotas() {
                         {planejamentoSemestres.map((sem, index) => {
                           const acumulado = calcularAcumulado(index);
                           const percentual = (acumulado / totalDisciplinas) * 100;
+                          const isAtual = index === 0;
                           return (
-                            <tr key={index} className={`border-b border-slate-700/50 ${sem.tipo === 'atual' ? 'bg-blue-500/10' : ''}`}>
-                              <td className={`py-2 px-3 ${sem.tipo === 'atual' ? 'text-blue-400' : 'text-slate-300'}`}>
-                                {sem.periodo} {sem.tipo === 'atual' && '(atual)'}
+                            <tr key={index} className={`border-b border-slate-700/50 ${isAtual ? 'bg-blue-500/10' : ''}`}>
+                              <td className={`py-2 px-3 ${isAtual ? 'text-blue-400' : 'text-slate-300'}`}>
+                                {sem.periodo} {isAtual && '(atual)'}
                               </td>
                               <td className="text-center py-2 px-3 font-bold">{sem.quantidade}</td>
                               <td className="text-center py-2 px-3 text-slate-300">{acumulado}</td>
