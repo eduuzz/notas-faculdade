@@ -1215,6 +1215,25 @@ export default function SistemaNotas() {
             ? planejamentoSemestres[planejamentoSemestres.length - 1].periodo 
             : '-';
           
+          // Calcular anos até formar baseado nos períodos reais
+          const calcularAnosAteFormar = () => {
+            if (planejamentoSemestres.length === 0) return '0';
+            
+            const primeiro = planejamentoSemestres[0].periodo;
+            const ultimo = planejamentoSemestres[planejamentoSemestres.length - 1].periodo;
+            
+            const [anoInicio, semInicio] = primeiro.split('/').map(Number);
+            const [anoFim, semFim] = ultimo.split('/').map(Number);
+            
+            // Calcular diferença em semestres
+            const semestresInicio = anoInicio * 2 + semInicio;
+            const semestresFim = anoFim * 2 + semFim;
+            const diferenca = semestresFim - semestresInicio + 1;
+            
+            const anos = diferenca / 2;
+            return anos % 1 === 0 ? anos.toString() : anos.toFixed(1);
+          };
+          
           const progressoTotal = totalDisciplinas > 0 ? ((disciplinasAprovadas / totalDisciplinas) * 100) : 0;
           
           // Calcular acumulado para tabela
@@ -1245,7 +1264,7 @@ export default function SistemaNotas() {
                   
                   <div className="text-center p-4 bg-slate-800/50 rounded-xl">
                     <div className="text-4xl font-bold text-amber-400 mb-1">
-                      {(planejamentoSemestres.length / 2).toFixed(1).replace('.0', '')}
+                      {calcularAnosAteFormar()}
                     </div>
                     <div className="text-slate-400 text-sm">Anos até Formar</div>
                   </div>
