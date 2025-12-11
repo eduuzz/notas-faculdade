@@ -1245,9 +1245,9 @@ export default function SistemaNotas() {
                   
                   <div className="text-center p-4 bg-slate-800/50 rounded-xl">
                     <div className="text-4xl font-bold text-amber-400 mb-1">
-                      {planejamentoSemestres.length}
+                      {(planejamentoSemestres.length / 2).toFixed(1).replace('.0', '')}
                     </div>
-                    <div className="text-slate-400 text-sm">Semestres Planejados</div>
+                    <div className="text-slate-400 text-sm">Anos até Formar</div>
                   </div>
                   
                   <div className="text-center p-4 bg-slate-800/50 rounded-xl">
