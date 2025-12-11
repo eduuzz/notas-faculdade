@@ -1210,17 +1210,20 @@ export default function SistemaNotas() {
             setTimeout(inicializarPlanejamento, 100);
           };
           
-          // Previsão de formatura
-          const previsaoFormatura = planejamentoSemestres.length > 0 
-            ? planejamentoSemestres[planejamentoSemestres.length - 1].periodo 
+          // Filtrar apenas semestres com disciplinas (quantidade > 0)
+          const semestresComDisciplinas = planejamentoSemestres.filter(s => s.quantidade > 0);
+          
+          // Previsão de formatura (último semestre COM disciplinas)
+          const previsaoFormatura = semestresComDisciplinas.length > 0 
+            ? semestresComDisciplinas[semestresComDisciplinas.length - 1].periodo 
             : '-';
           
-          // Calcular anos até formar baseado nos períodos reais
+          // Calcular anos até formar baseado nos períodos COM disciplinas
           const calcularAnosAteFormar = () => {
-            if (planejamentoSemestres.length === 0) return '0';
+            if (semestresComDisciplinas.length === 0) return '0';
             
-            const primeiro = planejamentoSemestres[0].periodo;
-            const ultimo = planejamentoSemestres[planejamentoSemestres.length - 1].periodo;
+            const primeiro = semestresComDisciplinas[0].periodo;
+            const ultimo = semestresComDisciplinas[semestresComDisciplinas.length - 1].periodo;
             
             const [anoInicio, semInicio] = primeiro.split('/').map(Number);
             const [anoFim, semFim] = ultimo.split('/').map(Number);
