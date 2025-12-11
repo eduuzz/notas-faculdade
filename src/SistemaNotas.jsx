@@ -62,19 +62,17 @@ export default function SistemaNotas() {
     const saved = localStorage.getItem('semestreAtualNum');
     return saved ? parseInt(saved) : (new Date().getMonth() < 6 ? 1 : 2);
   });
-  const [ritmoSimulado, setRitmoSimulado] = useState(() => {
-    const saved = localStorage.getItem('ritmoSimulado');
-    return saved ? parseInt(saved) : 6;
+  const [planejamentoSemestres, setPlanejamentoSemestres] = useState(() => {
+    const saved = localStorage.getItem('planejamentoSemestres');
+    return saved ? JSON.parse(saved) : [];
   });
 
   // Salvar preferências do simulador
   useEffect(() => {
     localStorage.setItem('semestreAtualAno', semestreAtualAno.toString());
     localStorage.setItem('semestreAtualNum', semestreAtualNum.toString());
-    if (ritmoSimulado > 0) {
-      localStorage.setItem('ritmoSimulado', ritmoSimulado.toString());
-    }
-  }, [semestreAtualAno, semestreAtualNum, ritmoSimulado]);
+    localStorage.setItem('planejamentoSemestres', JSON.stringify(planejamentoSemestres));
+  }, [semestreAtualAno, semestreAtualNum, planejamentoSemestres]);
 
   // Lógica do tema
   useEffect(() => {
@@ -1115,78 +1113,111 @@ export default function SistemaNotas() {
           const disciplinasEmCurso = disciplinas.filter(d => d.status === 'EM_CURSO').length;
           const disciplinasRestantes = disciplinas.filter(d => d.status === 'NAO_INICIADA').length;
           const totalDisciplinas = disciplinas.length;
-          
-          // Calcular semestres cursados com disciplinas aprovadas
-          const semestresComAprovacoes = [...new Set(
-            disciplinas
-              .filter(d => d.status === 'APROVADA' && d.semestreCursado)
-              .map(d => d.semestreCursado)
-          )];
-          
-          // Usar ritmo definido pelo usuário (padrão: 6)
-          const ritmoAtual = ritmoSimulado;
-          
-          // Calcular semestres restantes
           const disciplinasParaConcluir = disciplinasRestantes + disciplinasEmCurso;
-          const semestresRestantes = ritmoAtual > 0 ? Math.ceil(disciplinasParaConcluir / ritmoAtual) : 0;
           
-          // Calcular data prevista de formatura
-          const calcularDataFormatura = () => {
-            let ano = semestreAtualAno;
-            let sem = semestreAtualNum;
-            
-            for (let i = 0; i < semestresRestantes; i++) {
-              sem++;
-              if (sem > 2) {
-                sem = 1;
-                ano++;
-              }
-            }
-            
-            return { ano, semestre: sem };
+          // Gerar próximo período
+          const gerarProximoPeriodo = (ano, sem) => {
+            sem++;
+            if (sem > 2) { sem = 1; ano++; }
+            return { ano, sem };
           };
           
-          const previsao = calcularDataFormatura();
+          // Gerar período string
+          const periodoString = (ano, sem) => `${ano}/${sem}`;
+          
+          // Inicializar planejamento se vazio
+          const inicializarPlanejamento = () => {
+            if (planejamentoSemestres.length > 0) return;
+            
+            const novoPlano = [];
+            let ano = semestreAtualAno;
+            let sem = semestreAtualNum;
+            let restantes = disciplinasParaConcluir;
+            
+            // Se tem em curso, primeiro semestre é com elas
+            if (disciplinasEmCurso > 0) {
+              novoPlano.push({ periodo: periodoString(ano, sem), quantidade: disciplinasEmCurso, tipo: 'atual' });
+              restantes -= disciplinasEmCurso;
+              const prox = gerarProximoPeriodo(ano, sem);
+              ano = prox.ano;
+              sem = prox.sem;
+            }
+            
+            // Preencher futuros com 6 por semestre
+            while (restantes > 0) {
+              const qtd = Math.min(6, restantes);
+              novoPlano.push({ periodo: periodoString(ano, sem), quantidade: qtd, tipo: 'futuro' });
+              restantes -= qtd;
+              const prox = gerarProximoPeriodo(ano, sem);
+              ano = prox.ano;
+              sem = prox.sem;
+            }
+            
+            setPlanejamentoSemestres(novoPlano);
+          };
+          
+          // Inicializar na primeira renderização
+          if (planejamentoSemestres.length === 0 && disciplinasParaConcluir > 0) {
+            inicializarPlanejamento();
+          }
+          
+          // Calcular totais do planejamento
+          const totalPlanejado = planejamentoSemestres.reduce((acc, s) => acc + s.quantidade, 0);
+          const disciplinasFaltando = disciplinasParaConcluir - totalPlanejado;
+          
+          // Atualizar quantidade de um semestre
+          const atualizarQuantidade = (index, novaQtd) => {
+            const novoPlano = [...planejamentoSemestres];
+            novoPlano[index].quantidade = Math.max(0, Math.min(10, novaQtd));
+            setPlanejamentoSemestres(novoPlano);
+          };
+          
+          // Adicionar semestre
+          const adicionarSemestre = () => {
+            if (planejamentoSemestres.length === 0) {
+              setPlanejamentoSemestres([{ periodo: periodoString(semestreAtualAno, semestreAtualNum), quantidade: 6, tipo: 'futuro' }]);
+              return;
+            }
+            
+            const ultimo = planejamentoSemestres[planejamentoSemestres.length - 1];
+            const [ano, sem] = ultimo.periodo.split('/').map(Number);
+            const prox = gerarProximoPeriodo(ano, sem);
+            
+            setPlanejamentoSemestres([...planejamentoSemestres, { 
+              periodo: periodoString(prox.ano, prox.sem), 
+              quantidade: Math.min(6, Math.max(0, disciplinasFaltando)), 
+              tipo: 'futuro' 
+            }]);
+          };
+          
+          // Remover semestre
+          const removerSemestre = (index) => {
+            if (planejamentoSemestres.length <= 1) return;
+            const novoPlano = planejamentoSemestres.filter((_, i) => i !== index);
+            setPlanejamentoSemestres(novoPlano);
+          };
+          
+          // Resetar planejamento
+          const resetarPlanejamento = () => {
+            setPlanejamentoSemestres([]);
+            setTimeout(inicializarPlanejamento, 100);
+          };
+          
+          // Previsão de formatura
+          const previsaoFormatura = planejamentoSemestres.length > 0 
+            ? planejamentoSemestres[planejamentoSemestres.length - 1].periodo 
+            : '-';
+          
           const progressoTotal = totalDisciplinas > 0 ? ((disciplinasAprovadas / totalDisciplinas) * 100) : 0;
           
-          // Gerar linha do tempo
-          const gerarLinhaDoTempo = () => {
-            const timeline = [];
-            let ano = semestreAtualAno;
-            let sem = semestreAtualNum;
-            let disciplinasRestantesTemp = disciplinasParaConcluir;
-            
-            // Semestre atual (em curso)
-            if (disciplinasEmCurso > 0) {
-              timeline.push({
-                periodo: `${ano}/${sem}`,
-                disciplinas: disciplinasEmCurso,
-                tipo: 'atual',
-                acumulado: disciplinasAprovadas + disciplinasEmCurso
-              });
-              sem++;
-              if (sem > 2) { sem = 1; ano++; }
-              disciplinasRestantesTemp -= disciplinasEmCurso;
+          // Calcular acumulado para tabela
+          const calcularAcumulado = (index) => {
+            let acum = disciplinasAprovadas;
+            for (let i = 0; i <= index; i++) {
+              acum += planejamentoSemestres[i].quantidade;
             }
-            
-            // Semestres futuros
-            while (disciplinasRestantesTemp > 0 && timeline.length < 12) {
-              const discsSemestre = Math.min(Math.round(ritmoAtual), disciplinasRestantesTemp);
-              timeline.push({
-                periodo: `${ano}/${sem}`,
-                disciplinas: discsSemestre,
-                tipo: 'futuro',
-                acumulado: totalDisciplinas - disciplinasRestantesTemp + discsSemestre
-              });
-              disciplinasRestantesTemp -= discsSemestre;
-              sem++;
-              if (sem > 2) { sem = 1; ano++; }
-            }
-            
-            return timeline;
+            return acum;
           };
-          
-          const timeline = gerarLinhaDoTempo();
           
           return (
             <div className="space-y-6">
@@ -1200,16 +1231,16 @@ export default function SistemaNotas() {
                 <div className="grid md:grid-cols-3 gap-6">
                   <div className="text-center p-4 bg-slate-800/50 rounded-xl">
                     <div className="text-4xl font-bold text-indigo-400 mb-1">
-                      {previsao.ano}/{previsao.semestre}
+                      {previsaoFormatura}
                     </div>
                     <div className="text-slate-400 text-sm">Conclusão Prevista</div>
                   </div>
                   
                   <div className="text-center p-4 bg-slate-800/50 rounded-xl">
                     <div className="text-4xl font-bold text-amber-400 mb-1">
-                      {semestresRestantes}
+                      {planejamentoSemestres.length}
                     </div>
-                    <div className="text-slate-400 text-sm">Semestres Restantes</div>
+                    <div className="text-slate-400 text-sm">Semestres Planejados</div>
                   </div>
                   
                   <div className="text-center p-4 bg-slate-800/50 rounded-xl">
@@ -1221,71 +1252,32 @@ export default function SistemaNotas() {
                 </div>
               </div>
               
-              {/* Configurações do Simulador */}
-              <div className="grid md:grid-cols-2 gap-6">
-                <div className="bg-slate-800/50 backdrop-blur rounded-xl p-6 border border-slate-700">
-                  <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                    <Clock size={20} className="text-slate-400" />
-                    Semestre Atual
-                  </h3>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm text-slate-400 mb-2">Ano</label>
-                      <input
-                        type="number"
-                        value={semestreAtualAno}
-                        onChange={e => setSemestreAtualAno(parseInt(e.target.value) || 2025)}
-                        className="w-full px-4 py-3 bg-slate-700 rounded-lg border border-slate-600 focus:border-indigo-500 focus:outline-none text-center text-lg font-semibold"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm text-slate-400 mb-2">Semestre</label>
-                      <select
-                        value={semestreAtualNum}
-                        onChange={e => setSemestreAtualNum(parseInt(e.target.value))}
-                        className="w-full px-4 py-3 bg-slate-700 rounded-lg border border-slate-600 focus:border-indigo-500 focus:outline-none text-center text-lg font-semibold"
-                      >
-                        <option value={1}>1º Semestre</option>
-                        <option value={2}>2º Semestre</option>
-                      </select>
-                    </div>
-                  </div>
-                </div>
-                
-                <div className="bg-slate-800/50 backdrop-blur rounded-xl p-6 border border-slate-700">
-                  <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                    <TrendingUp size={20} className="text-slate-400" />
-                    Ritmo de Estudo
-                  </h3>
+              {/* Configuração do Semestre Atual */}
+              <div className="bg-slate-800/50 backdrop-blur rounded-xl p-6 border border-slate-700">
+                <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                  <Clock size={20} className="text-slate-400" />
+                  Semestre Atual
+                </h3>
+                <div className="grid grid-cols-2 gap-4 max-w-md">
                   <div>
-                    <label className="block text-sm text-slate-400 mb-2">
-                      Disciplinas por semestre 
-                      <span className="text-xs ml-2">(padrão: 6)</span>
-                    </label>
-                    <div className="flex items-center gap-4">
-                      <input
-                        type="range"
-                        min="1"
-                        max="10"
-                        step="1"
-                        value={ritmoSimulado}
-                        onChange={e => setRitmoSimulado(parseInt(e.target.value))}
-                        className="flex-1 h-2 bg-slate-600 rounded-lg appearance-none cursor-pointer accent-indigo-500"
-                      />
-                      <div className="w-16 text-center">
-                        <span className="text-2xl font-bold text-indigo-400">
-                          {ritmoSimulado}
-                        </span>
-                      </div>
-                    </div>
-                    {ritmoSimulado !== 6 && (
-                      <button
-                        onClick={() => setRitmoSimulado(6)}
-                        className="mt-2 text-xs text-slate-400 hover:text-indigo-400"
-                      >
-                        ↩ Voltar ao padrão (6)
-                      </button>
-                    )}
+                    <label className="block text-sm text-slate-400 mb-2">Ano</label>
+                    <input
+                      type="number"
+                      value={semestreAtualAno}
+                      onChange={e => setSemestreAtualAno(parseInt(e.target.value) || 2025)}
+                      className="w-full px-4 py-3 bg-slate-700 rounded-lg border border-slate-600 focus:border-indigo-500 focus:outline-none text-center text-lg font-semibold"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm text-slate-400 mb-2">Semestre</label>
+                    <select
+                      value={semestreAtualNum}
+                      onChange={e => setSemestreAtualNum(parseInt(e.target.value))}
+                      className="w-full px-4 py-3 bg-slate-700 rounded-lg border border-slate-600 focus:border-indigo-500 focus:outline-none text-center text-lg font-semibold"
+                    >
+                      <option value={1}>1º Semestre</option>
+                      <option value={2}>2º Semestre</option>
+                    </select>
                   </div>
                 </div>
               </div>
@@ -1336,67 +1328,176 @@ export default function SistemaNotas() {
                 </div>
               </div>
               
-              {/* Linha do Tempo */}
-              {timeline.length > 0 && (
+              {/* Planejamento de Semestres */}
+              <div className="grid md:grid-cols-2 gap-6">
+                {/* Lista Editável */}
                 <div className="bg-slate-800/50 backdrop-blur rounded-xl p-6 border border-slate-700">
-                  <h3 className="text-lg font-semibold mb-4">Projeção por Semestre</h3>
-                  <div className="overflow-x-auto">
-                    <div className="flex gap-3 min-w-max pb-2">
-                      {/* Semestres passados */}
-                      {semestresComAprovacoes.slice(-3).map((sem, i) => {
-                        const discs = disciplinas.filter(d => d.semestreCursado === sem && d.status === 'APROVADA').length;
-                        return (
-                          <div key={`past-${i}`} className="flex flex-col items-center">
-                            <div className="w-16 h-16 rounded-xl bg-green-500/20 border border-green-500/30 flex items-center justify-center">
-                              <span className="text-xl font-bold text-green-400">{discs}</span>
-                            </div>
-                            <span className="text-xs text-slate-500 mt-1">{sem}</span>
-                            <span className="text-xs text-green-400">✓</span>
-                          </div>
-                        );
-                      })}
-                      
-                      {/* Divisor */}
-                      {semestresComAprovacoes.length > 0 && (
-                        <div className="flex items-center px-2">
-                          <div className="w-8 h-0.5 bg-slate-600"></div>
-                        </div>
-                      )}
-                      
-                      {/* Semestres futuros */}
-                      {timeline.map((item, i) => (
-                        <div key={i} className="flex flex-col items-center">
-                          <div className={`w-16 h-16 rounded-xl flex items-center justify-center ${
-                            item.tipo === 'atual' 
-                              ? 'bg-blue-500/20 border-2 border-blue-500' 
-                              : 'bg-slate-700/50 border border-slate-600'
-                          }`}>
-                            <span className={`text-xl font-bold ${item.tipo === 'atual' ? 'text-blue-400' : 'text-slate-300'}`}>
-                              {item.disciplinas}
-                            </span>
-                          </div>
-                          <span className={`text-xs mt-1 ${item.tipo === 'atual' ? 'text-blue-400 font-semibold' : 'text-slate-500'}`}>
-                            {item.periodo}
-                          </span>
-                          {item.tipo === 'atual' && (
-                            <span className="text-xs text-blue-400">atual</span>
-                          )}
-                          {i === timeline.length - 1 && (
-                            <span className="text-xs text-indigo-400 font-semibold">🎓</span>
-                          )}
-                        </div>
-                      ))}
-                    </div>
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-lg font-semibold flex items-center gap-2">
+                      <Edit2 size={20} className="text-slate-400" />
+                      Planejamento por Semestre
+                    </h3>
+                    <button
+                      onClick={resetarPlanejamento}
+                      className="text-xs text-slate-400 hover:text-indigo-400 flex items-center gap-1"
+                    >
+                      <RefreshCw size={14} />
+                      Resetar
+                    </button>
                   </div>
+                  
+                  <div className="space-y-2 max-h-80 overflow-y-auto pr-2">
+                    {planejamentoSemestres.map((sem, index) => (
+                      <div 
+                        key={index} 
+                        className={`flex items-center gap-3 p-3 rounded-lg ${
+                          sem.tipo === 'atual' 
+                            ? 'bg-blue-500/20 border border-blue-500/30' 
+                            : 'bg-slate-700/50'
+                        }`}
+                      >
+                        <span className={`text-sm font-medium w-20 ${sem.tipo === 'atual' ? 'text-blue-400' : 'text-slate-300'}`}>
+                          {sem.periodo}
+                          {sem.tipo === 'atual' && <span className="text-xs ml-1">(atual)</span>}
+                        </span>
+                        
+                        <div className="flex items-center gap-2 flex-1">
+                          <button
+                            onClick={() => atualizarQuantidade(index, sem.quantidade - 1)}
+                            className="w-8 h-8 rounded-lg bg-slate-600 hover:bg-slate-500 flex items-center justify-center text-lg font-bold"
+                            disabled={sem.quantidade <= 0}
+                          >
+                            -
+                          </button>
+                          <input
+                            type="number"
+                            value={sem.quantidade}
+                            onChange={e => atualizarQuantidade(index, parseInt(e.target.value) || 0)}
+                            className="w-16 px-2 py-1 bg-slate-600 rounded-lg text-center font-bold text-lg border border-slate-500 focus:border-indigo-500 focus:outline-none"
+                            min="0"
+                            max="10"
+                          />
+                          <button
+                            onClick={() => atualizarQuantidade(index, sem.quantidade + 1)}
+                            className="w-8 h-8 rounded-lg bg-slate-600 hover:bg-slate-500 flex items-center justify-center text-lg font-bold"
+                            disabled={sem.quantidade >= 10}
+                          >
+                            +
+                          </button>
+                        </div>
+                        
+                        {planejamentoSemestres.length > 1 && (
+                          <button
+                            onClick={() => removerSemestre(index)}
+                            className="p-2 text-red-400 hover:bg-red-500/20 rounded-lg"
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                  
+                  <button
+                    onClick={adicionarSemestre}
+                    className="mt-4 w-full py-2 border-2 border-dashed border-slate-600 hover:border-indigo-500 rounded-lg text-slate-400 hover:text-indigo-400 flex items-center justify-center gap-2 transition-colors"
+                  >
+                    <Plus size={18} />
+                    Adicionar Semestre
+                  </button>
                 </div>
-              )}
+                
+                {/* Tabela com Total */}
+                <div className="bg-slate-800/50 backdrop-blur rounded-xl p-6 border border-slate-700">
+                  <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                    <TrendingUp size={20} className="text-slate-400" />
+                    Resumo do Planejamento
+                  </h3>
+                  
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="border-b border-slate-600">
+                          <th className="text-left py-2 text-slate-400 font-medium">Semestre</th>
+                          <th className="text-center py-2 text-slate-400 font-medium">Qtd</th>
+                          <th className="text-center py-2 text-slate-400 font-medium">Acumulado</th>
+                          <th className="text-right py-2 text-slate-400 font-medium">%</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {/* Linha de aprovadas */}
+                        <tr className="border-b border-slate-700/50">
+                          <td className="py-2 text-green-400">✓ Aprovadas</td>
+                          <td className="text-center py-2 font-bold text-green-400">{disciplinasAprovadas}</td>
+                          <td className="text-center py-2 text-slate-300">{disciplinasAprovadas}</td>
+                          <td className="text-right py-2 text-slate-400">{((disciplinasAprovadas / totalDisciplinas) * 100).toFixed(0)}%</td>
+                        </tr>
+                        
+                        {/* Semestres planejados */}
+                        {planejamentoSemestres.map((sem, index) => {
+                          const acumulado = calcularAcumulado(index);
+                          const percentual = (acumulado / totalDisciplinas) * 100;
+                          return (
+                            <tr key={index} className={`border-b border-slate-700/50 ${sem.tipo === 'atual' ? 'bg-blue-500/10' : ''}`}>
+                              <td className={`py-2 ${sem.tipo === 'atual' ? 'text-blue-400' : 'text-slate-300'}`}>
+                                {sem.periodo} {sem.tipo === 'atual' && '(atual)'}
+                              </td>
+                              <td className="text-center py-2 font-bold">{sem.quantidade}</td>
+                              <td className="text-center py-2 text-slate-300">{acumulado}</td>
+                              <td className="text-right py-2 text-slate-400">{percentual.toFixed(0)}%</td>
+                            </tr>
+                          );
+                        })}
+                        
+                        {/* Linha de total */}
+                        <tr className="bg-slate-700/30 font-bold">
+                          <td className="py-3 text-indigo-400">Total Planejado</td>
+                          <td className="text-center py-3 text-indigo-400">{totalPlanejado}</td>
+                          <td className="text-center py-3">{disciplinasAprovadas + totalPlanejado}</td>
+                          <td className="text-right py-3 text-indigo-400">
+                            {(((disciplinasAprovadas + totalPlanejado) / totalDisciplinas) * 100).toFixed(0)}%
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                  
+                  {/* Alerta se faltam disciplinas */}
+                  {disciplinasFaltando > 0 && (
+                    <div className="mt-4 p-3 bg-amber-500/10 border border-amber-500/30 rounded-lg flex items-center gap-2">
+                      <AlertCircle className="text-amber-400" size={18} />
+                      <span className="text-sm text-amber-200">
+                        Faltam <strong>{disciplinasFaltando}</strong> disciplinas no planejamento
+                      </span>
+                    </div>
+                  )}
+                  
+                  {disciplinasFaltando < 0 && (
+                    <div className="mt-4 p-3 bg-red-500/10 border border-red-500/30 rounded-lg flex items-center gap-2">
+                      <AlertCircle className="text-red-400" size={18} />
+                      <span className="text-sm text-red-200">
+                        Planejamento excede em <strong>{Math.abs(disciplinasFaltando)}</strong> disciplinas
+                      </span>
+                    </div>
+                  )}
+                  
+                  {disciplinasFaltando === 0 && (
+                    <div className="mt-4 p-3 bg-green-500/10 border border-green-500/30 rounded-lg flex items-center gap-2">
+                      <CheckCircle className="text-green-400" size={18} />
+                      <span className="text-sm text-green-200">
+                        Planejamento completo! 🎓
+                      </span>
+                    </div>
+                  )}
+                </div>
+              </div>
               
               {/* Dica */}
-              <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-4 flex items-start gap-3">
-                <AlertCircle className="text-amber-400 shrink-0 mt-0.5" size={20} />
-                <div className="text-sm text-amber-200/80">
-                  <strong>Dica:</strong> Para uma previsão mais precisa, marque o semestre em que cursou cada disciplina aprovada. 
-                  Ajuste o controle de ritmo para simular diferentes cenários.
+              <div className="bg-indigo-500/10 border border-indigo-500/30 rounded-xl p-4 flex items-start gap-3">
+                <AlertCircle className="text-indigo-400 shrink-0 mt-0.5" size={20} />
+                <div className="text-sm text-indigo-200/80">
+                  <strong>Dica:</strong> Ajuste a quantidade de disciplinas em cada semestre para simular diferentes cenários. 
+                  Considere estágio, TCC ou semestres mais leves quando necessário.
                 </div>
               </div>
             </div>
