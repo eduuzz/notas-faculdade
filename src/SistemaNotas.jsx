@@ -1418,19 +1418,19 @@ export default function SistemaNotas() {
                     <table className="w-full text-sm">
                       <thead>
                         <tr className="border-b border-slate-600">
-                          <th className="text-left py-2 text-slate-400 font-medium">Semestre</th>
-                          <th className="text-center py-2 text-slate-400 font-medium">Qtd</th>
-                          <th className="text-center py-2 text-slate-400 font-medium">Acumulado</th>
-                          <th className="text-right py-2 text-slate-400 font-medium">%</th>
+                          <th className="text-left py-2 px-3 text-slate-400 font-medium">Semestre</th>
+                          <th className="text-center py-2 px-3 text-slate-400 font-medium">Qtd</th>
+                          <th className="text-center py-2 px-3 text-slate-400 font-medium">Acumulado</th>
+                          <th className="text-right py-2 px-3 text-slate-400 font-medium">%</th>
                         </tr>
                       </thead>
                       <tbody>
                         {/* Linha de aprovadas */}
                         <tr className="border-b border-slate-700/50">
-                          <td className="py-2 text-green-400">✓ Aprovadas</td>
-                          <td className="text-center py-2 font-bold text-green-400">{disciplinasAprovadas}</td>
-                          <td className="text-center py-2 text-slate-300">{disciplinasAprovadas}</td>
-                          <td className="text-right py-2 text-slate-400">{((disciplinasAprovadas / totalDisciplinas) * 100).toFixed(0)}%</td>
+                          <td className="py-2 px-3 text-green-400">✓ Aprovadas</td>
+                          <td className="text-center py-2 px-3 font-bold text-green-400">{disciplinasAprovadas}</td>
+                          <td className="text-center py-2 px-3 text-slate-300">{disciplinasAprovadas}</td>
+                          <td className="text-right py-2 px-3 text-slate-400">{((disciplinasAprovadas / totalDisciplinas) * 100).toFixed(0)}%</td>
                         </tr>
                         
                         {/* Semestres planejados */}
@@ -1439,22 +1439,22 @@ export default function SistemaNotas() {
                           const percentual = (acumulado / totalDisciplinas) * 100;
                           return (
                             <tr key={index} className={`border-b border-slate-700/50 ${sem.tipo === 'atual' ? 'bg-blue-500/10' : ''}`}>
-                              <td className={`py-2 ${sem.tipo === 'atual' ? 'text-blue-400' : 'text-slate-300'}`}>
+                              <td className={`py-2 px-3 ${sem.tipo === 'atual' ? 'text-blue-400' : 'text-slate-300'}`}>
                                 {sem.periodo} {sem.tipo === 'atual' && '(atual)'}
                               </td>
-                              <td className="text-center py-2 font-bold">{sem.quantidade}</td>
-                              <td className="text-center py-2 text-slate-300">{acumulado}</td>
-                              <td className="text-right py-2 text-slate-400">{percentual.toFixed(0)}%</td>
+                              <td className="text-center py-2 px-3 font-bold">{sem.quantidade}</td>
+                              <td className="text-center py-2 px-3 text-slate-300">{acumulado}</td>
+                              <td className="text-right py-2 px-3 text-slate-400">{percentual.toFixed(0)}%</td>
                             </tr>
                           );
                         })}
                         
                         {/* Linha de total */}
                         <tr className="bg-slate-700/30 font-bold">
-                          <td className="py-3 text-indigo-400">Total Planejado</td>
-                          <td className="text-center py-3 text-indigo-400">{totalPlanejado}</td>
-                          <td className="text-center py-3">{disciplinasAprovadas + totalPlanejado}</td>
-                          <td className="text-right py-3 text-indigo-400">
+                          <td className="py-3 px-3 text-indigo-400">Total Planejado</td>
+                          <td className="text-center py-3 px-3 text-indigo-400">{totalPlanejado}</td>
+                          <td className="text-center py-3 px-3">{disciplinasAprovadas + totalPlanejado}</td>
+                          <td className="text-right py-3 px-3 text-indigo-400">
                             {(((disciplinasAprovadas + totalPlanejado) / totalDisciplinas) * 100).toFixed(0)}%
                           </td>
                         </tr>
