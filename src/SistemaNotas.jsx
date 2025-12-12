@@ -1017,9 +1017,9 @@ export default function SistemaNotas() {
             <div className="bg-slate-800/50 backdrop-blur rounded-xl p-6 border border-slate-700">
               <h3 className="text-lg font-semibold mb-4">Progresso do Curso</h3>
               <div className="flex flex-wrap items-center gap-8">
-                <div className="relative w-40 h-40">
+                <div className="relative w-48 h-48">
                   <ResponsiveContainer width="100%" height="100%">
-                    <RadialBarChart cx="50%" cy="50%" innerRadius="60%" outerRadius="100%" data={dadosProgressoRadial} startAngle={90} endAngle={-270}>
+                    <RadialBarChart cx="50%" cy="50%" innerRadius="65%" outerRadius="100%" data={dadosProgressoRadial} startAngle={90} endAngle={-270}>
                       <RadialBar dataKey="value" cornerRadius={10} fill="#6366f1" background={{ fill: '#374151' }} />
                     </RadialBarChart>
                   </ResponsiveContainer>
