@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useState, useCallback } from 'react';
-import { supabase } from './supabaseClient';
+import { supabase, isSupabaseConfigured } from './supabaseClient';
 
 const AuthContext = createContext({});
 
@@ -12,7 +12,7 @@ export const AuthProvider = ({ children }) => {
 
   // Verificar se email está autorizado
   const verificarAutorizacao = useCallback(async (email) => {
-    if (!email) return false;
+    if (!email || !supabase) return false;
     
     try {
       const { data, error } = await supabase
@@ -30,6 +30,13 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   useEffect(() => {
+    // Se Supabase não está configurado, para de carregar
+    if (!isSupabaseConfigured() || !supabase) {
+      console.error('Supabase não está configurado!');
+      setLoading(false);
+      return;
+    }
+
     let isMounted = true;
 
     // Verificar sessão atual
@@ -111,6 +118,10 @@ export const AuthProvider = ({ children }) => {
 
   // Login com email/senha
   const signInWithEmail = async (email, password) => {
+    if (!supabase) {
+      return { data: null, error: { message: 'Supabase não configurado' } };
+    }
+    
     setAuthError(null);
     
     const { data, error } = await supabase.auth.signInWithPassword({
@@ -127,6 +138,10 @@ export const AuthProvider = ({ children }) => {
 
   // Cadastro com email/senha
   const signUpWithEmail = async (email, password) => {
+    if (!supabase) {
+      return { data: null, error: { message: 'Supabase não configurado' } };
+    }
+    
     setAuthError(null);
     
     // Verificar se email está autorizado
@@ -153,6 +168,10 @@ export const AuthProvider = ({ children }) => {
 
   // Login com Google
   const signInWithGoogle = async () => {
+    if (!supabase) {
+      return { data: null, error: { message: 'Supabase não configurado' } };
+    }
+    
     setAuthError(null);
     
     const { data, error } = await supabase.auth.signInWithOAuth({
@@ -171,6 +190,10 @@ export const AuthProvider = ({ children }) => {
 
   // Logout
   const signOut = async () => {
+    if (!supabase) {
+      return { error: { message: 'Supabase não configurado' } };
+    }
+    
     setAuthError(null);
     const { error } = await supabase.auth.signOut();
     return { error };
