@@ -1281,52 +1281,6 @@ export default function SistemaNotas() {
                 </div>
               </div>
               
-              {/* Estatísticas */}
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div className="bg-slate-800/50 backdrop-blur rounded-xl p-4 border border-slate-700 text-center">
-                  <div className="text-2xl font-bold text-green-400">{disciplinasAprovadas}</div>
-                  <div className="text-sm text-slate-400">Aprovadas</div>
-                </div>
-                <div className="bg-slate-800/50 backdrop-blur rounded-xl p-4 border border-slate-700 text-center">
-                  <div className="text-2xl font-bold text-blue-400">{disciplinasEmCurso}</div>
-                  <div className="text-sm text-slate-400">Em Curso</div>
-                </div>
-                <div className="bg-slate-800/50 backdrop-blur rounded-xl p-4 border border-slate-700 text-center">
-                  <div className="text-2xl font-bold text-slate-400">{disciplinasRestantes}</div>
-                  <div className="text-sm text-slate-400">Restantes</div>
-                </div>
-                <div className="bg-slate-800/50 backdrop-blur rounded-xl p-4 border border-slate-700 text-center">
-                  <div className="text-2xl font-bold text-purple-400">{totalDisciplinas}</div>
-                  <div className="text-sm text-slate-400">Total</div>
-                </div>
-              </div>
-              
-              {/* Barra de Progresso Visual */}
-              <div className="bg-slate-800/50 backdrop-blur rounded-xl p-6 border border-slate-700">
-                <h3 className="text-lg font-semibold mb-4">Progresso Geral</h3>
-                <div className="relative h-8 bg-slate-700 rounded-full overflow-hidden">
-                  <div 
-                    className="absolute h-full bg-gradient-to-r from-green-500 to-green-400 transition-all duration-500"
-                    style={{ width: `${(disciplinasAprovadas / totalDisciplinas) * 100}%` }}
-                  />
-                  <div 
-                    className="absolute h-full bg-gradient-to-r from-blue-500 to-blue-400 transition-all duration-500"
-                    style={{ 
-                      left: `${(disciplinasAprovadas / totalDisciplinas) * 100}%`,
-                      width: `${(disciplinasEmCurso / totalDisciplinas) * 100}%` 
-                    }}
-                  />
-                  <div className="absolute inset-0 flex items-center justify-center text-sm font-semibold">
-                    {disciplinasAprovadas} + {disciplinasEmCurso} / {totalDisciplinas}
-                  </div>
-                </div>
-                <div className="flex justify-between mt-2 text-xs text-slate-400">
-                  <span className="flex items-center gap-1"><span className="w-3 h-3 bg-green-500 rounded"></span> Aprovadas</span>
-                  <span className="flex items-center gap-1"><span className="w-3 h-3 bg-blue-500 rounded"></span> Em Curso</span>
-                  <span className="flex items-center gap-1"><span className="w-3 h-3 bg-slate-600 rounded"></span> Restantes</span>
-                </div>
-              </div>
-              
               {/* Planejamento de Semestres */}
               <div className="grid md:grid-cols-2 gap-6">
                 {/* Lista Editável */}
