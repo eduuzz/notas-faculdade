@@ -1559,7 +1559,7 @@ export default function SistemaNotas() {
               </div>
               {disciplinas.find(d => d.id === showDeleteMenu)?.status !== 'NAO_INICIADA' && (
                 <button
-                  onClick={() => resetarDisciplina(showDeleteMenu)}
+                  onClick={() => handleResetarDisciplina(showDeleteMenu)}
                   className="w-full flex items-center gap-3 px-4 py-3 text-left text-yellow-400 hover:bg-slate-700 transition-colors"
                 >
                   <RotateCcw size={16} />
@@ -1570,7 +1570,7 @@ export default function SistemaNotas() {
                 </button>
               )}
               <button
-                onClick={() => removerDisciplina(showDeleteMenu)}
+                onClick={() => handleRemoverDisciplina(showDeleteMenu)}
                 className={`w-full flex items-center gap-3 px-4 py-3 text-left text-red-400 hover:bg-slate-700 transition-colors ${disciplinas.find(d => d.id === showDeleteMenu)?.status !== 'NAO_INICIADA' ? 'border-t border-slate-700' : ''}`}
               >
                 <Trash2 size={16} />
