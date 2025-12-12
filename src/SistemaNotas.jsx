@@ -1421,7 +1421,7 @@ export default function SistemaNotas() {
                 </div>
                 <div className="flex gap-3 mt-6">
                   <button onClick={() => setShowAddDisciplina(false)} className="flex-1 px-4 py-2 bg-slate-700 hover:bg-slate-600 rounded-lg">Cancelar</button>
-                  <button onClick={adicionarDisciplina} className="flex-1 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 rounded-lg">Adicionar</button>
+                  <button onClick={handleAdicionarDisciplina} className="flex-1 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 rounded-lg">Adicionar</button>
                 </div>
               </div>
             </div>
@@ -1443,7 +1443,7 @@ export default function SistemaNotas() {
                 </div>
                 <div className="flex gap-3">
                   <button onClick={() => { setShowAddMultiplas(false); setDisciplinasMultiplas(''); }} className="flex-1 px-4 py-2 bg-slate-700 hover:bg-slate-600 rounded-lg">Cancelar</button>
-                  <button onClick={adicionarMultiplasDisciplinas} className="flex-1 px-4 py-2 bg-purple-600 hover:bg-purple-700 rounded-lg">Adicionar</button>
+                  <button onClick={handleAdicionarMultiplas} className="flex-1 px-4 py-2 bg-purple-600 hover:bg-purple-700 rounded-lg">Adicionar</button>
                 </div>
               </div>
             </div>
