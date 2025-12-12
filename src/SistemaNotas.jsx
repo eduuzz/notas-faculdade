@@ -151,7 +151,7 @@ export default function SistemaNotas() {
   const disciplinasFiltradas = useMemo(() => {
     return disciplinas.filter(d => {
       const matchStatus = filtroStatus === 'TODOS' || d.status === filtroStatus;
-      const matchBusca = d.nome.toLowerCase().includes(busca.toLowerCase());
+      const matchBusca = d.nome.toLowerCase().includes(busca.trim().toLowerCase());
       return matchStatus && matchBusca;
     });
   }, [disciplinas, filtroStatus, busca]);
