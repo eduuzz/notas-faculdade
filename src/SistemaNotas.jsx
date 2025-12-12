@@ -1072,36 +1072,19 @@ export default function SistemaNotas() {
               </div>
             </div>
 
-            <div className="grid md:grid-cols-2 gap-6">
-              <div className="bg-slate-800/50 backdrop-blur rounded-xl p-6 border border-slate-700">
-                <h3 className="text-lg font-semibold mb-4">Por Status</h3>
-                <div className="flex items-center justify-center">
-                  <ResponsiveContainer width="100%" height={250}>
-                    <PieChart>
-                      <Pie data={dadosPorStatus} cx="50%" cy="45%" innerRadius={50} outerRadius={80} paddingAngle={5} dataKey="value">
-                        {dadosPorStatus.map((entry, index) => (<Cell key={`cell-${index}`} fill={entry.color} />))}
-                      </Pie>
-                      <Tooltip contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #374151', borderRadius: '8px' }} />
-                      <Legend verticalAlign="bottom" height={36} />
-                    </PieChart>
-                  </ResponsiveContainer>
-                </div>
-              </div>
-
-              <div className="bg-slate-800/50 backdrop-blur rounded-xl p-6 border border-slate-700">
-                <h3 className="text-lg font-semibold mb-4">Por Semestre</h3>
-                <ResponsiveContainer width="100%" height={250}>
-                  <BarChart data={dadosPorPeriodo}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-                    <XAxis dataKey="periodo" stroke="#9ca3af" />
-                    <YAxis stroke="#9ca3af" />
-                    <Tooltip contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #374151', borderRadius: '8px' }} />
-                    <Legend />
-                    <Bar dataKey="aprovadas" fill="#10b981" name="Aprovadas" stackId="a" />
-                    <Bar dataKey="emCurso" fill="#3b82f6" name="Em Curso" stackId="a" />
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
+            <div className="bg-slate-800/50 backdrop-blur rounded-xl p-6 border border-slate-700">
+              <h3 className="text-lg font-semibold mb-4">Por Semestre</h3>
+              <ResponsiveContainer width="100%" height={250}>
+                <BarChart data={dadosPorPeriodo}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+                  <XAxis dataKey="periodo" stroke="#9ca3af" />
+                  <YAxis stroke="#9ca3af" />
+                  <Tooltip contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #374151', borderRadius: '8px' }} />
+                  <Legend />
+                  <Bar dataKey="aprovadas" fill="#10b981" name="Aprovadas" stackId="a" />
+                  <Bar dataKey="emCurso" fill="#3b82f6" name="Em Curso" stackId="a" />
+                </BarChart>
+              </ResponsiveContainer>
             </div>
           </div>
         )}
