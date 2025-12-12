@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, RadialBarChart, RadialBar } from 'recharts';
+import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, RadialBarChart, RadialBar, PolarAngleAxis } from 'recharts';
 import { Plus, Trash2, BookOpen, Award, TrendingUp, AlertCircle, CheckCircle, GraduationCap, Edit2, X, Clock, PlayCircle, ChevronDown, ChevronUp, Search, Save, Cloud, CloudOff, RefreshCw, LogOut, User, Wifi, WifiOff, Download, RotateCcw, Lock, Eye, Sun, Moon, Monitor, List, LayoutGrid } from 'lucide-react';
 import { useNotas } from './useNotas';
 
@@ -1020,7 +1020,8 @@ export default function SistemaNotas() {
                 <div className="relative w-48 h-48">
                   <ResponsiveContainer width="100%" height="100%">
                     <RadialBarChart cx="50%" cy="50%" innerRadius="65%" outerRadius="100%" data={dadosProgressoRadial} startAngle={90} endAngle={-270}>
-                      <RadialBar dataKey="value" cornerRadius={10} fill="#6366f1" background={{ fill: '#374151' }} />
+                      <PolarAngleAxis type="number" domain={[0, 100]} angleAxisId={0} tick={false} />
+                      <RadialBar dataKey="value" cornerRadius={10} fill="#6366f1" background={{ fill: '#374151' }} angleAxisId={0} />
                     </RadialBarChart>
                   </ResponsiveContainer>
                   <div className="absolute inset-0 flex flex-col items-center justify-center">
