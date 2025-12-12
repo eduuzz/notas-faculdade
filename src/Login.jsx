@@ -1,9 +1,9 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from './AuthContext';
 import { GraduationCap, Mail, Lock, Eye, EyeOff, AlertCircle, CheckCircle } from 'lucide-react';
 
 const Login = () => {
-  const { signInWithEmail, signUpWithEmail, signInWithGoogle, verificarAutorizacao } = useAuth();
+  const { signInWithEmail, signUpWithEmail, signInWithGoogle, verificarAutorizacao, authError, clearAuthError } = useAuth();
   
   const [isLogin, setIsLogin] = useState(true);
   const [showCadastroInfo, setShowCadastroInfo] = useState(false);
@@ -14,6 +14,14 @@ const Login = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+
+  // Mostrar erro de autorização do contexto
+  useEffect(() => {
+    if (authError) {
+      setError(authError);
+      clearAuthError();
+    }
+  }, [authError, clearAuthError]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -51,7 +59,7 @@ const Login = () => {
     } else {
       const { error } = await signInWithEmail(email, password);
       if (error) {
-        setError('Email ou senha incorretos');
+        setError(error.message || 'Email ou senha incorretos');
       }
     }
 
