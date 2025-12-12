@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState } from 'react';
+import { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import { supabase } from './supabaseClient';
 
 const AuthContext = createContext({});
@@ -11,42 +11,60 @@ export const AuthProvider = ({ children }) => {
   const [authError, setAuthError] = useState(null);
 
   // Verificar se email está autorizado
-  const verificarAutorizacao = async (email) => {
+  const verificarAutorizacao = useCallback(async (email) => {
     if (!email) return false;
     
-    const { data, error } = await supabase
-      .from('usuarios_autorizados')
-      .select('id')
-      .eq('email', email.toLowerCase())
-      .eq('ativo', true)
-      .single();
-    
-    return !error && data;
-  };
+    try {
+      const { data, error } = await supabase
+        .from('usuarios_autorizados')
+        .select('id')
+        .eq('email', email.toLowerCase())
+        .eq('ativo', true)
+        .single();
+      
+      return !error && data;
+    } catch (err) {
+      console.error('Erro ao verificar autorização:', err);
+      return false;
+    }
+  }, []);
 
   useEffect(() => {
+    let isMounted = true;
+
     // Verificar sessão atual
     const getSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      
-      if (session?.user) {
-        // Verificar se está autorizado
-        const autorizado = await verificarAutorizacao(session.user.email);
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
         
-        if (autorizado) {
-          setUser(session.user);
-          setAuthError(null);
+        if (!isMounted) return;
+
+        if (session?.user) {
+          // Verificar se está autorizado
+          const autorizado = await verificarAutorizacao(session.user.email);
+          
+          if (!isMounted) return;
+
+          if (autorizado) {
+            setUser(session.user);
+            setAuthError(null);
+          } else {
+            // Não autorizado - fazer logout
+            await supabase.auth.signOut();
+            setUser(null);
+            setAuthError('Email não autorizado. Realize o pagamento primeiro.');
+          }
         } else {
-          // Não autorizado - fazer logout
-          await supabase.auth.signOut();
           setUser(null);
-          setAuthError('Email não autorizado. Realize o pagamento primeiro.');
         }
-      } else {
+      } catch (err) {
+        console.error('Erro ao obter sessão:', err);
         setUser(null);
+      } finally {
+        if (isMounted) {
+          setLoading(false);
+        }
       }
-      
-      setLoading(false);
     };
 
     getSession();
@@ -54,10 +72,20 @@ export const AuthProvider = ({ children }) => {
     // Listener para mudanças de autenticação
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
+        if (!isMounted) return;
+
+        if (event === 'SIGNED_OUT') {
+          setUser(null);
+          setLoading(false);
+          return;
+        }
+
         if (session?.user) {
           // Verificar se está autorizado
           const autorizado = await verificarAutorizacao(session.user.email);
           
+          if (!isMounted) return;
+
           if (autorizado) {
             setUser(session.user);
             setAuthError(null);
@@ -75,22 +103,15 @@ export const AuthProvider = ({ children }) => {
       }
     );
 
-    return () => subscription.unsubscribe();
-  }, []);
+    return () => {
+      isMounted = false;
+      subscription.unsubscribe();
+    };
+  }, [verificarAutorizacao]);
 
   // Login com email/senha
   const signInWithEmail = async (email, password) => {
     setAuthError(null);
-    
-    // Verificar se está autorizado antes de tentar logar
-    const autorizado = await verificarAutorizacao(email);
-    if (!autorizado) {
-      setAuthError('Email não autorizado. Realize o pagamento primeiro.');
-      return { 
-        data: null, 
-        error: { message: 'Email não autorizado. Realize o pagamento primeiro.' } 
-      };
-    }
     
     const { data, error } = await supabase.auth.signInWithPassword({
       email,
@@ -144,9 +165,9 @@ export const AuthProvider = ({ children }) => {
   };
 
   // Limpar erro
-  const clearAuthError = () => {
+  const clearAuthError = useCallback(() => {
     setAuthError(null);
-  };
+  }, []);
 
   // Logout
   const signOut = async () => {
