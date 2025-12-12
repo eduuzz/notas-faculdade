@@ -1,7 +1,8 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, RadialBarChart, RadialBar, PolarAngleAxis } from 'recharts';
-import { Plus, Trash2, BookOpen, Award, TrendingUp, AlertCircle, CheckCircle, GraduationCap, Edit2, X, Clock, PlayCircle, ChevronDown, ChevronUp, Search, Save, Cloud, CloudOff, RefreshCw, LogOut, User, Wifi, WifiOff, Download, RotateCcw, Lock, Eye, Sun, Moon, Monitor, List, LayoutGrid } from 'lucide-react';
+import { Plus, Trash2, BookOpen, Award, TrendingUp, AlertCircle, CheckCircle, GraduationCap, Edit2, X, Clock, PlayCircle, ChevronDown, ChevronUp, Search, Save, Cloud, CloudOff, RefreshCw, LogOut, User, Wifi, WifiOff, Download, RotateCcw, Sun, Moon, Monitor, List, LayoutGrid } from 'lucide-react';
 import { useNotas } from './useNotas';
+import { useAuth } from './AuthContext';
 
 const STATUS = {
   NAO_INICIADA: { label: 'Não Iniciada', color: 'slate', bg: 'bg-slate-500/20', text: 'text-slate-400', border: 'border-slate-500/30' },
@@ -11,19 +12,16 @@ const STATUS = {
 };
 
 export default function SistemaNotas() {
+  const { user, signOut } = useAuth();
   const {
     disciplinas,
     setDisciplinas,
-    user,
-    isAdmin,
-    login,
-    register,
-    logout,
+    adicionarDisciplina,
+    atualizarDisciplina,
+    removerDisciplina,
     loading,
     syncing,
-    lastSync,
     isOnline,
-    isSupabaseConfigured,
     forceSync
   } = useNotas();
 
@@ -44,11 +42,6 @@ export default function SistemaNotas() {
   const [semestreIniciar, setSemestreIniciar] = useState('2024.2');
   const [editingNotas, setEditingNotas] = useState(null);
   const [notasTemp, setNotasTemp] = useState({ ga: '', gb: '', notaFinal: '', semestreCursado: '', observacao: '' });
-  const [showLoginModal, setShowLoginModal] = useState(false);
-  const [emailLogin, setEmailLogin] = useState('');
-  const [senhaLogin, setSenhaLogin] = useState('');
-  const [loginError, setLoginError] = useState('');
-  const [loginLoading, setLoginLoading] = useState(false);
   const [showDeleteMenu, setShowDeleteMenu] = useState(null);
   const [theme, setTheme] = useState(() => localStorage.getItem('theme') || 'system');
   const [showThemeMenu, setShowThemeMenu] = useState(false);
@@ -190,20 +183,19 @@ export default function SistemaNotas() {
     return { periodo: `${p}º`, aprovadas, emCurso, total: discs.length };
   });
 
-  const adicionarDisciplina = () => {
+  const handleAdicionarDisciplina = async () => {
     if (!novaDisciplina.nome) return;
-    setDisciplinas([...disciplinas, { ...novaDisciplina, id: Date.now() }]);
+    await adicionarDisciplina({ ...novaDisciplina });
     setNovaDisciplina({ nome: '', periodo: 1, creditos: 4, cargaHoraria: 60, notaMinima: 6.0, status: 'NAO_INICIADA', ga: null, gb: null, notaFinal: null, semestreCursado: null, observacao: '' });
     setShowAddDisciplina(false);
   };
 
-  const adicionarMultiplasDisciplinas = () => {
+  const handleAdicionarMultiplas = async () => {
     if (!disciplinasMultiplas.trim()) return;
     const novas = disciplinasMultiplas.split('\n')
       .map(nome => nome.trim())
       .filter(nome => nome.length > 0)
-      .map((nome, index) => ({
-        id: Date.now() + index,
+      .map((nome) => ({
         nome,
         periodo: periodoMultiplas,
         creditos: 4,
@@ -216,19 +208,21 @@ export default function SistemaNotas() {
         semestreCursado: null,
         observacao: ''
       }));
-    setDisciplinas([...disciplinas, ...novas]);
+    
+    for (const nova of novas) {
+      await adicionarDisciplina(nova);
+    }
     setDisciplinasMultiplas('');
     setShowAddMultiplas(false);
   };
 
-  const removerDisciplina = (id) => {
-    setDisciplinas(disciplinas.filter(d => d.id !== id));
+  const handleRemoverDisciplina = async (id) => {
+    await removerDisciplina(id);
     setShowDeleteMenu(null);
   };
 
-  const resetarDisciplina = (id) => {
-    setDisciplinas(disciplinas.map(d => d.id === id ? { 
-      ...d, 
+  const handleResetarDisciplina = async (id) => {
+    await atualizarDisciplina(id, { 
       status: 'NAO_INICIADA', 
       ga: null, 
       gb: null, 
@@ -236,24 +230,24 @@ export default function SistemaNotas() {
       faltas: 0, 
       semestreCursado: null,
       observacao: ''
-    } : d));
+    });
     setShowDeleteMenu(null);
   };
 
-  const atualizarDisciplina = (id, updates) => {
-    setDisciplinas(disciplinas.map(d => d.id === id ? { ...d, ...updates } : d));
+  const handleAtualizarDisciplina = async (id, updates) => {
+    await atualizarDisciplina(id, updates);
   };
 
-  const iniciarDisciplina = (id) => {
-    atualizarDisciplina(id, { status: 'EM_CURSO', semestreCursado: semestreIniciar });
+  const iniciarDisciplina = async (id) => {
+    await handleAtualizarDisciplina(id, { status: 'EM_CURSO', semestreCursado: semestreIniciar });
     setShowIniciarModal(null);
   };
 
-  const finalizarDisciplina = (id) => {
+  const finalizarDisciplina = async (id) => {
     const disc = disciplinas.find(d => d.id === id);
     const media = calcularMedia(disc);
     const novoStatus = media >= disc.notaMinima ? 'APROVADA' : 'REPROVADA';
-    atualizarDisciplina(id, { status: novoStatus });
+    await handleAtualizarDisciplina(id, { status: novoStatus });
   };
 
   const abrirEdicaoNotas = (d) => {
@@ -267,8 +261,8 @@ export default function SistemaNotas() {
     });
   };
 
-  const salvarNotas = (id) => {
-    atualizarDisciplina(id, {
+  const salvarNotas = async (id) => {
+    await atualizarDisciplina(id, {
       ga: notasTemp.ga !== '' ? parseFloat(notasTemp.ga) : null,
       gb: notasTemp.gb !== '' ? parseFloat(notasTemp.gb) : null,
       notaFinal: notasTemp.notaFinal !== '' ? parseFloat(notasTemp.notaFinal) : null,
@@ -281,29 +275,6 @@ export default function SistemaNotas() {
 
   const togglePeriodo = (periodo) => {
     setExpandedPeriodos(prev => ({ ...prev, [periodo]: !prev[periodo] }));
-  };
-
-  const handleLogin = async () => {
-    if (!emailLogin.trim() || !senhaLogin.trim()) {
-      setLoginError('Preencha email e senha');
-      return;
-    }
-    
-    setLoginLoading(true);
-    setLoginError('');
-    
-    const result = await login(emailLogin.trim().toLowerCase(), senhaLogin);
-    
-    if (result.error) {
-      setLoginError(result.error.message || 'Erro ao fazer login');
-      setLoginLoading(false);
-      return;
-    }
-    
-    setShowLoginModal(false);
-    setEmailLogin('');
-    setSenhaLogin('');
-    setLoginLoading(false);
   };
 
   const exportarPDF = () => {
@@ -467,47 +438,27 @@ export default function SistemaNotas() {
         <WifiOff size={16} className="text-red-400" />
       )}
       
-      {user && isAdmin ? (
-        <>
-          {syncing ? (
-            <RefreshCw size={16} className="text-blue-400 animate-spin" />
-          ) : isSupabaseConfigured ? (
-            <Cloud size={16} className="text-green-400" />
-          ) : (
-            <CloudOff size={16} className="text-slate-400" />
-          )}
-          <span className="text-green-400 hidden sm:inline font-medium">Admin</span>
-          <span className="text-slate-500 hidden sm:inline">•</span>
-          <span className="text-slate-400 hidden sm:inline">{user.email}</span>
-          <button
-            onClick={forceSync}
-            disabled={syncing || !isOnline}
-            className="p-1 hover:bg-slate-700 rounded transition-colors disabled:opacity-50"
-            title="Sincronizar"
-          >
-            <RefreshCw size={14} className={syncing ? 'animate-spin' : ''} />
-          </button>
-          <button
-            onClick={logout}
-            className="p-1 hover:bg-slate-700 rounded transition-colors text-red-400"
-            title="Sair"
-          >
-            <LogOut size={14} />
-          </button>
-        </>
+      {syncing ? (
+        <RefreshCw size={16} className="text-blue-400 animate-spin" />
       ) : (
-        <>
-          <Eye size={16} className="text-slate-400" />
-          <span className="text-slate-400 hidden sm:inline">Modo Visualização</span>
-          <button
-            onClick={() => setShowLoginModal(true)}
-            className="flex items-center gap-1 px-2 py-1 bg-indigo-600 hover:bg-indigo-700 rounded text-xs transition-colors"
-          >
-            <Lock size={14} />
-            Admin
-          </button>
-        </>
+        <Cloud size={16} className="text-green-400" />
       )}
+      <span className="text-slate-400 hidden sm:inline text-sm truncate max-w-[200px]">{user?.email}</span>
+      <button
+        onClick={forceSync}
+        disabled={syncing || !isOnline}
+        className="p-1 hover:bg-slate-700 rounded transition-colors disabled:opacity-50"
+        title="Sincronizar"
+      >
+        <RefreshCw size={14} className={syncing ? 'animate-spin' : ''} />
+      </button>
+      <button
+        onClick={signOut}
+        className="p-1 hover:bg-slate-700 rounded transition-colors text-red-400"
+        title="Sair"
+      >
+        <LogOut size={14} />
+      </button>
     </div>
   );
 
@@ -661,7 +612,7 @@ export default function SistemaNotas() {
                   <Download size={18} />
                   <span className="hidden sm:inline">PDF</span>
                 </button>
-                {isAdmin && (
+                {(
                   <>
                     <button
                       onClick={() => setShowAddMultiplas(true)}
@@ -695,7 +646,7 @@ export default function SistemaNotas() {
                       <th className="text-center p-3 text-slate-400 text-sm font-medium w-16">GA</th>
                       <th className="text-center p-3 text-slate-400 text-sm font-medium w-16">GB</th>
                       <th className="text-center p-3 text-slate-400 text-sm font-medium w-20">Média</th>
-                      {isAdmin && <th className="text-center p-3 text-slate-400 text-sm font-medium w-20">Ações</th>}
+                      {<th className="text-center p-3 text-slate-400 text-sm font-medium w-20">Ações</th>}
                     </tr>
                   </thead>
                   <tbody>
@@ -729,7 +680,7 @@ export default function SistemaNotas() {
                             <td className={`text-center p-3 font-bold ${media !== null ? (media >= d.notaMinima ? 'text-green-400' : 'text-red-400') : 'text-slate-600'}`}>
                               {media !== null ? media.toFixed(1) : '-'}
                             </td>
-                            {isAdmin && (
+                            {(
                               <td className="text-center p-3">
                                 <div className="flex justify-center gap-1">
                                   {d.status === 'NAO_INICIADA' && (
@@ -846,11 +797,11 @@ export default function SistemaNotas() {
                                 )}
 
                                 
-                                {isAdmin && d.status === 'NAO_INICIADA' && (
+                                {d.status === 'NAO_INICIADA' && (
                                   <button onClick={() => setShowIniciarModal(d.id)} className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 rounded-lg text-sm">Iniciar</button>
                                 )}
                                 
-                                {isAdmin && d.status === 'EM_CURSO' && !isEditingNotas && (
+                                {d.status === 'EM_CURSO' && !isEditingNotas && (
                                   <>
                                     <button onClick={() => abrirEdicaoNotas(d)} className="p-2 text-slate-400 hover:text-white hover:bg-slate-700 rounded-lg"><Edit2 size={16} /></button>
                                     {(d.ga !== null && d.gb !== null) && (
@@ -859,11 +810,11 @@ export default function SistemaNotas() {
                                   </>
                                 )}
 
-                                {isAdmin && (d.status === 'APROVADA' || d.status === 'REPROVADA') && !isEditingNotas && (
+                                {(d.status === 'APROVADA' || d.status === 'REPROVADA') && !isEditingNotas && (
                                   <button onClick={() => abrirEdicaoNotas(d)} className="p-2 text-slate-400 hover:text-white hover:bg-slate-700 rounded-lg"><Edit2 size={16} /></button>
                                 )}
                                 
-                                {isAdmin && !isEditingNotas && (
+                                {!isEditingNotas && (
                                   <button 
                                     onClick={() => setShowDeleteMenu(d.id)} 
                                     className="p-2 text-red-400 hover:bg-red-500/10 rounded-lg"
@@ -954,7 +905,7 @@ export default function SistemaNotas() {
                                 </div>
                               )}
                             </div>
-                            {isAdmin && (
+                            {(
                               <button onClick={() => abrirEdicaoNotas(d)} className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 rounded-lg flex items-center gap-2">
                                 <Edit2 size={18} />
                                 Lançar Notas
@@ -973,7 +924,7 @@ export default function SistemaNotas() {
                             </div>
                           )}
 
-                          {isAdmin && d.ga !== null && d.gb !== null && (
+                          {d.ga !== null && d.gb !== null && (
                             <div className="mt-4 flex justify-end">
                               <button onClick={() => finalizarDisciplina(d.id)} className="px-4 py-2 bg-green-600 hover:bg-green-700 rounded-lg flex items-center gap-2">
                                 <CheckCircle size={18} />
@@ -1511,72 +1462,6 @@ export default function SistemaNotas() {
               <div className="flex gap-3 mt-6">
                 <button onClick={() => setShowIniciarModal(null)} className="flex-1 px-4 py-2 bg-slate-700 hover:bg-slate-600 rounded-lg">Cancelar</button>
                 <button onClick={() => iniciarDisciplina(showIniciarModal)} className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg">Iniciar</button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {showLoginModal && (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-            <div className="bg-slate-800 rounded-xl p-6 w-full max-w-sm border border-slate-700">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="p-2 bg-indigo-600 rounded-lg">
-                  <Lock size={20} />
-                </div>
-                <div>
-                  <h3 className="text-xl font-semibold">Login Admin</h3>
-                  <p className="text-slate-400 text-sm">Acesso para edição</p>
-                </div>
-              </div>
-              
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm text-slate-400 mb-1">Email</label>
-                  <input 
-                    type="email" 
-                    placeholder="seu@email.com" 
-                    value={emailLogin} 
-                    onChange={e => setEmailLogin(e.target.value)} 
-                    className="w-full px-4 py-2 bg-slate-700 rounded-lg border border-slate-600 focus:border-indigo-500 focus:outline-none" 
-                  />
-                </div>
-                
-                <div>
-                  <label className="block text-sm text-slate-400 mb-1">Senha</label>
-                  <input 
-                    type="password" 
-                    placeholder="••••••••" 
-                    value={senhaLogin} 
-                    onChange={e => setSenhaLogin(e.target.value)} 
-                    onKeyDown={e => e.key === 'Enter' && handleLogin()}
-                    className="w-full px-4 py-2 bg-slate-700 rounded-lg border border-slate-600 focus:border-indigo-500 focus:outline-none" 
-                  />
-                </div>
-                
-                {loginError && (
-                  <p className="text-red-400 text-sm">{loginError}</p>
-                )}
-                
-                {!isSupabaseConfigured && (
-                  <p className="text-amber-400 text-xs">⚠️ Supabase não configurado.</p>
-                )}
-              </div>
-              
-              <div className="flex gap-3 mt-6">
-                <button 
-                  onClick={() => { setShowLoginModal(false); setEmailLogin(''); setSenhaLogin(''); setLoginError(''); }} 
-                  className="flex-1 px-4 py-2 bg-slate-700 hover:bg-slate-600 rounded-lg"
-                  disabled={loginLoading}
-                >
-                  Cancelar
-                </button>
-                <button 
-                  onClick={handleLogin} 
-                  className="flex-1 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 rounded-lg disabled:opacity-50"
-                  disabled={loginLoading}
-                >
-                  {loginLoading ? 'Entrando...' : 'Entrar'}
-                </button>
               </div>
             </div>
           </div>
