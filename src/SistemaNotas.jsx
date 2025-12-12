@@ -1025,7 +1025,7 @@ export default function SistemaNotas() {
                   </ResponsiveContainer>
                   <div className="absolute inset-0 flex flex-col items-center justify-center">
                     <div className="text-3xl font-bold text-indigo-400">{estatisticas.progressoCurso.toFixed(0)}%</div>
-                    <div className="text-xs text-slate-400">Concluído</div>
+                    <div className="text-xs text-slate-400">de 100%</div>
                   </div>
                 </div>
                 <div className="flex-1 grid grid-cols-2 md:grid-cols-4 gap-4">
