@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from './supabaseClient';
 import { useAuth } from './AuthContext';
 import { 
-  Shield, Users, Clock, CheckCircle, XCircle, Eye, 
+  Shield, Users, Clock, CheckCircle, XCircle, 
   ArrowLeft, RefreshCw, Search, Mail, Trash2, UserPlus,
   ExternalLink, AlertCircle
 } from 'lucide-react';

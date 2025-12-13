@@ -1,11 +1,16 @@
+import { useState } from 'react';
 import { AuthProvider, useAuth } from './AuthContext'
 import SistemaNotas from './SistemaNotas'
 import Login from './Login'
+import AdminPanel from './AdminPanel'
 import { GraduationCap } from 'lucide-react'
+
+const ADMIN_EMAIL = 'eproencad@gmail.com';
 
 // Componente que decide o que mostrar
 function AppContent() {
   const { user, loading } = useAuth();
+  const [showAdmin, setShowAdmin] = useState(false);
 
   // Tela de carregamento
   if (loading) {
@@ -26,8 +31,17 @@ function AppContent() {
     return <Login />;
   }
 
-  // Se está logado, mostra o sistema
-  return <SistemaNotas />;
+  // Se está no painel admin
+  if (showAdmin && user.email === ADMIN_EMAIL) {
+    return <AdminPanel onClose={() => setShowAdmin(false)} />;
+  }
+
+  // Se está logado, mostra o sistema (com botão admin se for admin)
+  return (
+    <SistemaNotas 
+      onOpenAdmin={user.email === ADMIN_EMAIL ? () => setShowAdmin(true) : null} 
+    />
+  );
 }
 
 function App() {
@@ -39,4 +53,3 @@ function App() {
 }
 
 export default App
-

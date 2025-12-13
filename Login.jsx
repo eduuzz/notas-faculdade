@@ -146,7 +146,7 @@ const Login = () => {
       setPedidoEmail('');
       setComprovante(null);
       
-      // Voltar para tela inicial após 3 segundos
+      // Voltar para tela inicial após 5 segundos
       setTimeout(() => {
         setShowFormulario(false);
         setSuccess('');
