@@ -10,7 +10,6 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
   const [authError, setAuthError] = useState(null);
 
-  // Verificar se email está autorizado
   const verificarAutorizacao = useCallback(async (email) => {
     if (!email || !supabase) return false;
     
@@ -31,12 +30,20 @@ export const AuthProvider = ({ children }) => {
 
   useEffect(() => {
     if (!isSupabaseConfigured() || !supabase) {
-      console.error('Supabase não está configurado!');
       setLoading(false);
       return;
     }
 
     let isMounted = true;
+    let loadingTimeout;
+
+    // Timeout de segurança - máximo 5 segundos
+    loadingTimeout = setTimeout(() => {
+      if (isMounted && loading) {
+        console.warn('Timeout de autenticação - forçando fim do loading');
+        setLoading(false);
+      }
+    }, 5000);
 
     const getSession = async () => {
       try {
@@ -51,7 +58,6 @@ export const AuthProvider = ({ children }) => {
 
           if (autorizado) {
             setUser(session.user);
-            setAuthError(null);
           } else {
             await supabase.auth.signOut();
             setUser(null);
@@ -64,7 +70,10 @@ export const AuthProvider = ({ children }) => {
         console.error('Erro ao obter sessão:', err);
         if (isMounted) setUser(null);
       } finally {
-        if (isMounted) setLoading(false);
+        if (isMounted) {
+          clearTimeout(loadingTimeout);
+          setLoading(false);
+        }
       }
     };
 
@@ -73,22 +82,17 @@ export const AuthProvider = ({ children }) => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         if (!isMounted) return;
+        
+        // Ignora INITIAL_SESSION - getSession já trata
+        if (event === 'INITIAL_SESSION') return;
 
-        // Sempre para o loading primeiro em eventos de auth
-        if (event === 'SIGNED_OUT' || event === 'TOKEN_REFRESHED') {
-          if (event === 'SIGNED_OUT') {
-            setUser(null);
-          }
+        if (event === 'SIGNED_OUT') {
+          setUser(null);
           setLoading(false);
           return;
         }
 
-        // Ignora INITIAL_SESSION pois getSession já trata
-        if (event === 'INITIAL_SESSION') {
-          return;
-        }
-
-        if (session?.user) {
+        if (event === 'SIGNED_IN' && session?.user) {
           try {
             const autorizado = await verificarAutorizacao(session.user.email);
             
@@ -96,34 +100,29 @@ export const AuthProvider = ({ children }) => {
 
             if (autorizado) {
               setUser(session.user);
-              setAuthError(null);
             } else {
               await supabase.auth.signOut();
               setUser(null);
               setAuthError('Email não autorizado. Realize o pagamento primeiro.');
             }
           } catch (err) {
-            console.error('Erro na verificação:', err);
+            console.error('Erro:', err);
             setUser(null);
           }
-        } else {
-          setUser(null);
+          setLoading(false);
         }
-        
-        setLoading(false);
       }
     );
 
     return () => {
       isMounted = false;
+      clearTimeout(loadingTimeout);
       subscription.unsubscribe();
     };
   }, [verificarAutorizacao]);
 
   const signInWithEmail = async (email, password) => {
-    if (!supabase) {
-      return { data: null, error: { message: 'Supabase não configurado' } };
-    }
+    if (!supabase) return { data: null, error: { message: 'Supabase não configurado' } };
     
     setAuthError(null);
     const { data, error } = await supabase.auth.signInWithPassword({ email, password });
@@ -132,16 +131,14 @@ export const AuthProvider = ({ children }) => {
   };
 
   const signUpWithEmail = async (email, password) => {
-    if (!supabase) {
-      return { data: null, error: { message: 'Supabase não configurado' } };
-    }
+    if (!supabase) return { data: null, error: { message: 'Supabase não configurado' } };
     
     setAuthError(null);
     
     const autorizado = await verificarAutorizacao(email);
     if (!autorizado) {
       setAuthError('Email não autorizado. Realize o pagamento primeiro.');
-      return { data: null, error: { message: 'Email não autorizado. Realize o pagamento primeiro.' } };
+      return { data: null, error: { message: 'Email não autorizado.' } };
     }
 
     const { data, error } = await supabase.auth.signUp({ email, password });
@@ -150,42 +147,30 @@ export const AuthProvider = ({ children }) => {
   };
 
   const signInWithGoogle = async () => {
-    if (!supabase) {
-      return { data: null, error: { message: 'Supabase não configurado' } };
-    }
+    if (!supabase) return { data: null, error: { message: 'Supabase não configurado' } };
     
     setAuthError(null);
-    const { data, error } = await supabase.auth.signInWithOAuth({
+    return await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: { redirectTo: window.location.origin },
     });
-    return { data, error };
   };
 
   const clearAuthError = useCallback(() => setAuthError(null), []);
 
   const signOut = async () => {
-    if (!supabase) {
-      return { error: { message: 'Supabase não configurado' } };
-    }
+    if (!supabase) return { error: { message: 'Supabase não configurado' } };
     
     setAuthError(null);
-    const { error } = await supabase.auth.signOut();
     setUser(null);
-    return { error };
+    return await supabase.auth.signOut();
   };
 
   return (
     <AuthContext.Provider value={{
-      user,
-      loading,
-      authError,
-      signInWithEmail,
-      signUpWithEmail,
-      signInWithGoogle,
-      signOut,
-      verificarAutorizacao,
-      clearAuthError,
+      user, loading, authError,
+      signInWithEmail, signUpWithEmail, signInWithGoogle,
+      signOut, verificarAutorizacao, clearAuthError,
     }}>
       {children}
     </AuthContext.Provider>
