@@ -1,12 +1,35 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from './AuthContext';
-import { GraduationCap, Mail, Lock, Eye, EyeOff, AlertCircle, CheckCircle } from 'lucide-react';
+import { supabase } from './supabaseClient';
+import { GraduationCap, Mail, Lock, Eye, EyeOff, AlertCircle, CheckCircle, Upload, User } from 'lucide-react';
+
+// Função para traduzir erros do Supabase
+const traduzirErro = (mensagem) => {
+  const traducoes = {
+    'Invalid login credentials': 'Email ou senha incorretos',
+    'Email not confirmed': 'Email não confirmado. Verifique sua caixa de entrada.',
+    'User already registered': 'Este email já está cadastrado',
+    'Password should be at least 6 characters': 'A senha deve ter pelo menos 6 caracteres',
+    'Unable to validate email address': 'Email inválido',
+    'Signup requires a valid password': 'Senha inválida',
+    'To signup, please provide your email': 'Informe seu email para cadastrar',
+    'User not found': 'Usuário não encontrado',
+    'Invalid email': 'Email inválido',
+    'Rate limit exceeded': 'Muitas tentativas. Aguarde alguns minutos.',
+  };
+
+  for (const [ingles, portugues] of Object.entries(traducoes)) {
+    if (mensagem.includes(ingles)) return portugues;
+  }
+  return mensagem;
+};
 
 const Login = () => {
   const { signInWithEmail, signUpWithEmail, signInWithGoogle, verificarAutorizacao, authError, clearAuthError } = useAuth();
   
   const [isLogin, setIsLogin] = useState(true);
   const [showCadastroInfo, setShowCadastroInfo] = useState(false);
+  const [showFormulario, setShowFormulario] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -15,10 +38,15 @@ const Login = () => {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
-  // Mostrar erro de autorização do contexto
+  // Estados do formulário de pedido
+  const [pedidoNome, setPedidoNome] = useState('');
+  const [pedidoEmail, setPedidoEmail] = useState('');
+  const [comprovante, setComprovante] = useState(null);
+  const [enviandoPedido, setEnviandoPedido] = useState(false);
+
   useEffect(() => {
     if (authError) {
-      setError(authError);
+      setError(traduzirErro(authError));
       clearAuthError();
     }
   }, [authError, clearAuthError]);
@@ -30,7 +58,6 @@ const Login = () => {
     setLoading(true);
 
     if (!isLogin) {
-      // Verificar se email está autorizado antes de cadastrar
       const autorizado = await verificarAutorizacao(email);
       if (!autorizado) {
         setError('Email não autorizado. Realize o pagamento primeiro.');
@@ -52,14 +79,14 @@ const Login = () => {
 
       const { error } = await signUpWithEmail(email, password);
       if (error) {
-        setError(error.message);
+        setError(traduzirErro(error.message));
       } else {
         setSuccess('Cadastro realizado! Verifique seu email para confirmar.');
       }
     } else {
       const { error } = await signInWithEmail(email, password);
       if (error) {
-        setError(error.message || 'Email ou senha incorretos');
+        setError(traduzirErro(error.message));
       }
     }
 
@@ -71,10 +98,180 @@ const Login = () => {
     setLoading(true);
     const { error } = await signInWithGoogle();
     if (error) {
-      setError(error.message);
+      setError(traduzirErro(error.message));
       setLoading(false);
     }
   };
+
+  const handleEnviarPedido = async (e) => {
+    e.preventDefault();
+    setError('');
+    setSuccess('');
+    setEnviandoPedido(true);
+
+    try {
+      if (!pedidoNome.trim() || !pedidoEmail.trim()) {
+        setError('Preencha todos os campos');
+        setEnviandoPedido(false);
+        return;
+      }
+
+      if (!comprovante) {
+        setError('Envie o comprovante de pagamento');
+        setEnviandoPedido(false);
+        return;
+      }
+
+      const fileExt = comprovante.name.split('.').pop();
+      const fileName = `${Date.now()}_${pedidoEmail.replace('@', '_at_')}.${fileExt}`;
+      
+      const { error: uploadError } = await supabase.storage
+        .from('comprovantes')
+        .upload(fileName, comprovante);
+
+      if (uploadError) {
+        setError('Erro ao enviar comprovante. Tente novamente.');
+        setEnviandoPedido(false);
+        return;
+      }
+
+      const { data: urlData } = supabase.storage
+        .from('comprovantes')
+        .getPublicUrl(fileName);
+
+      const { error: pedidoError } = await supabase
+        .from('pedidos')
+        .insert([{
+          nome: pedidoNome.trim(),
+          email: pedidoEmail.trim().toLowerCase(),
+          comprovante_url: urlData.publicUrl,
+          status: 'PENDENTE'
+        }]);
+
+      if (pedidoError) {
+        setError('Erro ao enviar pedido. Tente novamente.');
+        setEnviandoPedido(false);
+        return;
+      }
+
+      setSuccess('Pedido enviado com sucesso! Você receberá a confirmação em até 24h.');
+      setPedidoNome('');
+      setPedidoEmail('');
+      setComprovante(null);
+      
+      setTimeout(() => {
+        setShowFormulario(false);
+        setSuccess('');
+      }, 5000);
+
+    } catch (err) {
+      setError('Erro inesperado. Tente novamente.');
+    }
+
+    setEnviandoPedido(false);
+  };
+
+  // Tela do formulário de pedido
+  if (showFormulario) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center p-4">
+        <div className="bg-slate-800/50 backdrop-blur-sm border border-slate-700 rounded-2xl p-8 w-full max-w-md">
+          <div className="text-center mb-6">
+            <div className="inline-flex items-center justify-center w-16 h-16 bg-green-500/20 rounded-full mb-4">
+              <Upload className="text-green-400" size={32} />
+            </div>
+            <h1 className="text-2xl font-bold text-white mb-2">Enviar Comprovante</h1>
+            <p className="text-slate-400">Preencha seus dados e envie o comprovante</p>
+          </div>
+
+          {error && (
+            <div className="mb-4 p-3 bg-red-500/10 border border-red-500/30 rounded-lg flex items-center gap-2 text-red-400">
+              <AlertCircle size={18} />
+              <span className="text-sm">{error}</span>
+            </div>
+          )}
+
+          {success && (
+            <div className="mb-4 p-3 bg-green-500/10 border border-green-500/30 rounded-lg flex items-center gap-2 text-green-400">
+              <CheckCircle size={18} />
+              <span className="text-sm">{success}</span>
+            </div>
+          )}
+
+          <form onSubmit={handleEnviarPedido} className="space-y-4">
+            <div>
+              <label className="text-slate-400 text-sm block mb-1">Seu Nome</label>
+              <div className="relative">
+                <User className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                <input
+                  type="text"
+                  value={pedidoNome}
+                  onChange={(e) => setPedidoNome(e.target.value)}
+                  className="w-full pl-10 pr-4 py-3 bg-slate-700/50 border border-slate-600 rounded-lg text-white placeholder-slate-500 focus:border-green-500 focus:outline-none"
+                  placeholder="Nome completo"
+                  required
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="text-slate-400 text-sm block mb-1">Seu Email</label>
+              <div className="relative">
+                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                <input
+                  type="email"
+                  value={pedidoEmail}
+                  onChange={(e) => setPedidoEmail(e.target.value)}
+                  className="w-full pl-10 pr-4 py-3 bg-slate-700/50 border border-slate-600 rounded-lg text-white placeholder-slate-500 focus:border-green-500 focus:outline-none"
+                  placeholder="seu@email.com"
+                  required
+                />
+              </div>
+              <p className="text-xs text-slate-500 mt-1">Use o mesmo email que usará para acessar o sistema</p>
+            </div>
+
+            <div>
+              <label className="text-slate-400 text-sm block mb-1">Comprovante de Pagamento</label>
+              <input
+                type="file"
+                accept="image/*,.pdf"
+                onChange={(e) => setComprovante(e.target.files[0])}
+                className="hidden"
+                id="comprovante-input"
+              />
+              <label
+                htmlFor="comprovante-input"
+                className={`flex items-center justify-center gap-2 w-full py-4 border-2 border-dashed rounded-lg cursor-pointer transition-colors ${
+                  comprovante 
+                    ? 'border-green-500 bg-green-500/10 text-green-400' 
+                    : 'border-slate-600 hover:border-slate-500 text-slate-400'
+                }`}
+              >
+                <Upload size={20} />
+                {comprovante ? comprovante.name : 'Clique para enviar o comprovante'}
+              </label>
+              <p className="text-xs text-slate-500 mt-1">Imagem ou PDF do comprovante Pix</p>
+            </div>
+
+            <button
+              type="submit"
+              disabled={enviandoPedido}
+              className="w-full py-3 bg-green-600 hover:bg-green-700 disabled:bg-green-600/50 text-white font-medium rounded-lg transition-colors"
+            >
+              {enviandoPedido ? 'Enviando...' : 'Enviar Pedido'}
+            </button>
+          </form>
+
+          <button
+            onClick={() => { setShowFormulario(false); setError(''); setSuccess(''); }}
+            className="w-full mt-4 py-3 bg-slate-700 hover:bg-slate-600 text-white rounded-lg transition-colors"
+          >
+            ← Voltar
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   // Tela de informações de cadastro (Pix)
   if (showCadastroInfo) {
@@ -89,7 +286,6 @@ const Login = () => {
             <p className="text-slate-400">Acesso vitalício ao Sistema de Notas</p>
           </div>
 
-          {/* Preço com promoção */}
           <div className="bg-indigo-500/10 border border-indigo-500/30 rounded-xl p-6 mb-6 text-center">
             <div className="text-red-400 text-sm font-semibold mb-1">🔥 PROMOÇÃO</div>
             <div className="text-slate-400 text-sm mb-1">
@@ -110,7 +306,7 @@ const Login = () => {
               </li>
               <li className="flex items-start gap-3">
                 <span className="flex-shrink-0 w-6 h-6 bg-indigo-500 rounded-full flex items-center justify-center text-white text-sm font-bold">2</span>
-                <span className="text-slate-300">Envie o comprovante para o WhatsApp junto com seu email</span>
+                <span className="text-slate-300">Clique em "Enviar Comprovante" e preencha o formulário</span>
               </li>
               <li className="flex items-start gap-3">
                 <span className="flex-shrink-0 w-6 h-6 bg-indigo-500 rounded-full flex items-center justify-center text-white text-sm font-bold">3</span>
@@ -123,7 +319,6 @@ const Login = () => {
             </ol>
           </div>
 
-          {/* Chave Pix */}
           <div className="mt-6 bg-slate-700/50 rounded-lg p-4">
             <div className="text-slate-400 text-sm mb-1">Chave Pix (Email)</div>
             <div className="font-mono text-white text-sm break-all select-all">
@@ -131,22 +326,29 @@ const Login = () => {
             </div>
           </div>
 
-          {/* WhatsApp */}
-          <div className="mt-4 bg-slate-700/50 rounded-lg p-4">
-            <div className="text-slate-400 text-sm mb-1">WhatsApp</div>
+          <button
+            onClick={() => { setShowCadastroInfo(false); setShowFormulario(true); }}
+            className="w-full mt-4 py-3 bg-green-600 hover:bg-green-700 text-white font-medium rounded-lg transition-colors flex items-center justify-center gap-2"
+          >
+            <Upload size={18} />
+            Enviar Comprovante
+          </button>
+
+          <div className="mt-4 text-center">
+            <span className="text-slate-500 text-sm">ou envie pelo </span>
             <a
               href="https://wa.me/5551989929557?text=Olá! Fiz o pagamento do Sistema de Notas. Meu email é: "
               target="_blank"
               rel="noopener noreferrer"
-              className="text-green-400 hover:text-green-300 font-medium"
+              className="text-green-400 hover:text-green-300 text-sm"
             >
-              (51) 98992-9557
+              WhatsApp
             </a>
           </div>
 
           <button
             onClick={() => setShowCadastroInfo(false)}
-            className="w-full mt-6 py-3 bg-slate-700 hover:bg-slate-600 text-white rounded-lg transition-colors"
+            className="w-full mt-4 py-3 bg-slate-700 hover:bg-slate-600 text-white rounded-lg transition-colors"
           >
             ← Voltar para Login
           </button>
@@ -345,14 +547,14 @@ const Login = () => {
 
         <div className="mt-6 text-center space-y-2">
           <button
-            onClick={() => setIsLogin(false)}
+            onClick={() => setShowCadastroInfo(true)}
             className="text-slate-400 hover:text-white text-sm"
           >
             Não tem conta? <span className="text-indigo-400">Quero me cadastrar</span>
           </button>
           <div>
             <button
-              onClick={() => setShowCadastroInfo(true)}
+              onClick={() => setIsLogin(false)}
               className="text-slate-500 hover:text-slate-300 text-sm"
             >
               Já paguei e quero criar minha conta →
