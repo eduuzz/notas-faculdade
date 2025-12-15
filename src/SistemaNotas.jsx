@@ -1,8 +1,9 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, RadialBarChart, RadialBar, PolarAngleAxis } from 'recharts';
-import { Plus, Trash2, BookOpen, Award, TrendingUp, AlertCircle, CheckCircle, GraduationCap, Edit2, X, Clock, PlayCircle, ChevronDown, ChevronUp, Search, Save, Cloud, CloudOff, RefreshCw, LogOut, User, Wifi, WifiOff, Download, RotateCcw, Sun, Moon, Monitor, List, LayoutGrid, Shield } from 'lucide-react';
+import { Plus, Trash2, BookOpen, Award, TrendingUp, AlertCircle, CheckCircle, GraduationCap, Edit2, X, Clock, PlayCircle, ChevronDown, ChevronUp, Search, Save, Cloud, CloudOff, RefreshCw, LogOut, User, Wifi, WifiOff, Download, Upload as UploadIcon, RotateCcw, Sun, Moon, Monitor, List, LayoutGrid, Shield } from 'lucide-react';
 import { useNotas } from './useNotas';
 import { useAuth } from './AuthContext';
+import ImportModal from './ImportModal';
 
 const STATUS = {
   NAO_INICIADA: { label: 'Não Iniciada', color: 'slate', bg: 'bg-slate-500/20', text: 'text-slate-400', border: 'border-slate-500/30' },
@@ -28,6 +29,7 @@ export default function SistemaNotas({ onOpenAdmin }) {
   const [activeTab, setActiveTab] = useState('grade');
   const [showAddDisciplina, setShowAddDisciplina] = useState(false);
   const [showAddMultiplas, setShowAddMultiplas] = useState(false);
+  const [showImportModal, setShowImportModal] = useState(false);
   const [editingDisciplina, setEditingDisciplina] = useState(null);
   const [expandedPeriodos, setExpandedPeriodos] = useState({1: true, 2: true, 3: true, 4: true, 5: true, 6: true, 7: true, 8: true});
   const [filtroStatus, setFiltroStatus] = useState('TODOS');
@@ -214,6 +216,14 @@ export default function SistemaNotas({ onOpenAdmin }) {
     }
     setDisciplinasMultiplas('');
     setShowAddMultiplas(false);
+  };
+
+  // Importar disciplinas em lote
+  const handleImportarDisciplinas = async (disciplinas) => {
+    for (const disciplina of disciplinas) {
+      await adicionarDisciplina(disciplina);
+    }
+    setShowImportModal(false);
   };
 
   const handleRemoverDisciplina = async (id) => {
@@ -620,6 +630,14 @@ export default function SistemaNotas({ onOpenAdmin }) {
                 >
                   <Download size={18} />
                   <span className="hidden sm:inline">PDF</span>
+                </button>
+                <button
+                  onClick={() => setShowImportModal(true)}
+                  className="flex items-center gap-2 px-3 py-2 bg-amber-600 hover:bg-amber-700 rounded-lg transition-colors text-sm"
+                  title="Importar de arquivo"
+                >
+                  <UploadIcon size={18} />
+                  <span className="hidden sm:inline">Importar</span>
                 </button>
                 {(
                   <>
@@ -1598,6 +1616,15 @@ export default function SistemaNotas({ onOpenAdmin }) {
           </div>
         )}
       </div>
+
+        {/* Modal de Importação */}
+        {showImportModal && (
+          <ImportModal
+            onClose={() => setShowImportModal(false)}
+            onImport={handleImportarDisciplinas}
+            disciplinasExistentes={disciplinas}
+          />
+        )}
     </div>
   );
 }
