@@ -54,49 +54,93 @@ const ImportModal = ({ onClose, onImport, disciplinasExistentes }) => {
       const header = jsonData[0].map(h => h?.toString().toLowerCase().trim() || '');
       
       const colunasMap = {
-        nome: header.findIndex(h => h.includes('nome') || h.includes('disciplina') || h.includes('materia') || h.includes('matéria')),
+        nome: header.findIndex(h => h.includes('nome') || h.includes('disciplina') || h.includes('materia') || h.includes('matéria') || h.includes('cadeira')),
         periodo: header.findIndex(h => h.includes('periodo') || h.includes('período') || h.includes('semestre') || h.includes('fase')),
         nota: header.findIndex(h => h.includes('nota') || h.includes('media') || h.includes('média') || h.includes('final')),
+        ga: header.findIndex(h => h.includes('grau a') || h.includes('ga') || h === 'a'),
+        gb: header.findIndex(h => h.includes('grau b') || h.includes('gb') || h === 'b'),
         creditos: header.findIndex(h => h.includes('credito') || h.includes('crédito') || h.includes('cr')),
         cargaHoraria: header.findIndex(h => h.includes('carga') || h.includes('hora') || h.includes('ch')),
         status: header.findIndex(h => h.includes('status') || h.includes('situacao') || h.includes('situação')),
+        quando: header.findIndex(h => h.includes('quando') || h.includes('data') || h.includes('ano')),
       };
 
-      // Se não encontrou coluna de nome, assume que a primeira é nome
-      if (colunasMap.nome === -1) colunasMap.nome = 0;
+      // Se não encontrou coluna de nome, tenta a segunda coluna (comum em planilhas com semestre na primeira)
+      if (colunasMap.nome === -1) {
+        // Se primeira coluna parece ser semestre, usa segunda como nome
+        if (colunasMap.periodo === 0 || header[0]?.includes('sem')) {
+          colunasMap.nome = 1;
+        } else {
+          colunasMap.nome = 0;
+        }
+      }
+
+      // Função para parsear nota no formato brasileiro (vírgula como decimal)
+      const parsearNota = (valor) => {
+        if (valor === null || valor === undefined || valor === '') return null;
+        if (typeof valor === 'number') return valor;
+        const str = valor.toString().trim();
+        if (str.toLowerCase() === 'dispensado' || str.toLowerCase() === 'aprovado') return null;
+        const nota = parseFloat(str.replace(',', '.'));
+        return isNaN(nota) ? null : nota;
+      };
+
+      // Extrair número do período de strings como "1° Sem", "2º Semestre", etc.
+      const extrairPeriodo = (valor) => {
+        if (!valor) return null;
+        const str = valor.toString();
+        const match = str.match(/(\d+)/);
+        if (match) {
+          const num = parseInt(match[1]);
+          if (num >= 1 && num <= 10) return num;
+        }
+        return null;
+      };
 
       const disciplinas = [];
+      let periodoAtual = 1; // Para herdar período quando a célula está vazia
       
       for (let i = 1; i < jsonData.length; i++) {
         const row = jsonData[i];
-        if (!row || !row[colunasMap.nome]) continue;
+        if (!row) continue;
+
+        // Atualizar período se a coluna de período tiver valor
+        if (colunasMap.periodo !== -1 && row[colunasMap.periodo]) {
+          const novoPeriodo = extrairPeriodo(row[colunasMap.periodo]);
+          if (novoPeriodo) periodoAtual = novoPeriodo;
+        }
 
         const nome = row[colunasMap.nome]?.toString().trim();
         if (!nome) continue;
 
-        const nota = colunasMap.nota !== -1 ? parseFloat(row[colunasMap.nota]) || null : null;
+        const nota = colunasMap.nota !== -1 ? parsearNota(row[colunasMap.nota]) : null;
+        const ga = colunasMap.ga !== -1 ? parsearNota(row[colunasMap.ga]) : null;
+        const gb = colunasMap.gb !== -1 ? parsearNota(row[colunasMap.gb]) : null;
+        const semestreCursado = colunasMap.quando !== -1 && row[colunasMap.quando] ? row[colunasMap.quando].toString().trim() : null;
+        
         let status = 'NAO_INICIADA';
         
         if (colunasMap.status !== -1 && row[colunasMap.status]) {
           const statusTexto = row[colunasMap.status].toString().toLowerCase();
-          if (statusTexto.includes('aprov')) status = 'APROVADA';
+          if (statusTexto.includes('aprov') || statusTexto.includes('dispensado')) status = 'APROVADA';
           else if (statusTexto.includes('reprov')) status = 'REPROVADA';
           else if (statusTexto.includes('curso') || statusTexto.includes('cursando')) status = 'EM_CURSO';
+          else if (statusTexto.includes('pendente')) status = 'NAO_INICIADA';
         } else if (nota !== null) {
           status = detectarStatus(nota);
         }
 
         disciplinas.push({
           nome,
-          periodo: colunasMap.periodo !== -1 ? parseInt(row[colunasMap.periodo]) || 1 : 1,
+          periodo: periodoAtual,
           creditos: colunasMap.creditos !== -1 ? parseInt(row[colunasMap.creditos]) || 4 : 4,
           cargaHoraria: colunasMap.cargaHoraria !== -1 ? parseInt(row[colunasMap.cargaHoraria]) || 60 : 60,
           notaMinima: 6.0,
           status,
-          ga: null,
-          gb: null,
+          ga,
+          gb,
           notaFinal: nota,
-          semestreCursado: null,
+          semestreCursado,
           observacao: '',
           jaExiste: jaExiste(nome)
         });
