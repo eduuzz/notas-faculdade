@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, RadialBarChart, RadialBar, PolarAngleAxis } from 'recharts';
-import { Plus, Trash2, BookOpen, Award, TrendingUp, AlertCircle, CheckCircle, GraduationCap, Edit2, X, Clock, PlayCircle, ChevronDown, ChevronUp, Search, Save, Cloud, CloudOff, RefreshCw, LogOut, User, Wifi, WifiOff, Download, RotateCcw, Sun, Moon, Monitor, List, LayoutGrid } from 'lucide-react';
+import { Plus, Trash2, BookOpen, Award, TrendingUp, AlertCircle, CheckCircle, GraduationCap, Edit2, X, Clock, PlayCircle, ChevronDown, ChevronUp, Search, Save, Cloud, CloudOff, RefreshCw, LogOut, User, Wifi, WifiOff, Download, RotateCcw, Sun, Moon, Monitor, List, LayoutGrid, Shield } from 'lucide-react';
 import { useNotas } from './useNotas';
 import { useAuth } from './AuthContext';
 
@@ -11,7 +11,7 @@ const STATUS = {
   REPROVADA: { label: 'Reprovada', color: 'red', bg: 'bg-red-500/20', text: 'text-red-400', border: 'border-red-500/30' }
 };
 
-export default function SistemaNotas() {
+export default function SistemaNotas({ onOpenAdmin }) {
   const { user, signOut } = useAuth();
   const {
     disciplinas,
@@ -452,6 +452,15 @@ export default function SistemaNotas() {
       >
         <RefreshCw size={14} className={syncing ? 'animate-spin' : ''} />
       </button>
+      {onOpenAdmin && (
+        <button
+          onClick={onOpenAdmin}
+          className="p-1 hover:bg-slate-700 rounded transition-colors text-indigo-400"
+          title="Painel Admin"
+        >
+          <Shield size={14} />
+        </button>
+      )}
       <button
         onClick={signOut}
         className="p-1 hover:bg-slate-700 rounded transition-colors text-red-400"
