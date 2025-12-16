@@ -129,7 +129,7 @@ export default function Login() {
         const fileName = `${Date.now()}_${pedidoData.email.replace('@', '_')}.${fileExt}`;
 
         const { data: uploadData, error: uploadError } = await supabase.storage
-          .from('comprovantes')
+          .from('Comprovantes')
           .upload(fileName, file);
 
         if (uploadError) {
@@ -137,7 +137,7 @@ export default function Login() {
           // Continua mesmo sem o comprovante
         } else {
           const { data: urlData } = supabase.storage
-            .from('comprovantes')
+            .from('Comprovantes')
             .getPublicUrl(fileName);
           comprovanteUrl = urlData?.publicUrl;
         }
