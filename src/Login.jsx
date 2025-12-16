@@ -1,13 +1,16 @@
 import React, { useState } from 'react';
-import { GraduationCap, Mail, Lock, Eye, EyeOff, AlertCircle } from 'lucide-react';
+import { GraduationCap, Mail, Lock, Eye, EyeOff, AlertCircle, ArrowLeft } from 'lucide-react';
 import { useAuth } from './AuthContext';
+import { supabase } from './supabaseClient';
 
 export default function Login() {
   const { signIn, signInWithGoogle, signUp } = useAuth();
   const [isLogin, setIsLogin] = useState(true);
+  const [isForgotPassword, setIsForgotPassword] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -17,6 +20,7 @@ export default function Login() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    setSuccess('');
     setLoading(true);
 
     try {
@@ -31,10 +35,32 @@ export default function Login() {
         }
         const { error } = await signUp(formData.email, formData.password);
         if (error) setError(error.message);
-        else setError('Verifique seu email para confirmar o cadastro!');
+        else setSuccess('Verifique seu email para confirmar o cadastro!');
       }
     } catch (err) {
       setError('Erro ao processar. Tente novamente.');
+    }
+    setLoading(false);
+  };
+
+  const handleForgotPassword = async (e) => {
+    e.preventDefault();
+    setError('');
+    setSuccess('');
+    setLoading(true);
+
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(formData.email, {
+        redirectTo: `${window.location.origin}/reset-password`,
+      });
+      
+      if (error) {
+        setError(error.message);
+      } else {
+        setSuccess('Email de recuperação enviado! Verifique sua caixa de entrada.');
+      }
+    } catch (err) {
+      setError('Erro ao enviar email. Tente novamente.');
     }
     setLoading(false);
   };
@@ -51,6 +77,93 @@ export default function Login() {
     setLoading(false);
   };
 
+  // Tela de Esqueci Minha Senha
+  if (isForgotPassword) {
+    return (
+      <div className="min-h-screen bg-[#09090b] text-white flex items-center justify-center p-4">
+        {/* Background Effects */}
+        <div className="fixed inset-0 overflow-hidden pointer-events-none">
+          <div className="absolute top-[-20%] right-[-10%] w-[600px] h-[600px] bg-violet-600/10 rounded-full blur-[120px]" />
+          <div className="absolute bottom-[-20%] left-[-10%] w-[500px] h-[500px] bg-blue-600/10 rounded-full blur-[100px]" />
+          <div className="absolute top-[40%] left-[50%] w-[300px] h-[300px] bg-fuchsia-600/5 rounded-full blur-[80px]" />
+        </div>
+
+        {/* Card */}
+        <div className="relative z-10 w-full max-w-md">
+          <div className="relative overflow-hidden rounded-3xl bg-white/[0.03] backdrop-blur-xl border border-white/10 p-8">
+            {/* Botão Voltar */}
+            <button
+              onClick={() => { setIsForgotPassword(false); setError(''); setSuccess(''); }}
+              className="flex items-center gap-2 text-slate-400 hover:text-white transition-colors mb-6"
+            >
+              <ArrowLeft size={18} />
+              <span className="text-sm">Voltar ao login</span>
+            </button>
+
+            {/* Logo */}
+            <div className="text-center mb-8">
+              <div className="inline-flex items-center justify-center w-20 h-20 rounded-[22px] bg-gradient-to-br from-violet-500 to-indigo-600 shadow-xl shadow-violet-500/30 mb-4">
+                <GraduationCap size={40} className="text-white" />
+              </div>
+              <h1 className="text-2xl font-semibold tracking-tight">Recuperar Senha</h1>
+              <p className="text-slate-500 text-sm mt-1">
+                Digite seu email para receber o link de recuperação
+              </p>
+            </div>
+
+            {/* Success Message */}
+            {success && (
+              <div className="mb-6 p-4 rounded-2xl flex items-center gap-3 bg-emerald-500/10 border border-emerald-500/30 text-emerald-400">
+                <AlertCircle size={18} />
+                <span className="text-sm">{success}</span>
+              </div>
+            )}
+
+            {/* Error Message */}
+            {error && (
+              <div className="mb-6 p-4 rounded-2xl flex items-center gap-3 bg-red-500/10 border border-red-500/30 text-red-400">
+                <AlertCircle size={18} />
+                <span className="text-sm">{error}</span>
+              </div>
+            )}
+
+            {/* Form */}
+            <form onSubmit={handleForgotPassword} className="space-y-4">
+              <div>
+                <label className="text-sm text-slate-400 block mb-2">Email</label>
+                <div className="relative">
+                  <Mail size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" />
+                  <input
+                    type="email"
+                    value={formData.email}
+                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                    className="w-full pl-12 pr-4 py-3.5 rounded-2xl bg-white/5 border border-white/10 text-white placeholder-slate-500 focus:outline-none focus:border-violet-500/50 focus:bg-white/[0.07] transition-all duration-300"
+                    placeholder="seu@email.com"
+                    required
+                  />
+                </div>
+              </div>
+
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full py-4 rounded-2xl bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 font-semibold shadow-lg shadow-violet-500/25 hover:shadow-violet-500/40 transition-all duration-300 hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:hover:scale-100"
+              >
+                {loading ? 'Enviando...' : 'Enviar Link de Recuperação'}
+              </button>
+            </form>
+          </div>
+
+          {/* Footer */}
+          <p className="text-center text-slate-600 text-xs mt-6">
+            © 2024 Sistema de Notas. Todos os direitos reservados.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  // Tela de Login/Cadastro
   return (
     <div className="min-h-screen bg-[#09090b] text-white flex items-center justify-center p-4">
       {/* Background Effects */}
@@ -74,13 +187,17 @@ export default function Login() {
             </p>
           </div>
 
+          {/* Success Message */}
+          {success && (
+            <div className="mb-6 p-4 rounded-2xl flex items-center gap-3 bg-emerald-500/10 border border-emerald-500/30 text-emerald-400">
+              <AlertCircle size={18} />
+              <span className="text-sm">{success}</span>
+            </div>
+          )}
+
           {/* Error Message */}
           {error && (
-            <div className={`mb-6 p-4 rounded-2xl flex items-center gap-3 ${
-              error.includes('Verifique') 
-                ? 'bg-emerald-500/10 border border-emerald-500/30 text-emerald-400'
-                : 'bg-red-500/10 border border-red-500/30 text-red-400'
-            }`}>
+            <div className="mb-6 p-4 rounded-2xl flex items-center gap-3 bg-red-500/10 border border-red-500/30 text-red-400">
               <AlertCircle size={18} />
               <span className="text-sm">{error}</span>
             </div>
@@ -104,7 +221,18 @@ export default function Login() {
             </div>
 
             <div>
-              <label className="text-sm text-slate-400 block mb-2">Senha</label>
+              <div className="flex justify-between items-center mb-2">
+                <label className="text-sm text-slate-400">Senha</label>
+                {isLogin && (
+                  <button
+                    type="button"
+                    onClick={() => { setIsForgotPassword(true); setError(''); setSuccess(''); }}
+                    className="text-xs text-violet-400 hover:text-violet-300 transition-colors"
+                  >
+                    Esqueci minha senha
+                  </button>
+                )}
+              </div>
               <div className="relative">
                 <Lock size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" />
                 <input
@@ -178,7 +306,7 @@ export default function Login() {
             <p className="text-slate-400 text-sm">
               {isLogin ? 'Não tem conta?' : 'Já tem conta?'}{' '}
               <button
-                onClick={() => { setIsLogin(!isLogin); setError(''); }}
+                onClick={() => { setIsLogin(!isLogin); setError(''); setSuccess(''); }}
                 className="text-violet-400 hover:text-violet-300 font-medium transition-colors"
               >
                 {isLogin ? 'Quero me cadastrar' : 'Fazer login'}

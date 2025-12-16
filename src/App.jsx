@@ -1,11 +1,16 @@
 import { AuthProvider, useAuth } from './AuthContext'
 import SistemaNotas from './SistemaNotas'
 import Login from './Login'
-import { GraduationCap, RefreshCw } from 'lucide-react'
+import ResetPassword from './ResetPassword'
+import { RefreshCw } from 'lucide-react'
 
 // Componente que decide o que mostrar
 function AppContent() {
   const { user, loading } = useAuth();
+
+  // Verifica se está na rota de reset-password
+  const isResetPasswordRoute = window.location.pathname === '/reset-password' || 
+                               window.location.hash.includes('type=recovery');
 
   // Tela de carregamento estilo Apple
   if (loading) {
@@ -25,6 +30,11 @@ function AppContent() {
         </div>
       </div>
     );
+  }
+
+  // Se está na rota de reset-password, mostra a tela de redefinir senha
+  if (isResetPasswordRoute) {
+    return <ResetPassword />;
   }
 
   // Se não está logado, mostra Login
