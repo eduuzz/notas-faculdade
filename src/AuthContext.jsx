@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, useCallback } from 'react';
+import { createContext, useContext, useEffect, useState, useCallback, useRef } from 'react';
 import { supabase, isSupabaseConfigured } from './supabaseClient';
 
 const AuthContext = createContext({});
@@ -9,6 +9,7 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [authError, setAuthError] = useState(null);
+  const isInitialLoad = useRef(true);
 
   const verificarAutorizacao = useCallback(async (email) => {
     if (!email || !supabase) return false;
@@ -31,34 +32,74 @@ export const AuthProvider = ({ children }) => {
       return;
     }
 
-    // Pegar sessão salva - sem verificar autorização novamente
-    // (usuário já foi autorizado no primeiro login)
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null);
-      setLoading(false);
-    });
+    let mounted = true;
 
-    // Listener para mudanças
+    // Timeout de segurança - 5 segundos
+    const timeout = setTimeout(() => {
+      if (mounted && loading) {
+        console.warn('Auth timeout - forçando fim do loading');
+        setLoading(false);
+      }
+    }, 5000);
+
+    // Carregar sessão existente
+    const loadSession = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (mounted) {
+          setUser(session?.user ?? null);
+          setLoading(false);
+          isInitialLoad.current = false;
+        }
+      } catch (err) {
+        console.error('Erro ao carregar sessão:', err);
+        if (mounted) {
+          setLoading(false);
+          isInitialLoad.current = false;
+        }
+      }
+    };
+
+    loadSession();
+
+    // Listener para mudanças de auth
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        if (event === 'SIGNED_IN' && session?.user) {
-          // Só verifica autorização em novo login
-          const autorizado = await verificarAutorizacao(session.user.email);
-          if (autorizado) {
-            setUser(session.user);
-          } else {
-            await supabase.auth.signOut();
-            setUser(null);
-            setAuthError('Email não autorizado. Realize o pagamento primeiro.');
-          }
-        } else if (event === 'SIGNED_OUT') {
-          setUser(null);
+        if (!mounted) return;
+
+        // Ignorar eventos durante carregamento inicial
+        if (isInitialLoad.current) {
+          return;
         }
-        setLoading(false);
+
+        if (event === 'SIGNED_OUT') {
+          setUser(null);
+          setAuthError(null);
+          return;
+        }
+
+        if (event === 'SIGNED_IN' && session?.user) {
+          // Novo login - verificar autorização
+          const autorizado = await verificarAutorizacao(session.user.email);
+          if (mounted) {
+            if (autorizado) {
+              setUser(session.user);
+              setAuthError(null);
+            } else {
+              await supabase.auth.signOut();
+              setUser(null);
+              setAuthError('Email não autorizado. Realize o pagamento primeiro.');
+            }
+          }
+        }
       }
     );
 
-    return () => subscription.unsubscribe();
+    return () => {
+      mounted = false;
+      clearTimeout(timeout);
+      subscription.unsubscribe();
+    };
   }, [verificarAutorizacao]);
 
   const signInWithEmail = async (email, password) => {
@@ -96,6 +137,7 @@ export const AuthProvider = ({ children }) => {
   const signOut = async () => {
     if (!supabase) return { error: { message: 'Supabase não configurado' } };
     setUser(null);
+    setAuthError(null);
     return await supabase.auth.signOut();
   };
 
