@@ -4,7 +4,7 @@ import { useAuth } from './AuthContext';
 import { supabase } from './supabaseClient';
 
 export default function Login() {
-  const { signIn, signInWithGoogle, signUp } = useAuth();
+  const { signInWithEmail, signInWithGoogle, signUpWithEmail } = useAuth();
   const [isLogin, setIsLogin] = useState(true);
   const [isForgotPassword, setIsForgotPassword] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -25,7 +25,7 @@ export default function Login() {
 
     try {
       if (isLogin) {
-        const { error } = await signIn(formData.email, formData.password);
+        const { error } = await signInWithEmail(formData.email, formData.password);
         if (error) {
           // Traduz erros comuns do Supabase
           if (error.message.includes('Invalid login credentials')) {
@@ -44,7 +44,7 @@ export default function Login() {
           setLoading(false);
           return;
         }
-        const { error } = await signUp(formData.email, formData.password);
+        const { error } = await signUpWithEmail(formData.email, formData.password);
         if (error) setError(error.message);
         else setSuccess('Verifique seu email para confirmar o cadastro!');
       }
