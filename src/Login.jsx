@@ -26,7 +26,18 @@ export default function Login() {
     try {
       if (isLogin) {
         const { error } = await signIn(formData.email, formData.password);
-        if (error) setError(error.message);
+        if (error) {
+          // Traduz erros comuns do Supabase
+          if (error.message.includes('Invalid login credentials')) {
+            setError('Email ou senha incorretos');
+          } else if (error.message.includes('Email not confirmed')) {
+            setError('Email não confirmado. Verifique sua caixa de entrada.');
+          } else if (error.message.includes('Too many requests')) {
+            setError('Muitas tentativas. Aguarde alguns minutos.');
+          } else {
+            setError(error.message);
+          }
+        }
       } else {
         if (formData.password !== formData.confirmPassword) {
           setError('As senhas não coincidem');
@@ -38,7 +49,8 @@ export default function Login() {
         else setSuccess('Verifique seu email para confirmar o cadastro!');
       }
     } catch (err) {
-      setError('Erro ao processar. Tente novamente.');
+      console.error('Erro de login:', err);
+      setError('Erro de conexão. Verifique sua internet.');
     }
     setLoading(false);
   };
