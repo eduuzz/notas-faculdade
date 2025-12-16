@@ -3,14 +3,22 @@ import { AuthProvider, useAuth } from './AuthContext'
 import SistemaNotas from './SistemaNotas'
 import Login from './Login'
 import ResetPassword from './ResetPassword'
+import AdminPanel from './AdminPanel'
 import { RefreshCw } from 'lucide-react'
 import { supabase } from './supabaseClient'
+
+// Email do administrador
+const ADMIN_EMAIL = 'eproencad@gmail.com';
 
 // Componente que decide o que mostrar
 function AppContent() {
   const { user, loading } = useAuth();
   const [isRecoveryMode, setIsRecoveryMode] = useState(false);
   const [checkingRecovery, setCheckingRecovery] = useState(true);
+  const [showAdminPanel, setShowAdminPanel] = useState(false);
+
+  // Verifica se o usuário é admin
+  const isAdmin = user?.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase();
 
   useEffect(() => {
     // Verifica se é um fluxo de recuperação de senha
@@ -78,8 +86,14 @@ function AppContent() {
     return <Login />;
   }
 
+  // Se está no painel admin
+  if (showAdminPanel && isAdmin) {
+    return <AdminPanel onClose={() => setShowAdminPanel(false)} />;
+  }
+
   // Se está logado, mostra o sistema
-  return <SistemaNotas />;
+  // Passa onOpenAdmin apenas se for admin
+  return <SistemaNotas onOpenAdmin={isAdmin ? () => setShowAdminPanel(true) : null} />;
 }
 
 function App() {
