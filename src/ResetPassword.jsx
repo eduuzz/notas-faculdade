@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { GraduationCap, Lock, Eye, EyeOff, AlertCircle, CheckCircle } from 'lucide-react';
 import { supabase } from './supabaseClient';
 
-export default function ResetPassword() {
+export default function ResetPassword({ onComplete }) {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -12,15 +12,10 @@ export default function ResetPassword() {
     confirmPassword: ''
   });
 
-  // Verifica se há uma sessão válida (usuário clicou no link do email)
+  // Usuário já está autenticado pelo link do Supabase
   useEffect(() => {
-    const checkSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        setError('Link inválido ou expirado. Solicite um novo link de recuperação.');
-      }
-    };
-    checkSession();
+    // Limpa qualquer erro anterior
+    setError('');
   }, []);
 
   const handleSubmit = async (e) => {
@@ -50,9 +45,13 @@ export default function ResetPassword() {
         setError(error.message);
       } else {
         setSuccess(true);
-        // Redireciona para login após 3 segundos
+        // Redireciona para o sistema após 3 segundos
         setTimeout(() => {
-          window.location.href = '/';
+          if (onComplete) {
+            onComplete();
+          } else {
+            window.location.href = '/';
+          }
         }, 3000);
       }
     } catch (err) {
@@ -82,12 +81,12 @@ export default function ResetPassword() {
             <p className="text-slate-400 mb-6">
               Sua senha foi atualizada com sucesso. Você será redirecionado para o login em instantes...
             </p>
-            <a
-              href="/"
+            <button
+              onClick={() => onComplete ? onComplete() : window.location.href = '/'}
               className="inline-block w-full py-4 rounded-2xl bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 font-semibold shadow-lg shadow-violet-500/25 hover:shadow-violet-500/40 transition-all duration-300 hover:scale-[1.02] active:scale-[0.98]"
             >
-              Ir para o Login
-            </a>
+              Acessar o Sistema
+            </button>
           </div>
         </div>
       </div>
