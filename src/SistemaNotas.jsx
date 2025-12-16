@@ -452,7 +452,9 @@ export default function SistemaNotas({ onOpenAdmin }) {
                                       <td className="p-3 text-center font-semibold">{disc.notaFinal ? disc.notaFinal.toFixed(1) : '-'}</td>
                                       <td className="p-3 text-center">
                                         <div className="flex items-center justify-center gap-1">
-                                          <button onClick={() => startEditNotas(disc)} className="p-1.5 rounded-lg hover:bg-white/10 text-slate-400 hover:text-white transition-all"><Edit2 size={14} /></button>
+                                          {disc.status !== 'NAO_INICIADA' && (
+                                            <button onClick={() => startEditNotas(disc)} className="p-1.5 rounded-lg hover:bg-white/10 text-slate-400 hover:text-white transition-all"><Edit2 size={14} /></button>
+                                          )}
                                           <button onClick={() => setShowDeleteMenu(disc.id)} className="p-1.5 rounded-lg hover:bg-red-500/20 text-slate-400 hover:text-red-400 transition-all"><Trash2 size={14} /></button>
                                         </div>
                                       </td>
@@ -488,7 +490,9 @@ export default function SistemaNotas({ onOpenAdmin }) {
                                       <p className="text-sm text-slate-400">GA: {disc.ga ?? '-'} | GB: {disc.gb ?? '-'}</p>
                                     )}
                                     <div className="flex items-center gap-1">
-                                      <button onClick={() => startEditNotas(disc)} className="p-2 rounded-xl hover:bg-white/10 text-slate-500 hover:text-white transition-all"><Edit2 size={16} /></button>
+                                      {disc.status !== 'NAO_INICIADA' && (
+                                        <button onClick={() => startEditNotas(disc)} className="p-2 rounded-xl hover:bg-white/10 text-slate-500 hover:text-white transition-all"><Edit2 size={16} /></button>
+                                      )}
                                       <button onClick={() => setShowDeleteMenu(disc.id)} className="p-2 rounded-xl hover:bg-red-500/20 text-slate-500 hover:text-red-400 transition-all"><Trash2 size={16} /></button>
                                     </div>
                                   </div>
