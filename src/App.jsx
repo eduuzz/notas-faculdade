@@ -1,24 +1,25 @@
-import { useState } from 'react';
 import { AuthProvider, useAuth } from './AuthContext'
 import SistemaNotas from './SistemaNotas'
 import Login from './Login'
-import AdminPanel from './AdminPanel'
-import { GraduationCap } from 'lucide-react'
-
-const ADMIN_EMAIL = 'eproencad@gmail.com';
+import { GraduationCap, RefreshCw } from 'lucide-react'
 
 // Componente que decide o que mostrar
 function AppContent() {
   const { user, loading } = useAuth();
-  const [showAdmin, setShowAdmin] = useState(false);
 
-  // Tela de carregamento
+  // Tela de carregamento estilo Apple
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center">
-        <div className="text-center">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-indigo-500/20 rounded-full mb-4 animate-pulse">
-            <GraduationCap className="text-indigo-400" size={32} />
+      <div className="min-h-screen bg-[#09090b] text-white flex items-center justify-center">
+        {/* Background Effects */}
+        <div className="fixed inset-0 overflow-hidden pointer-events-none">
+          <div className="absolute top-[-20%] right-[-10%] w-[600px] h-[600px] bg-violet-600/10 rounded-full blur-[120px]" />
+          <div className="absolute bottom-[-20%] left-[-10%] w-[500px] h-[500px] bg-blue-600/10 rounded-full blur-[100px]" />
+        </div>
+        
+        <div className="relative z-10 text-center">
+          <div className="w-20 h-20 rounded-[22px] bg-gradient-to-br from-violet-500 to-indigo-600 flex items-center justify-center shadow-xl shadow-violet-500/30 mx-auto mb-4">
+            <RefreshCw size={36} className="text-white animate-spin" />
           </div>
           <p className="text-slate-400">Carregando...</p>
         </div>
@@ -31,17 +32,8 @@ function AppContent() {
     return <Login />;
   }
 
-  // Se está no painel admin
-  if (showAdmin && user.email === ADMIN_EMAIL) {
-    return <AdminPanel onClose={() => setShowAdmin(false)} />;
-  }
-
-  // Se está logado, mostra o sistema (com botão admin se for admin)
-  return (
-    <SistemaNotas 
-      onOpenAdmin={user.email === ADMIN_EMAIL ? () => setShowAdmin(true) : null} 
-    />
-  );
+  // Se está logado, mostra o sistema
+  return <SistemaNotas />;
 }
 
 function App() {
