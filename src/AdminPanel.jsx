@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Shield, ArrowLeft, RefreshCw, Check, X, Eye, Search, UserPlus, Trash2, Users, FileText, AlertTriangle, Loader2, Ban, UserCheck, Mail, Calendar, Edit3, Save, UserX, History } from 'lucide-react';
+import { Shield, ArrowLeft, RefreshCw, Check, X, Eye, Search, UserPlus, Trash2, Users, FileText, AlertTriangle, Loader2, Mail, Calendar, Edit3, Save, UserX } from 'lucide-react';
 import { useAuth } from './AuthContext';
 import { supabase } from './supabaseClient';
 
@@ -13,7 +13,7 @@ export default function AdminPanel({ onClose }) {
   const [usuarios, setUsuarios] = useState([]);
   const [busca, setBusca] = useState('');
   const [filtroStatus, setFiltroStatus] = useState('TODOS');
-  const [filtroUsuarios, setFiltroUsuarios] = useState('ATIVOS');
+  const [filtroUsuarios, setFiltroUsuarios] = useState('TODOS');
   const [novoEmail, setNovoEmail] = useState('');
   const [novoNome, setNovoNome] = useState('');
   const [erro, setErro] = useState('');
@@ -22,7 +22,6 @@ export default function AdminPanel({ onClose }) {
   
   // Modal states
   const [modalExclusao, setModalExclusao] = useState(null);
-  const [modalBloqueio, setModalBloqueio] = useState(null);
   const [modalEditar, setModalEditar] = useState(null);
   const [editNome, setEditNome] = useState('');
 
@@ -189,47 +188,6 @@ export default function AdminPanel({ onClose }) {
     setActionLoading(null);
   };
 
-  // Bloquear usuário
-  const bloquearUsuario = async (usuario) => {
-    setActionLoading(usuario.id);
-    setErro('');
-    setSucesso('');
-
-    try {
-      const { error } = await supabase
-        .from('usuarios_autorizados')
-        .update({ ativo: false })
-        .eq('id', usuario.id);
-
-      if (error) {
-        setErro('Erro ao bloquear: ' + error.message);
-      } else {
-        setSucesso(`Usuário ${usuario.email} bloqueado!`);
-        setModalBloqueio(null);
-        carregarDados();
-      }
-    } catch (err) {
-      setErro('Erro inesperado');
-    }
-    setActionLoading(null);
-  };
-
-  // Desbloquear usuário
-  const desbloquearUsuario = async (usuario) => {
-    setActionLoading(usuario.id);
-    try {
-      await supabase
-        .from('usuarios_autorizados')
-        .update({ ativo: true })
-        .eq('id', usuario.id);
-      setSucesso(`Usuário ${usuario.email} desbloqueado!`);
-      carregarDados();
-    } catch (err) {
-      console.error(err);
-    }
-    setActionLoading(null);
-  };
-
   // Filtros de pedidos
   const pedidosFiltrados = pedidos.filter(p => {
     const matchBusca = p.nome?.toLowerCase().includes(busca.toLowerCase()) ||
@@ -240,19 +198,13 @@ export default function AdminPanel({ onClose }) {
 
   // Filtros de usuários
   const usuariosFiltrados = usuarios.filter(u => {
-    const matchBusca = u.email?.toLowerCase().includes(busca.toLowerCase()) ||
+    return u.email?.toLowerCase().includes(busca.toLowerCase()) ||
       (u.nome && u.nome.toLowerCase().includes(busca.toLowerCase()));
-    
-    if (filtroUsuarios === 'ATIVOS') return matchBusca && u.ativo === true;
-    if (filtroUsuarios === 'BLOQUEADOS') return matchBusca && u.ativo === false;
-    return matchBusca; // TODOS
   });
 
   // Contadores
   const pedidosPendentes = pedidos.filter(p => p.status === 'PENDENTE').length;
   const pedidosExcluidos = pedidos.filter(p => p.status === 'USUARIO_EXCLUIDO').length;
-  const usuariosAtivos = usuarios.filter(u => u.ativo).length;
-  const usuariosBloqueados = usuarios.filter(u => !u.ativo).length;
 
   // Função para obter cor do status
   const getStatusColor = (status) => {
@@ -368,7 +320,7 @@ export default function AdminPanel({ onClose }) {
             }`}
           >
             <Users size={18} />
-            Usuários ({usuariosAtivos})
+            Usuários ({usuarios.length})
           </button>
         </div>
 
@@ -399,17 +351,6 @@ export default function AdminPanel({ onClose }) {
             </select>
           )}
 
-          {abaAtiva === 'usuarios' && (
-            <select
-              value={filtroUsuarios}
-              onChange={(e) => setFiltroUsuarios(e.target.value)}
-              className="px-4 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white focus:outline-none focus:border-indigo-500"
-            >
-              <option value="ATIVOS">Ativos ({usuariosAtivos})</option>
-              <option value="BLOQUEADOS">Bloqueados ({usuariosBloqueados})</option>
-              <option value="TODOS">Todos ({usuarios.length})</option>
-            </select>
-          )}
         </div>
 
         {/* Conteúdo: Pedidos */}
@@ -556,23 +497,12 @@ export default function AdminPanel({ onClose }) {
               usuariosFiltrados.map(usuario => (
                 <div
                   key={usuario.id}
-                  className={`bg-slate-800/50 border rounded-xl p-4 transition-colors ${
-                    usuario.ativo 
-                      ? 'border-slate-700 hover:border-slate-600' 
-                      : 'border-red-500/30 bg-red-500/5'
-                  }`}
+                  className="bg-slate-800/50 border border-slate-700 rounded-xl p-4 hover:border-slate-600 transition-colors"
                 >
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-1 flex-wrap">
                         <span className="font-medium text-white">{usuario.email}</span>
-                        <span className={`px-2 py-0.5 rounded text-xs font-medium ${
-                          usuario.ativo 
-                            ? 'bg-green-500/20 text-green-300' 
-                            : 'bg-red-500/20 text-red-300'
-                        }`}>
-                          {usuario.ativo ? 'Ativo' : 'Bloqueado'}
-                        </span>
                       </div>
                       <div className="flex items-center gap-2">
                         {usuario.nome ? (
@@ -597,31 +527,6 @@ export default function AdminPanel({ onClose }) {
                       </p>
                     </div>
                     <div className="flex items-center gap-2">
-                      {/* Botão Bloquear/Desbloquear */}
-                      {usuario.ativo ? (
-                        <button
-                          onClick={() => setModalBloqueio(usuario)}
-                          disabled={actionLoading === usuario.id}
-                          className="flex items-center gap-1 px-3 py-1.5 bg-yellow-600 hover:bg-yellow-500 rounded-lg text-white text-sm transition-colors disabled:opacity-50"
-                        >
-                          <Ban size={16} />
-                          Bloquear
-                        </button>
-                      ) : (
-                        <button
-                          onClick={() => desbloquearUsuario(usuario)}
-                          disabled={actionLoading === usuario.id}
-                          className="flex items-center gap-1 px-3 py-1.5 bg-green-600 hover:bg-green-500 rounded-lg text-white text-sm transition-colors disabled:opacity-50"
-                        >
-                          {actionLoading === usuario.id ? (
-                            <Loader2 className="animate-spin" size={16} />
-                          ) : (
-                            <UserCheck size={16} />
-                          )}
-                          Desbloquear
-                        </button>
-                      )}
-                      
                       {/* Botão Excluir */}
                       <button
                         onClick={() => setModalExclusao(usuario)}
@@ -692,83 +597,6 @@ export default function AdminPanel({ onClose }) {
                   <>
                     <Save size={20} />
                     Salvar
-                  </>
-                )}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ============================================ */}
-      {/* MODAL: Confirmar Bloqueio */}
-      {/* ============================================ */}
-      {modalBloqueio && (
-        <div 
-          className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4"
-          onClick={(e) => e.target === e.currentTarget && setModalBloqueio(null)}
-        >
-          <div className="bg-gradient-to-br from-slate-800 to-slate-900 border border-slate-700 rounded-2xl p-6 max-w-md w-full shadow-2xl">
-            {/* Header */}
-            <div className="flex items-center gap-4 mb-6">
-              <div className="w-14 h-14 bg-yellow-500/20 rounded-2xl flex items-center justify-center">
-                <Ban className="text-yellow-400" size={28} />
-              </div>
-              <div>
-                <h2 className="text-xl font-bold text-white">Bloquear Usuário</h2>
-                <p className="text-slate-400 text-sm">O usuário não conseguirá fazer login</p>
-              </div>
-            </div>
-
-            {/* Info do usuário */}
-            <div className="bg-slate-900/50 rounded-xl p-4 mb-6">
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12 bg-yellow-500/20 rounded-full flex items-center justify-center">
-                  <span className="text-xl font-bold text-yellow-400">
-                    {modalBloqueio.email.charAt(0).toUpperCase()}
-                  </span>
-                </div>
-                <div>
-                  <p className="text-white font-medium">{modalBloqueio.email}</p>
-                  {modalBloqueio.nome && (
-                    <p className="text-slate-400 text-sm">{modalBloqueio.nome}</p>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            {/* Aviso */}
-            <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-xl p-4 mb-6">
-              <div className="flex items-start gap-3">
-                <AlertTriangle className="text-yellow-400 flex-shrink-0 mt-0.5" size={20} />
-                <div>
-                  <p className="text-yellow-300 text-sm font-medium">Ação reversível</p>
-                  <p className="text-yellow-200/70 text-sm mt-1">
-                    Você poderá desbloquear este usuário a qualquer momento. Os dados serão preservados.
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            {/* Botões */}
-            <div className="flex gap-3">
-              <button
-                onClick={() => setModalBloqueio(null)}
-                className="flex-1 py-3 bg-slate-700 hover:bg-slate-600 rounded-xl text-white font-medium transition-colors"
-              >
-                Cancelar
-              </button>
-              <button
-                onClick={() => bloquearUsuario(modalBloqueio)}
-                disabled={actionLoading === modalBloqueio.id}
-                className="flex-1 py-3 bg-yellow-600 hover:bg-yellow-500 rounded-xl text-white font-medium transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
-              >
-                {actionLoading === modalBloqueio.id ? (
-                  <Loader2 className="animate-spin" size={20} />
-                ) : (
-                  <>
-                    <Ban size={20} />
-                    Bloquear
                   </>
                 )}
               </button>
