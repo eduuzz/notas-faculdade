@@ -63,7 +63,7 @@ const GradientButton = ({ children, onClick, disabled, variant = 'primary', clas
 };
 
 export default function SistemaNotas({ onOpenAdmin }) {
-  const { user, userName, signOut } = useAuth();
+  const { user, userName, userCurso, isNewUser, updateUserCurso, signOut } = useAuth();
   const {
     disciplinas,
     setDisciplinas,
@@ -95,6 +95,26 @@ export default function SistemaNotas({ onOpenAdmin }) {
   const [editingNotas, setEditingNotas] = useState(null);
   const [notasTemp, setNotasTemp] = useState({ ga: '', gb: '', notaFinal: '', semestreCursado: '', observacao: '' });
   const [showDeleteMenu, setShowDeleteMenu] = useState(null);
+  
+  // Modal de boas-vindas (novo usuário)
+  const [showWelcomeModal, setShowWelcomeModal] = useState(false);
+  const [cursoInput, setCursoInput] = useState('');
+  const [savingCurso, setSavingCurso] = useState(false);
+
+  // Mostrar modal de boas-vindas para novos usuários
+  useEffect(() => {
+    if (isNewUser && !loading) {
+      setShowWelcomeModal(true);
+    }
+  }, [isNewUser, loading]);
+
+  const handleSaveCurso = async () => {
+    if (!cursoInput.trim()) return;
+    setSavingCurso(true);
+    await updateUserCurso(cursoInput.trim());
+    setSavingCurso(false);
+    setShowWelcomeModal(false);
+  };
   
   const [semestreAtualAno, setSemestreAtualAno] = useState(() => {
     const saved = localStorage.getItem('semestreAtualAno');
@@ -346,6 +366,12 @@ export default function SistemaNotas({ onOpenAdmin }) {
               return `${saudacao}, ${primeiroNome}!`;
             })()}
           </h2>
+          {userCurso && (
+            <p className="text-slate-500 text-sm sm:text-base mt-1 flex items-center gap-2">
+              <BookOpen size={16} className="text-violet-400" />
+              {userCurso}
+            </p>
+          )}
         </div>
 
         {/* Tabs */}
@@ -996,6 +1022,64 @@ export default function SistemaNotas({ onOpenAdmin }) {
         )}
 
         {showImportModal && (<ImportModal onClose={() => setShowImportModal(false)} onImport={handleImportarDisciplinas} disciplinasExistentes={disciplinas} />)}
+
+        {/* Modal Boas-vindas - Novo Usuário */}
+        {showWelcomeModal && (
+          <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+            <div className="bg-gradient-to-br from-slate-800 to-slate-900 border border-white/10 rounded-3xl p-8 max-w-md w-full shadow-2xl">
+              {/* Header com ícone */}
+              <div className="text-center mb-6">
+                <div className="w-20 h-20 rounded-[24px] bg-gradient-to-br from-violet-500 to-indigo-600 flex items-center justify-center shadow-xl shadow-violet-500/30 mx-auto mb-4">
+                  <GraduationCap size={40} className="text-white" />
+                </div>
+                <h2 className="text-2xl font-bold text-white mb-2">Bem-vindo ao Sistema de Notas!</h2>
+                <p className="text-slate-400">Para personalizar sua experiência, conte-nos qual curso você está fazendo.</p>
+              </div>
+
+              {/* Input do curso */}
+              <div className="mb-6">
+                <label className="text-sm text-slate-400 block mb-2">Qual é o seu curso?</label>
+                <input
+                  type="text"
+                  value={cursoInput}
+                  onChange={(e) => setCursoInput(e.target.value)}
+                  className="w-full px-4 py-4 rounded-xl bg-white/5 border border-white/10 text-white text-lg focus:outline-none focus:border-violet-500 transition-colors"
+                  placeholder="Ex: Ciência da Computação"
+                  autoFocus
+                />
+              </div>
+
+              {/* Aviso */}
+              <p className="text-slate-500 text-sm text-center mb-6">
+                Você pode alterar isso depois nas configurações.
+              </p>
+
+              {/* Botões */}
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setShowWelcomeModal(false)}
+                  className="flex-1 py-3 rounded-xl bg-white/5 border border-white/10 text-slate-400 font-medium hover:bg-white/10 transition-colors"
+                >
+                  Pular
+                </button>
+                <button
+                  onClick={handleSaveCurso}
+                  disabled={!cursoInput.trim() || savingCurso}
+                  className="flex-1 py-3 rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 text-white font-medium hover:from-violet-500 hover:to-indigo-500 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                >
+                  {savingCurso ? (
+                    <RefreshCw size={18} className="animate-spin" />
+                  ) : (
+                    <>
+                      <CheckCircle size={18} />
+                      Confirmar
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* FAB Mobile */}
         <button onClick={() => setShowAddDisciplina(true)} className="fixed bottom-6 right-6 w-14 h-14 rounded-full bg-gradient-to-br from-violet-600 to-indigo-600 flex items-center justify-center shadow-2xl shadow-violet-500/40 hover:scale-110 transition-transform duration-300 sm:hidden">

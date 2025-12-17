@@ -8,6 +8,8 @@ export const useAuth = () => useContext(AuthContext);
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [userName, setUserName] = useState(null);
+  const [userCurso, setUserCurso] = useState(null);
+  const [isNewUser, setIsNewUser] = useState(false);
   const [loading, setLoading] = useState(true);
   const [authError, setAuthError] = useState(null);
   const isInitialLoad = useRef(true);
@@ -17,12 +19,15 @@ export const AuthProvider = ({ children }) => {
     try {
       const { data, error } = await supabase
         .from('usuarios_autorizados')
-        .select('id, nome')
+        .select('id, nome, curso')
         .eq('email', email.toLowerCase())
         .eq('ativo', true)
         .single();
       if (!error && data) {
         setUserName(data.nome || null);
+        setUserCurso(data.curso || null);
+        // Se não tem curso, é novo usuário
+        setIsNewUser(!data.curso);
         return true;
       }
       return false;
@@ -30,6 +35,27 @@ export const AuthProvider = ({ children }) => {
       return false;
     }
   }, []);
+
+  // Função para atualizar o curso do usuário
+  const updateUserCurso = useCallback(async (curso) => {
+    if (!user || !supabase) return { error: 'Não autenticado' };
+    try {
+      const { error } = await supabase
+        .from('usuarios_autorizados')
+        .update({ curso })
+        .eq('email', user.email.toLowerCase());
+      
+      if (error) {
+        return { error: error.message };
+      }
+      
+      setUserCurso(curso);
+      setIsNewUser(false);
+      return { success: true };
+    } catch (err) {
+      return { error: err.message };
+    }
+  }, [user]);
 
   useEffect(() => {
     if (!isSupabaseConfigured() || !supabase) {
@@ -172,9 +198,9 @@ export const AuthProvider = ({ children }) => {
 
   return (
     <AuthContext.Provider value={{
-      user, userName, loading, authError,
+      user, userName, userCurso, isNewUser, loading, authError,
       signInWithEmail, signUpWithEmail, signInWithGoogle,
-      signOut, verificarAutorizacao, clearAuthError,
+      signOut, verificarAutorizacao, clearAuthError, updateUserCurso,
     }}>
       {children}
     </AuthContext.Provider>
