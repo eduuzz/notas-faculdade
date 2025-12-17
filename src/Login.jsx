@@ -13,7 +13,7 @@ const CONFIG = {
 };
 
 export default function Login() {
-  const { signInWithEmail, signInWithGoogle, signUpWithEmail } = useAuth();
+  const { signInWithEmail, signInWithGoogle, signUpWithEmail, authError, clearAuthError } = useAuth();
   const [isLogin, setIsLogin] = useState(true);
   const [isForgotPassword, setIsForgotPassword] = useState(false);
   const [showPromo, setShowPromo] = useState(false);
@@ -23,6 +23,15 @@ export default function Login() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [copiado, setCopiado] = useState(false);
+  const [showNaoAutorizado, setShowNaoAutorizado] = useState(false);
+
+  // Detectar quando volta do login Google sem autorização
+  React.useEffect(() => {
+    if (authError && authError.includes('não autorizado')) {
+      setShowNaoAutorizado(true);
+      clearAuthError?.();
+    }
+  }, [authError, clearAuthError]);
   
   const [formData, setFormData] = useState({
     email: '',
@@ -646,6 +655,85 @@ export default function Login() {
           © 2024 Sistema de Notas. Todos os direitos reservados.
         </p>
       </div>
+
+      {/* Modal: Usuário não autorizado */}
+      {showNaoAutorizado && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-gradient-to-br from-slate-800 to-slate-900 border border-slate-700 rounded-2xl p-6 max-w-md w-full shadow-2xl">
+            {/* Header */}
+            <div className="text-center mb-6">
+              <div className="w-16 h-16 bg-red-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                <AlertCircle className="text-red-400" size={32} />
+              </div>
+              <h2 className="text-xl font-bold text-white mb-2">Acesso não autorizado</h2>
+              <p className="text-slate-400 text-sm">
+                Seu email ainda não está cadastrado no sistema.
+              </p>
+            </div>
+
+            {/* Passo a passo */}
+            <div className="bg-slate-900/50 rounded-xl p-4 mb-6">
+              <p className="text-violet-400 font-semibold mb-3 text-sm">📋 Como ter acesso:</p>
+              <div className="space-y-3">
+                <div className="flex items-start gap-3">
+                  <div className="w-6 h-6 bg-violet-600 rounded-full flex items-center justify-center flex-shrink-0 text-xs font-bold">1</div>
+                  <p className="text-slate-300 text-sm">Clique em <strong>"Quero me cadastrar"</strong> na tela inicial</p>
+                </div>
+                <div className="flex items-start gap-3">
+                  <div className="w-6 h-6 bg-violet-600 rounded-full flex items-center justify-center flex-shrink-0 text-xs font-bold">2</div>
+                  <p className="text-slate-300 text-sm">Faça o <strong>Pix de {CONFIG.precoPromocional}</strong> para a chave indicada</p>
+                </div>
+                <div className="flex items-start gap-3">
+                  <div className="w-6 h-6 bg-violet-600 rounded-full flex items-center justify-center flex-shrink-0 text-xs font-bold">3</div>
+                  <p className="text-slate-300 text-sm">Envie o <strong>comprovante</strong> pelo formulário</p>
+                </div>
+                <div className="flex items-start gap-3">
+                  <div className="w-6 h-6 bg-violet-600 rounded-full flex items-center justify-center flex-shrink-0 text-xs font-bold">4</div>
+                  <p className="text-slate-300 text-sm">Aguarde a <strong>aprovação</strong> (geralmente em minutos)</p>
+                </div>
+                <div className="flex items-start gap-3">
+                  <div className="w-6 h-6 bg-green-600 rounded-full flex items-center justify-center flex-shrink-0">
+                    <Check size={14} />
+                  </div>
+                  <p className="text-slate-300 text-sm">Pronto! Você poderá fazer login normalmente</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Botões */}
+            <div className="space-y-3">
+              <button
+                onClick={() => {
+                  setShowNaoAutorizado(false);
+                  setShowPromo(true);
+                }}
+                className="w-full py-3 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 rounded-xl text-white font-semibold transition-all"
+              >
+                Quero me cadastrar
+              </button>
+              <button
+                onClick={() => setShowNaoAutorizado(false)}
+                className="w-full py-3 bg-slate-700 hover:bg-slate-600 rounded-xl text-slate-300 transition-all"
+              >
+                Voltar
+              </button>
+            </div>
+
+            {/* Já pagou? */}
+            <p className="text-center text-slate-500 text-xs mt-4">
+              Já fez o pagamento? Aguarde a aprovação ou entre em contato pelo{' '}
+              <a 
+                href={`https://wa.me/${CONFIG.whatsapp}`} 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="text-green-400 hover:underline"
+              >
+                WhatsApp
+              </a>
+            </p>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
