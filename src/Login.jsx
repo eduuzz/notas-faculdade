@@ -632,7 +632,15 @@ export default function Login() {
             <p className="text-slate-400 text-sm">
               {isLogin ? 'Não tem conta?' : 'Já tem conta?'}{' '}
               <button
-                onClick={() => setShowPromo(true)}
+                onClick={() => {
+                  if (isLogin) {
+                    // Na tela de login → vai para promoção/cadastro
+                    setShowPromo(true);
+                  } else {
+                    // Na tela de cadastro → volta para login
+                    setIsLogin(true);
+                  }
+                }}
                 className="text-violet-400 hover:text-violet-300 font-medium transition-colors"
               >
                 {isLogin ? 'Quero me cadastrar' : 'Fazer login'}
