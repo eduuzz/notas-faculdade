@@ -115,7 +115,7 @@ export default function AdminPanel({ onClose }) {
     setActionLoading(null);
   };
 
-  // Excluir usuário
+  // Excluir usuário (usando função do Supabase)
   const excluirUsuario = async (usuario) => {
     setActionLoading(usuario.id);
     setErro('');
@@ -124,25 +124,28 @@ export default function AdminPanel({ onClose }) {
     try {
       const email = usuario.email.toLowerCase();
 
-      // Excluir da tabela usuarios_autorizados
-      const { error: errorUsuarios } = await supabase
-        .from('usuarios_autorizados')
-        .delete()
-        .eq('id', usuario.id);
+      // Chama a função do Supabase que exclui tudo
+      const { data, error } = await supabase.rpc('excluir_usuario_completo', {
+        email_usuario: email
+      });
 
-      if (errorUsuarios) {
-        setErro('Erro ao excluir: ' + errorUsuarios.message);
-        setActionLoading(null);
-        return;
+      if (error) {
+        // Se a função não existir, faz exclusão parcial
+        if (error.message.includes('function') || error.code === '42883') {
+          // Fallback: exclusão manual das tabelas acessíveis
+          await supabase.from('usuarios_autorizados').delete().eq('id', usuario.id);
+          await supabase.from('pedidos').update({ status: 'USUARIO_EXCLUIDO' }).eq('email', email);
+          
+          setSucesso(`Usuário ${email} removido do sistema! (Para exclusão completa, configure a função no Supabase)`);
+        } else {
+          setErro('Erro ao excluir: ' + error.message);
+          setActionLoading(null);
+          return;
+        }
+      } else {
+        setSucesso(`✅ Usuário ${email} excluído completamente! ${data || ''}`);
       }
 
-      // Atualizar pedidos relacionados
-      await supabase
-        .from('pedidos')
-        .update({ status: 'USUARIO_EXCLUIDO' })
-        .eq('email', email);
-
-      setSucesso(`Usuário ${email} excluído com sucesso!`);
       setModalExclusao(null);
       carregarDados();
     } catch (err) {
@@ -609,7 +612,7 @@ export default function AdminPanel({ onClose }) {
               </div>
               <div>
                 <h2 className="text-xl font-bold text-white">Excluir Usuário</h2>
-                <p className="text-slate-400 text-sm">Esta ação não pode ser desfeita</p>
+                <p className="text-slate-400 text-sm">Exclusão completa e permanente</p>
               </div>
             </div>
 
@@ -634,29 +637,36 @@ export default function AdminPanel({ onClose }) {
             </div>
 
             {/* O que será excluído */}
-            <div className="bg-slate-900/50 rounded-xl p-4 mb-4">
-              <p className="text-slate-400 text-sm mb-3 font-medium">O que será removido:</p>
+            <div className="bg-slate-900/50 rounded-xl p-4 mb-6">
+              <p className="text-slate-400 text-sm mb-3 font-medium">Será removido automaticamente:</p>
               <div className="space-y-2">
                 <div className="flex items-center gap-2 text-sm">
                   <Check className="text-green-400" size={16} />
-                  <span className="text-slate-300">Acesso ao sistema</span>
+                  <span className="text-slate-300">Conta de login (Authentication)</span>
                 </div>
                 <div className="flex items-center gap-2 text-sm">
                   <Check className="text-green-400" size={16} />
-                  <span className="text-slate-300">Pedidos marcados como excluídos</span>
+                  <span className="text-slate-300">Autorização de acesso</span>
+                </div>
+                <div className="flex items-center gap-2 text-sm">
+                  <Check className="text-green-400" size={16} />
+                  <span className="text-slate-300">Todas as disciplinas e notas</span>
+                </div>
+                <div className="flex items-center gap-2 text-sm">
+                  <Check className="text-green-400" size={16} />
+                  <span className="text-slate-300">Histórico de pedidos</span>
                 </div>
               </div>
             </div>
 
-            {/* Aviso sobre Supabase */}
-            <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-4 mb-6">
+            {/* Aviso */}
+            <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-4 mb-6">
               <div className="flex items-start gap-3">
-                <AlertTriangle className="text-amber-400 flex-shrink-0 mt-0.5" size={20} />
+                <AlertTriangle className="text-red-400 flex-shrink-0 mt-0.5" size={20} />
                 <div>
-                  <p className="text-amber-300 text-sm font-medium">Exclusão manual necessária</p>
-                  <p className="text-amber-200/70 text-xs mt-1">
-                    Para remover os dados de notas, exclua também no Supabase:
-                    Authentication → Users e as tabelas disciplinas/notas_usuarios
+                  <p className="text-red-300 text-sm font-medium">Ação irreversível</p>
+                  <p className="text-red-200/70 text-xs mt-1">
+                    Todos os dados serão permanentemente excluídos e não poderão ser recuperados.
                   </p>
                 </div>
               </div>
@@ -680,7 +690,7 @@ export default function AdminPanel({ onClose }) {
                 ) : (
                   <>
                     <Trash2 size={20} />
-                    Excluir
+                    Excluir Tudo
                   </>
                 )}
               </button>
