@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Shield, ArrowLeft, RefreshCw, Check, X, Eye, Search, UserPlus, Trash2, Users, FileText, AlertTriangle, Loader2, Ban, UserCheck, Mail, Calendar } from 'lucide-react';
+import { Shield, ArrowLeft, RefreshCw, Check, X, Eye, Search, UserPlus, Trash2, Users, FileText, AlertTriangle, Loader2, Ban, UserCheck, Mail, Calendar, Edit3, Save, UserX, History } from 'lucide-react';
 import { useAuth } from './AuthContext';
 import { supabase } from './supabaseClient';
 
@@ -13,7 +13,9 @@ export default function AdminPanel({ onClose }) {
   const [usuarios, setUsuarios] = useState([]);
   const [busca, setBusca] = useState('');
   const [filtroStatus, setFiltroStatus] = useState('TODOS');
+  const [filtroUsuarios, setFiltroUsuarios] = useState('ATIVOS');
   const [novoEmail, setNovoEmail] = useState('');
+  const [novoNome, setNovoNome] = useState('');
   const [erro, setErro] = useState('');
   const [sucesso, setSucesso] = useState('');
   const [abaAtiva, setAbaAtiva] = useState('pedidos');
@@ -21,6 +23,8 @@ export default function AdminPanel({ onClose }) {
   // Modal states
   const [modalExclusao, setModalExclusao] = useState(null);
   const [modalBloqueio, setModalBloqueio] = useState(null);
+  const [modalEditar, setModalEditar] = useState(null);
+  const [editNome, setEditNome] = useState('');
 
   const isAdmin = user?.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase();
 
@@ -102,11 +106,41 @@ export default function AdminPanel({ onClose }) {
     try {
       const { error } = await supabase
         .from('usuarios_autorizados')
-        .insert([{ email: novoEmail.trim().toLowerCase(), ativo: true }]);
+        .insert([{ 
+          email: novoEmail.trim().toLowerCase(), 
+          ativo: true,
+          nome: novoNome.trim() || null
+        }]);
       if (error) setErro(error.code === '23505' ? 'Email já cadastrado' : error.message);
       else {
         setSucesso('Usuário adicionado!');
         setNovoEmail('');
+        setNovoNome('');
+        carregarDados();
+      }
+    } catch (err) {
+      setErro('Erro inesperado');
+    }
+    setActionLoading(null);
+  };
+
+  // Editar nome do usuário
+  const salvarNome = async () => {
+    if (!modalEditar) return;
+    setActionLoading(modalEditar.id);
+    setErro('');
+    
+    try {
+      const { error } = await supabase
+        .from('usuarios_autorizados')
+        .update({ nome: editNome.trim() || null })
+        .eq('id', modalEditar.id);
+
+      if (error) {
+        setErro('Erro ao salvar: ' + error.message);
+      } else {
+        setSucesso(`Nome atualizado para ${modalEditar.email}!`);
+        setModalEditar(null);
         carregarDados();
       }
     } catch (err) {
@@ -132,18 +166,18 @@ export default function AdminPanel({ onClose }) {
       if (error) {
         // Se a função não existir, faz exclusão parcial
         if (error.message.includes('function') || error.code === '42883') {
-          // Fallback: exclusão manual das tabelas acessíveis
+          // Fallback: exclusão manual
           await supabase.from('usuarios_autorizados').delete().eq('id', usuario.id);
           await supabase.from('pedidos').update({ status: 'USUARIO_EXCLUIDO' }).eq('email', email);
           
-          setSucesso(`Usuário ${email} removido do sistema! (Para exclusão completa, configure a função no Supabase)`);
+          setSucesso(`Usuário ${email} removido do sistema!`);
         } else {
           setErro('Erro ao excluir: ' + error.message);
           setActionLoading(null);
           return;
         }
       } else {
-        setSucesso(`✅ Usuário ${email} excluído completamente! ${data || ''}`);
+        setSucesso(`✅ Usuário ${email} excluído completamente!`);
       }
 
       setModalExclusao(null);
@@ -196,7 +230,7 @@ export default function AdminPanel({ onClose }) {
     setActionLoading(null);
   };
 
-  // Filtros
+  // Filtros de pedidos
   const pedidosFiltrados = pedidos.filter(p => {
     const matchBusca = p.nome?.toLowerCase().includes(busca.toLowerCase()) ||
       p.email?.toLowerCase().includes(busca.toLowerCase());
@@ -204,10 +238,43 @@ export default function AdminPanel({ onClose }) {
     return matchBusca && matchStatus;
   });
 
-  const usuariosFiltrados = usuarios.filter(u =>
-    u.email?.toLowerCase().includes(busca.toLowerCase()) ||
-    (u.nome && u.nome.toLowerCase().includes(busca.toLowerCase()))
-  );
+  // Filtros de usuários
+  const usuariosFiltrados = usuarios.filter(u => {
+    const matchBusca = u.email?.toLowerCase().includes(busca.toLowerCase()) ||
+      (u.nome && u.nome.toLowerCase().includes(busca.toLowerCase()));
+    
+    if (filtroUsuarios === 'ATIVOS') return matchBusca && u.ativo === true;
+    if (filtroUsuarios === 'BLOQUEADOS') return matchBusca && u.ativo === false;
+    return matchBusca; // TODOS
+  });
+
+  // Contadores
+  const pedidosPendentes = pedidos.filter(p => p.status === 'PENDENTE').length;
+  const pedidosExcluidos = pedidos.filter(p => p.status === 'USUARIO_EXCLUIDO').length;
+  const usuariosAtivos = usuarios.filter(u => u.ativo).length;
+  const usuariosBloqueados = usuarios.filter(u => !u.ativo).length;
+
+  // Função para obter cor do status
+  const getStatusColor = (status) => {
+    switch (status) {
+      case 'PENDENTE': return 'bg-yellow-500/20 text-yellow-300';
+      case 'APROVADO': return 'bg-green-500/20 text-green-300';
+      case 'REJEITADO': return 'bg-red-500/20 text-red-300';
+      case 'USUARIO_EXCLUIDO': return 'bg-purple-500/20 text-purple-300';
+      default: return 'bg-slate-500/20 text-slate-300';
+    }
+  };
+
+  // Função para obter label do status
+  const getStatusLabel = (status) => {
+    switch (status) {
+      case 'PENDENTE': return 'Pendente';
+      case 'APROVADO': return 'Aprovado';
+      case 'REJEITADO': return 'Rejeitado';
+      case 'USUARIO_EXCLUIDO': return 'Usuário Excluído';
+      default: return status;
+    }
+  };
 
   if (!isAdmin) {
     return (
@@ -260,6 +327,9 @@ export default function AdminPanel({ onClose }) {
           <div className="bg-red-500/20 border border-red-500/50 rounded-lg p-3 text-red-300 text-sm flex items-center gap-2">
             <AlertTriangle size={18} />
             {erro}
+            <button onClick={() => setErro('')} className="ml-auto">
+              <X size={16} />
+            </button>
           </div>
         </div>
       )}
@@ -268,6 +338,9 @@ export default function AdminPanel({ onClose }) {
           <div className="bg-green-500/20 border border-green-500/50 rounded-lg p-3 text-green-300 text-sm flex items-center gap-2">
             <Check size={18} />
             {sucesso}
+            <button onClick={() => setSucesso('')} className="ml-auto">
+              <X size={16} />
+            </button>
           </div>
         </div>
       )}
@@ -284,7 +357,7 @@ export default function AdminPanel({ onClose }) {
             }`}
           >
             <FileText size={18} />
-            Pedidos ({pedidos.filter(p => p.status === 'PENDENTE').length})
+            Pedidos ({pedidosPendentes})
           </button>
           <button
             onClick={() => setAbaAtiva('usuarios')}
@@ -295,7 +368,7 @@ export default function AdminPanel({ onClose }) {
             }`}
           >
             <Users size={18} />
-            Usuários ({usuarios.length})
+            Usuários ({usuariosAtivos})
           </button>
         </div>
 
@@ -311,16 +384,30 @@ export default function AdminPanel({ onClose }) {
               className="w-full pl-10 pr-4 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
             />
           </div>
+          
           {abaAtiva === 'pedidos' && (
             <select
               value={filtroStatus}
               onChange={(e) => setFiltroStatus(e.target.value)}
               className="px-4 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white focus:outline-none focus:border-indigo-500"
             >
-              <option value="TODOS">Todos</option>
-              <option value="PENDENTE">Pendentes</option>
-              <option value="APROVADO">Aprovados</option>
-              <option value="REJEITADO">Rejeitados</option>
+              <option value="TODOS">Todos ({pedidos.length})</option>
+              <option value="PENDENTE">Pendentes ({pedidosPendentes})</option>
+              <option value="APROVADO">Aprovados ({pedidos.filter(p => p.status === 'APROVADO').length})</option>
+              <option value="REJEITADO">Rejeitados ({pedidos.filter(p => p.status === 'REJEITADO').length})</option>
+              <option value="USUARIO_EXCLUIDO">Excluídos ({pedidosExcluidos})</option>
+            </select>
+          )}
+
+          {abaAtiva === 'usuarios' && (
+            <select
+              value={filtroUsuarios}
+              onChange={(e) => setFiltroUsuarios(e.target.value)}
+              className="px-4 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white focus:outline-none focus:border-indigo-500"
+            >
+              <option value="ATIVOS">Ativos ({usuariosAtivos})</option>
+              <option value="BLOQUEADOS">Bloqueados ({usuariosBloqueados})</option>
+              <option value="TODOS">Todos ({usuarios.length})</option>
             </select>
           )}
         </div>
@@ -342,18 +429,18 @@ export default function AdminPanel({ onClose }) {
               pedidosFiltrados.map(pedido => (
                 <div
                   key={pedido.id}
-                  className="bg-slate-800/50 border border-slate-700 rounded-xl p-4 hover:border-slate-600 transition-colors"
+                  className={`bg-slate-800/50 border rounded-xl p-4 transition-colors ${
+                    pedido.status === 'USUARIO_EXCLUIDO' 
+                      ? 'border-purple-500/30 bg-purple-500/5' 
+                      : 'border-slate-700 hover:border-slate-600'
+                  }`}
                 >
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                     <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-1">
+                      <div className="flex items-center gap-2 mb-1 flex-wrap">
                         <span className="font-medium text-white">{pedido.nome}</span>
-                        <span className={`px-2 py-0.5 rounded text-xs font-medium ${
-                          pedido.status === 'PENDENTE' ? 'bg-yellow-500/20 text-yellow-300' :
-                          pedido.status === 'APROVADO' ? 'bg-green-500/20 text-green-300' :
-                          'bg-red-500/20 text-red-300'
-                        }`}>
-                          {pedido.status}
+                        <span className={`px-2 py-0.5 rounded text-xs font-medium ${getStatusColor(pedido.status)}`}>
+                          {getStatusLabel(pedido.status)}
                         </span>
                       </div>
                       <p className="text-slate-400 text-sm flex items-center gap-1">
@@ -364,6 +451,12 @@ export default function AdminPanel({ onClose }) {
                         <Calendar size={12} />
                         {new Date(pedido.created_at).toLocaleString('pt-BR')}
                       </p>
+                      {pedido.status === 'USUARIO_EXCLUIDO' && (
+                        <p className="text-purple-400 text-xs mt-2 flex items-center gap-1">
+                          <UserX size={12} />
+                          Este usuário foi excluído do sistema
+                        </p>
+                      )}
                     </div>
                     <div className="flex items-center gap-2">
                       {pedido.comprovante_url && (
@@ -413,25 +506,39 @@ export default function AdminPanel({ onClose }) {
         {abaAtiva === 'usuarios' && (
           <div className="space-y-4">
             {/* Adicionar novo usuário */}
-            <form onSubmit={adicionarUsuario} className="flex gap-2">
-              <div className="relative flex-1">
-                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" size={18} />
-                <input
-                  type="email"
-                  placeholder="Adicionar email manualmente..."
-                  value={novoEmail}
-                  onChange={(e) => setNovoEmail(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
-                />
+            <form onSubmit={adicionarUsuario} className="bg-slate-800/30 border border-slate-700 rounded-xl p-4">
+              <p className="text-slate-400 text-sm mb-3 font-medium">Adicionar usuário manualmente</p>
+              <div className="flex flex-col sm:flex-row gap-2">
+                <div className="relative flex-1">
+                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" size={18} />
+                  <input
+                    type="email"
+                    placeholder="Email *"
+                    value={novoEmail}
+                    onChange={(e) => setNovoEmail(e.target.value)}
+                    className="w-full pl-10 pr-4 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+                    required
+                  />
+                </div>
+                <div className="relative flex-1">
+                  <Edit3 className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" size={18} />
+                  <input
+                    type="text"
+                    placeholder="Nome (opcional)"
+                    value={novoNome}
+                    onChange={(e) => setNovoNome(e.target.value)}
+                    className="w-full pl-10 pr-4 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+                  />
+                </div>
+                <button
+                  type="submit"
+                  disabled={actionLoading === 'novo' || !novoEmail.trim()}
+                  className="flex items-center justify-center gap-2 px-6 py-2 bg-indigo-600 hover:bg-indigo-500 rounded-lg text-white transition-colors disabled:opacity-50"
+                >
+                  {actionLoading === 'novo' ? <Loader2 className="animate-spin" size={18} /> : <UserPlus size={18} />}
+                  Adicionar
+                </button>
               </div>
-              <button
-                type="submit"
-                disabled={actionLoading === 'novo' || !novoEmail.trim()}
-                className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 rounded-lg text-white transition-colors disabled:opacity-50"
-              >
-                {actionLoading === 'novo' ? <Loader2 className="animate-spin" size={18} /> : <UserPlus size={18} />}
-                Adicionar
-              </button>
             </form>
 
             {/* Lista de usuários */}
@@ -457,7 +564,7 @@ export default function AdminPanel({ onClose }) {
                 >
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                     <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-1">
+                      <div className="flex items-center gap-2 mb-1 flex-wrap">
                         <span className="font-medium text-white">{usuario.email}</span>
                         <span className={`px-2 py-0.5 rounded text-xs font-medium ${
                           usuario.ativo 
@@ -467,9 +574,23 @@ export default function AdminPanel({ onClose }) {
                           {usuario.ativo ? 'Ativo' : 'Bloqueado'}
                         </span>
                       </div>
-                      {usuario.nome && (
-                        <p className="text-slate-400 text-sm">{usuario.nome}</p>
-                      )}
+                      <div className="flex items-center gap-2">
+                        {usuario.nome ? (
+                          <p className="text-slate-400 text-sm">{usuario.nome}</p>
+                        ) : (
+                          <p className="text-slate-500 text-sm italic">Sem nome</p>
+                        )}
+                        <button
+                          onClick={() => {
+                            setModalEditar(usuario);
+                            setEditNome(usuario.nome || '');
+                          }}
+                          className="text-indigo-400 hover:text-indigo-300 transition-colors"
+                          title="Editar nome"
+                        >
+                          <Edit3 size={14} />
+                        </button>
+                      </div>
                       <p className="text-slate-500 text-xs mt-1 flex items-center gap-1">
                         <Calendar size={12} />
                         Desde: {new Date(usuario.created_at).toLocaleDateString('pt-BR')}
@@ -518,6 +639,66 @@ export default function AdminPanel({ onClose }) {
           </div>
         )}
       </div>
+
+      {/* ============================================ */}
+      {/* MODAL: Editar Nome */}
+      {/* ============================================ */}
+      {modalEditar && (
+        <div 
+          className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+          onClick={(e) => e.target === e.currentTarget && setModalEditar(null)}
+        >
+          <div className="bg-gradient-to-br from-slate-800 to-slate-900 border border-slate-700 rounded-2xl p-6 max-w-md w-full shadow-2xl">
+            {/* Header */}
+            <div className="flex items-center gap-4 mb-6">
+              <div className="w-14 h-14 bg-indigo-500/20 rounded-2xl flex items-center justify-center">
+                <Edit3 className="text-indigo-400" size={28} />
+              </div>
+              <div>
+                <h2 className="text-xl font-bold text-white">Editar Usuário</h2>
+                <p className="text-slate-400 text-sm">{modalEditar.email}</p>
+              </div>
+            </div>
+
+            {/* Campo de nome */}
+            <div className="mb-6">
+              <label className="block text-slate-400 text-sm mb-2">Nome do usuário</label>
+              <input
+                type="text"
+                value={editNome}
+                onChange={(e) => setEditNome(e.target.value)}
+                placeholder="Digite o nome..."
+                className="w-full px-4 py-3 bg-slate-900 border border-slate-700 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+                autoFocus
+              />
+            </div>
+
+            {/* Botões */}
+            <div className="flex gap-3">
+              <button
+                onClick={() => setModalEditar(null)}
+                className="flex-1 py-3 bg-slate-700 hover:bg-slate-600 rounded-xl text-white font-medium transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={salvarNome}
+                disabled={actionLoading === modalEditar.id}
+                className="flex-1 py-3 bg-indigo-600 hover:bg-indigo-500 rounded-xl text-white font-medium transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                {actionLoading === modalEditar.id ? (
+                  <Loader2 className="animate-spin" size={20} />
+                ) : (
+                  <>
+                    <Save size={20} />
+                    Salvar
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ============================================ */}
       {/* MODAL: Confirmar Bloqueio */}
@@ -654,7 +835,7 @@ export default function AdminPanel({ onClose }) {
                 </div>
                 <div className="flex items-center gap-2 text-sm">
                   <Check className="text-green-400" size={16} />
-                  <span className="text-slate-300">Histórico de pedidos</span>
+                  <span className="text-slate-300">Pedidos marcados como excluídos</span>
                 </div>
               </div>
             </div>
