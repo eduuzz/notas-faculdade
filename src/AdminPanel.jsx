@@ -1,92 +1,693 @@
-import { useState, useEffect } from 'react';
-import { supabase } from './supabaseClient';
+import React, { useState, useEffect } from 'react';
+import { Shield, ArrowLeft, RefreshCw, Check, X, Eye, Search, UserPlus, Trash2, Users, FileText, AlertTriangle, Loader2, Ban, UserCheck, Mail, Calendar } from 'lucide-react';
 import { useAuth } from './AuthContext';
-import { Shield, Users, Clock, CheckCircle, XCircle, ArrowLeft, RefreshCw, Search, Mail, Trash2, UserPlus, ExternalLink, AlertCircle } from 'lucide-react';
+import { supabase } from './supabaseClient';
 
 const ADMIN_EMAIL = 'eproencad@gmail.com';
 
-const AdminPanel = ({ onClose }) => {
+export default function AdminPanel({ onClose }) {
   const { user } = useAuth();
-  const [activeTab, setActiveTab] = useState('pedidos');
-  const [pedidos, setPedidos] = useState([]);
-  const [usuarios, setUsuarios] = useState([]);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(null);
+  const [pedidos, setPedidos] = useState([]);
+  const [usuarios, setUsuarios] = useState([]);
   const [busca, setBusca] = useState('');
   const [filtroStatus, setFiltroStatus] = useState('TODOS');
   const [novoEmail, setNovoEmail] = useState('');
   const [erro, setErro] = useState('');
   const [sucesso, setSucesso] = useState('');
-  const isAdmin = user?.email === ADMIN_EMAIL;
+  const [abaAtiva, setAbaAtiva] = useState('pedidos');
+  
+  // Modal states
+  const [modalExclusao, setModalExclusao] = useState(null);
+  const [modalBloqueio, setModalBloqueio] = useState(null);
 
-  useEffect(() => { if (isAdmin) carregarDados(); }, [isAdmin]);
+  const isAdmin = user?.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase();
+
+  useEffect(() => {
+    if (isAdmin) carregarDados();
+  }, [isAdmin]);
 
   const carregarDados = async () => {
     setLoading(true);
-    const { data: p } = await supabase.from('pedidos').select('*').order('created_at', { ascending: false });
-    if (p) setPedidos(p);
-    const { data: u } = await supabase.from('usuarios_autorizados').select('*').order('created_at', { ascending: false });
-    if (u) setUsuarios(u);
+    try {
+      const { data: pedidosData } = await supabase
+        .from('pedidos')
+        .select('*')
+        .order('created_at', { ascending: false });
+      if (pedidosData) setPedidos(pedidosData);
+
+      const { data: usuariosData } = await supabase
+        .from('usuarios_autorizados')
+        .select('*')
+        .order('created_at', { ascending: false });
+      if (usuariosData) setUsuarios(usuariosData);
+    } catch (err) {
+      console.error(err);
+    }
     setLoading(false);
   };
 
   const aprovarPedido = async (pedido) => {
-    setActionLoading(pedido.id); setErro(''); setSucesso('');
-    const jaAutorizado = usuarios.find(u => u.email === pedido.email.toLowerCase());
-    if (!jaAutorizado) {
-      const { error } = await supabase.from('usuarios_autorizados').insert([{ email: pedido.email.toLowerCase(), ativo: true, nome: pedido.nome }]);
-      if (error) { setErro('Erro: ' + error.message); setActionLoading(null); return; }
+    setActionLoading(pedido.id);
+    setErro('');
+    setSucesso('');
+    try {
+      const jaAutorizado = usuarios.find(u => u.email === pedido.email.toLowerCase());
+      if (!jaAutorizado) {
+        const { error: insertError } = await supabase
+          .from('usuarios_autorizados')
+          .insert([{ email: pedido.email.toLowerCase(), ativo: true, nome: pedido.nome }]);
+        if (insertError) {
+          setErro('Erro ao autorizar: ' + insertError.message);
+          setActionLoading(null);
+          return;
+        }
+      }
+      const { error: updateError } = await supabase
+        .from('pedidos')
+        .update({ status: 'APROVADO', updated_at: new Date().toISOString() })
+        .eq('id', pedido.id);
+      if (updateError) setErro('Erro ao aprovar');
+      else {
+        setSucesso(`Pedido de ${pedido.nome} aprovado!`);
+        carregarDados();
+      }
+    } catch (err) {
+      setErro('Erro inesperado');
     }
-    await supabase.from('pedidos').update({ status: 'APROVADO', updated_at: new Date().toISOString() }).eq('id', pedido.id);
-    setSucesso('Aprovado!'); carregarDados(); setActionLoading(null);
+    setActionLoading(null);
   };
 
   const rejeitarPedido = async (pedido) => {
     setActionLoading(pedido.id);
-    await supabase.from('pedidos').update({ status: 'REJEITADO', updated_at: new Date().toISOString() }).eq('id', pedido.id);
-    carregarDados(); setActionLoading(null);
-  };
-
-  const adicionarUsuario = async (e) => {
-    e.preventDefault(); if (!novoEmail.trim()) return;
-    setActionLoading('novo'); setErro(''); setSucesso('');
-    const { error } = await supabase.from('usuarios_autorizados').insert([{ email: novoEmail.trim().toLowerCase(), ativo: true }]);
-    if (error) setErro(error.code === '23505' ? 'Email já existe' : error.message);
-    else { setSucesso('Adicionado!'); setNovoEmail(''); carregarDados(); }
+    try {
+      await supabase
+        .from('pedidos')
+        .update({ status: 'REJEITADO', updated_at: new Date().toISOString() })
+        .eq('id', pedido.id);
+      carregarDados();
+    } catch (err) {
+      console.error(err);
+    }
     setActionLoading(null);
   };
 
-  const removerUsuario = async (usuario) => {
-    if (!confirm('Remover ' + usuario.email + '?')) return;
-    setActionLoading(usuario.id);
-    await supabase.from('usuarios_autorizados').delete().eq('id', usuario.id);
-    carregarDados(); setActionLoading(null);
+  const adicionarUsuario = async (e) => {
+    e.preventDefault();
+    if (!novoEmail.trim()) return;
+    setActionLoading('novo');
+    setErro('');
+    setSucesso('');
+    try {
+      const { error } = await supabase
+        .from('usuarios_autorizados')
+        .insert([{ email: novoEmail.trim().toLowerCase(), ativo: true }]);
+      if (error) setErro(error.code === '23505' ? 'Email já cadastrado' : error.message);
+      else {
+        setSucesso('Usuário adicionado!');
+        setNovoEmail('');
+        carregarDados();
+      }
+    } catch (err) {
+      setErro('Erro inesperado');
+    }
+    setActionLoading(null);
   };
 
-  const pedidosFiltrados = pedidos.filter(p => (p.nome.toLowerCase().includes(busca.toLowerCase()) || p.email.toLowerCase().includes(busca.toLowerCase())) && (filtroStatus === 'TODOS' || p.status === filtroStatus));
-  const usuariosFiltrados = usuarios.filter(u => u.email.toLowerCase().includes(busca.toLowerCase()));
+  // Excluir usuário
+  const excluirUsuario = async (usuario) => {
+    setActionLoading(usuario.id);
+    setErro('');
+    setSucesso('');
 
-  if (!isAdmin) return (<div className="min-h-screen bg-slate-900 flex items-center justify-center"><div className="text-center"><Shield className="mx-auto text-red-400 mb-4" size={48} /><h1 className="text-xl text-white mb-2">Acesso Negado</h1><button onClick={onClose} className="mt-4 px-4 py-2 bg-slate-700 text-white rounded-lg">Voltar</button></div></div>);
+    try {
+      const email = usuario.email.toLowerCase();
+
+      // Excluir da tabela usuarios_autorizados
+      const { error: errorUsuarios } = await supabase
+        .from('usuarios_autorizados')
+        .delete()
+        .eq('id', usuario.id);
+
+      if (errorUsuarios) {
+        setErro('Erro ao excluir: ' + errorUsuarios.message);
+        setActionLoading(null);
+        return;
+      }
+
+      // Atualizar pedidos relacionados
+      await supabase
+        .from('pedidos')
+        .update({ status: 'USUARIO_EXCLUIDO' })
+        .eq('email', email);
+
+      setSucesso(`Usuário ${email} excluído com sucesso!`);
+      setModalExclusao(null);
+      carregarDados();
+    } catch (err) {
+      console.error('Erro ao excluir:', err);
+      setErro('Erro inesperado ao excluir usuário');
+    }
+    setActionLoading(null);
+  };
+
+  // Bloquear usuário
+  const bloquearUsuario = async (usuario) => {
+    setActionLoading(usuario.id);
+    setErro('');
+    setSucesso('');
+
+    try {
+      const { error } = await supabase
+        .from('usuarios_autorizados')
+        .update({ ativo: false })
+        .eq('id', usuario.id);
+
+      if (error) {
+        setErro('Erro ao bloquear: ' + error.message);
+      } else {
+        setSucesso(`Usuário ${usuario.email} bloqueado!`);
+        setModalBloqueio(null);
+        carregarDados();
+      }
+    } catch (err) {
+      setErro('Erro inesperado');
+    }
+    setActionLoading(null);
+  };
+
+  // Desbloquear usuário
+  const desbloquearUsuario = async (usuario) => {
+    setActionLoading(usuario.id);
+    try {
+      await supabase
+        .from('usuarios_autorizados')
+        .update({ ativo: true })
+        .eq('id', usuario.id);
+      setSucesso(`Usuário ${usuario.email} desbloqueado!`);
+      carregarDados();
+    } catch (err) {
+      console.error(err);
+    }
+    setActionLoading(null);
+  };
+
+  // Filtros
+  const pedidosFiltrados = pedidos.filter(p => {
+    const matchBusca = p.nome?.toLowerCase().includes(busca.toLowerCase()) ||
+      p.email?.toLowerCase().includes(busca.toLowerCase());
+    const matchStatus = filtroStatus === 'TODOS' || p.status === filtroStatus;
+    return matchBusca && matchStatus;
+  });
+
+  const usuariosFiltrados = usuarios.filter(u =>
+    u.email?.toLowerCase().includes(busca.toLowerCase()) ||
+    (u.nome && u.nome.toLowerCase().includes(busca.toLowerCase()))
+  );
+
+  if (!isAdmin) {
+    return (
+      <div className="min-h-screen bg-slate-900 flex items-center justify-center">
+        <div className="text-center">
+          <Shield className="mx-auto text-red-400 mb-4" size={48} />
+          <h1 className="text-xl text-white mb-2">Acesso Negado</h1>
+          <p className="text-slate-400">Você não tem permissão para acessar esta área.</p>
+          <button
+            onClick={onClose}
+            className="mt-4 px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg"
+          >
+            Voltar
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
-      <div className="bg-slate-800/50 border-b border-slate-700"><div className="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between"><div className="flex items-center gap-3"><button onClick={onClose} className="p-2 hover:bg-slate-700 rounded-lg"><ArrowLeft className="text-slate-400" size={20} /></button><Shield className="text-indigo-400" size={24} /><h1 className="text-xl font-bold text-white">Painel Admin</h1></div><button onClick={carregarDados} className="p-2 hover:bg-slate-700 rounded-lg"><RefreshCw className={loading ? 'animate-spin text-slate-400' : 'text-slate-400'} size={20} /></button></div></div>
-      <div className="max-w-6xl mx-auto px-4 py-4">
-        <div className="flex gap-2 mb-6">
-          <button onClick={() => setActiveTab('pedidos')} className={`px-4 py-2 rounded-lg font-medium flex items-center gap-2 ${activeTab === 'pedidos' ? 'bg-indigo-600 text-white' : 'bg-slate-700 text-slate-300'}`}><Clock size={18} />Pedidos{pedidos.filter(p => p.status === 'PENDENTE').length > 0 && <span className="bg-red-500 text-white text-xs px-2 rounded-full">{pedidos.filter(p => p.status === 'PENDENTE').length}</span>}</button>
-          <button onClick={() => setActiveTab('usuarios')} className={`px-4 py-2 rounded-lg font-medium flex items-center gap-2 ${activeTab === 'usuarios' ? 'bg-indigo-600 text-white' : 'bg-slate-700 text-slate-300'}`}><Users size={18} />Usuários ({usuarios.length})</button>
+      {/* Header */}
+      <div className="bg-slate-800/50 border-b border-slate-700">
+        <div className="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <button
+              onClick={onClose}
+              className="p-2 hover:bg-slate-700 rounded-lg transition-colors"
+            >
+              <ArrowLeft className="text-slate-400" size={20} />
+            </button>
+            <div className="flex items-center gap-2">
+              <Shield className="text-indigo-400" size={24} />
+              <h1 className="text-xl font-bold text-white">Painel Admin</h1>
+            </div>
+          </div>
+          <button
+            onClick={carregarDados}
+            disabled={loading}
+            className="p-2 hover:bg-slate-700 rounded-lg transition-colors"
+          >
+            <RefreshCw className={`text-slate-400 ${loading ? 'animate-spin' : ''}`} size={20} />
+          </button>
         </div>
-        {erro && <div className="mb-4 p-3 bg-red-500/10 border border-red-500/30 rounded-lg text-red-400 flex items-center gap-2"><AlertCircle size={18} />{erro}</div>}
-        {sucesso && <div className="mb-4 p-3 bg-green-500/10 border border-green-500/30 rounded-lg text-green-400 flex items-center gap-2"><CheckCircle size={18} />{sucesso}</div>}
-        <div className="mb-4 flex gap-4"><div className="flex-1 relative"><Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} /><input type="text" value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="Buscar..." className="w-full pl-10 pr-4 py-2 bg-slate-700/50 border border-slate-600 rounded-lg text-white" /></div>{activeTab === 'pedidos' && <select value={filtroStatus} onChange={(e) => setFiltroStatus(e.target.value)} className="px-4 py-2 bg-slate-700/50 border border-slate-600 rounded-lg text-white"><option value="TODOS">Todos</option><option value="PENDENTE">Pendentes</option><option value="APROVADO">Aprovados</option><option value="REJEITADO">Rejeitados</option></select>}</div>
-        {loading ? <div className="text-center py-12"><RefreshCw className="mx-auto text-indigo-400 animate-spin" size={32} /></div> : activeTab === 'pedidos' ? (
-          <div className="space-y-4">{pedidosFiltrados.length === 0 ? <p className="text-center py-12 text-slate-400">Nenhum pedido</p> : pedidosFiltrados.map(p => (<div key={p.id} className={`bg-slate-800/50 border rounded-xl p-4 ${p.status === 'PENDENTE' ? 'border-yellow-500/30' : p.status === 'APROVADO' ? 'border-green-500/30' : 'border-red-500/30'}`}><div className="flex justify-between"><div><div className="flex items-center gap-2 mb-1"><span className="font-medium text-white">{p.nome}</span><span className={`text-xs px-2 py-0.5 rounded-full ${p.status === 'PENDENTE' ? 'bg-yellow-500/20 text-yellow-400' : p.status === 'APROVADO' ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}>{p.status}</span></div><div className="text-slate-400 text-sm">{p.email}</div><div className="text-slate-500 text-xs mt-1">{new Date(p.created_at).toLocaleString('pt-BR')}</div></div><div className="flex items-center gap-2">{p.comprovante_url && <a href={p.comprovante_url} target="_blank" className="p-2 bg-slate-700 rounded-lg"><ExternalLink className="text-slate-300" size={18} /></a>}{p.status === 'PENDENTE' && <><button onClick={() => aprovarPedido(p)} disabled={actionLoading === p.id} className="p-2 bg-green-600 rounded-lg"><CheckCircle className="text-white" size={18} /></button><button onClick={() => rejeitarPedido(p)} disabled={actionLoading === p.id} className="p-2 bg-red-600 rounded-lg"><XCircle className="text-white" size={18} /></button></>}</div></div></div>))}</div>
-        ) : (
-          <div className="space-y-4"><form onSubmit={adicionarUsuario} className="flex gap-2"><div className="flex-1 relative"><Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} /><input type="email" value={novoEmail} onChange={(e) => setNovoEmail(e.target.value)} placeholder="Adicionar email..." className="w-full pl-10 pr-4 py-2 bg-slate-700/50 border border-slate-600 rounded-lg text-white" /></div><button type="submit" disabled={!novoEmail.trim()} className="px-4 py-2 bg-indigo-600 text-white rounded-lg flex items-center gap-2"><UserPlus size={18} />Adicionar</button></form>{usuariosFiltrados.map(u => (<div key={u.id} className="bg-slate-800/50 border border-slate-700 rounded-xl p-4 flex justify-between"><div><div className="font-medium text-white">{u.email}</div><div className="text-slate-500 text-xs">Desde {new Date(u.created_at).toLocaleDateString('pt-BR')}</div></div><button onClick={() => removerUsuario(u)} disabled={u.email === ADMIN_EMAIL} className="p-2 bg-red-600/20 rounded-lg"><Trash2 className="text-red-400" size={18} /></button></div>))}</div>
+      </div>
+
+      {/* Mensagens */}
+      {erro && (
+        <div className="max-w-6xl mx-auto px-4 mt-4">
+          <div className="bg-red-500/20 border border-red-500/50 rounded-lg p-3 text-red-300 text-sm flex items-center gap-2">
+            <AlertTriangle size={18} />
+            {erro}
+          </div>
+        </div>
+      )}
+      {sucesso && (
+        <div className="max-w-6xl mx-auto px-4 mt-4">
+          <div className="bg-green-500/20 border border-green-500/50 rounded-lg p-3 text-green-300 text-sm flex items-center gap-2">
+            <Check size={18} />
+            {sucesso}
+          </div>
+        </div>
+      )}
+
+      {/* Abas */}
+      <div className="max-w-6xl mx-auto px-4 mt-6">
+        <div className="flex gap-2 mb-6">
+          <button
+            onClick={() => setAbaAtiva('pedidos')}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
+              abaAtiva === 'pedidos'
+                ? 'bg-indigo-600 text-white'
+                : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
+            }`}
+          >
+            <FileText size={18} />
+            Pedidos ({pedidos.filter(p => p.status === 'PENDENTE').length})
+          </button>
+          <button
+            onClick={() => setAbaAtiva('usuarios')}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
+              abaAtiva === 'usuarios'
+                ? 'bg-indigo-600 text-white'
+                : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
+            }`}
+          >
+            <Users size={18} />
+            Usuários ({usuarios.length})
+          </button>
+        </div>
+
+        {/* Busca e Filtros */}
+        <div className="flex flex-col sm:flex-row gap-3 mb-6">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" size={18} />
+            <input
+              type="text"
+              placeholder="Buscar por nome ou email..."
+              value={busca}
+              onChange={(e) => setBusca(e.target.value)}
+              className="w-full pl-10 pr-4 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+            />
+          </div>
+          {abaAtiva === 'pedidos' && (
+            <select
+              value={filtroStatus}
+              onChange={(e) => setFiltroStatus(e.target.value)}
+              className="px-4 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white focus:outline-none focus:border-indigo-500"
+            >
+              <option value="TODOS">Todos</option>
+              <option value="PENDENTE">Pendentes</option>
+              <option value="APROVADO">Aprovados</option>
+              <option value="REJEITADO">Rejeitados</option>
+            </select>
+          )}
+        </div>
+
+        {/* Conteúdo: Pedidos */}
+        {abaAtiva === 'pedidos' && (
+          <div className="space-y-4">
+            {loading ? (
+              <div className="text-center py-12 text-slate-400">
+                <Loader2 className="animate-spin mx-auto mb-2" size={24} />
+                Carregando...
+              </div>
+            ) : pedidosFiltrados.length === 0 ? (
+              <div className="text-center py-12 text-slate-400">
+                <FileText className="mx-auto mb-2 opacity-50" size={32} />
+                Nenhum pedido encontrado
+              </div>
+            ) : (
+              pedidosFiltrados.map(pedido => (
+                <div
+                  key={pedido.id}
+                  className="bg-slate-800/50 border border-slate-700 rounded-xl p-4 hover:border-slate-600 transition-colors"
+                >
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="font-medium text-white">{pedido.nome}</span>
+                        <span className={`px-2 py-0.5 rounded text-xs font-medium ${
+                          pedido.status === 'PENDENTE' ? 'bg-yellow-500/20 text-yellow-300' :
+                          pedido.status === 'APROVADO' ? 'bg-green-500/20 text-green-300' :
+                          'bg-red-500/20 text-red-300'
+                        }`}>
+                          {pedido.status}
+                        </span>
+                      </div>
+                      <p className="text-slate-400 text-sm flex items-center gap-1">
+                        <Mail size={14} />
+                        {pedido.email}
+                      </p>
+                      <p className="text-slate-500 text-xs mt-1 flex items-center gap-1">
+                        <Calendar size={12} />
+                        {new Date(pedido.created_at).toLocaleString('pt-BR')}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {pedido.comprovante_url && (
+                        <a
+                          href={pedido.comprovante_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-1 px-3 py-1.5 bg-slate-700 hover:bg-slate-600 rounded-lg transition-colors text-slate-300 text-sm"
+                        >
+                          <Eye size={16} />
+                          Ver
+                        </a>
+                      )}
+                      {pedido.status === 'PENDENTE' && (
+                        <>
+                          <button
+                            onClick={() => aprovarPedido(pedido)}
+                            disabled={actionLoading === pedido.id}
+                            className="flex items-center gap-1 px-3 py-1.5 bg-green-600 hover:bg-green-500 rounded-lg transition-colors text-white text-sm disabled:opacity-50"
+                          >
+                            {actionLoading === pedido.id ? (
+                              <Loader2 className="animate-spin" size={16} />
+                            ) : (
+                              <Check size={16} />
+                            )}
+                            Aprovar
+                          </button>
+                          <button
+                            onClick={() => rejeitarPedido(pedido)}
+                            disabled={actionLoading === pedido.id}
+                            className="flex items-center gap-1 px-3 py-1.5 bg-red-600 hover:bg-red-500 rounded-lg transition-colors text-white text-sm disabled:opacity-50"
+                          >
+                            <X size={16} />
+                            Rejeitar
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        )}
+
+        {/* Conteúdo: Usuários */}
+        {abaAtiva === 'usuarios' && (
+          <div className="space-y-4">
+            {/* Adicionar novo usuário */}
+            <form onSubmit={adicionarUsuario} className="flex gap-2">
+              <div className="relative flex-1">
+                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" size={18} />
+                <input
+                  type="email"
+                  placeholder="Adicionar email manualmente..."
+                  value={novoEmail}
+                  onChange={(e) => setNovoEmail(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+                />
+              </div>
+              <button
+                type="submit"
+                disabled={actionLoading === 'novo' || !novoEmail.trim()}
+                className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 rounded-lg text-white transition-colors disabled:opacity-50"
+              >
+                {actionLoading === 'novo' ? <Loader2 className="animate-spin" size={18} /> : <UserPlus size={18} />}
+                Adicionar
+              </button>
+            </form>
+
+            {/* Lista de usuários */}
+            {loading ? (
+              <div className="text-center py-12 text-slate-400">
+                <Loader2 className="animate-spin mx-auto mb-2" size={24} />
+                Carregando...
+              </div>
+            ) : usuariosFiltrados.length === 0 ? (
+              <div className="text-center py-12 text-slate-400">
+                <Users className="mx-auto mb-2 opacity-50" size={32} />
+                Nenhum usuário encontrado
+              </div>
+            ) : (
+              usuariosFiltrados.map(usuario => (
+                <div
+                  key={usuario.id}
+                  className={`bg-slate-800/50 border rounded-xl p-4 transition-colors ${
+                    usuario.ativo 
+                      ? 'border-slate-700 hover:border-slate-600' 
+                      : 'border-red-500/30 bg-red-500/5'
+                  }`}
+                >
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="font-medium text-white">{usuario.email}</span>
+                        <span className={`px-2 py-0.5 rounded text-xs font-medium ${
+                          usuario.ativo 
+                            ? 'bg-green-500/20 text-green-300' 
+                            : 'bg-red-500/20 text-red-300'
+                        }`}>
+                          {usuario.ativo ? 'Ativo' : 'Bloqueado'}
+                        </span>
+                      </div>
+                      {usuario.nome && (
+                        <p className="text-slate-400 text-sm">{usuario.nome}</p>
+                      )}
+                      <p className="text-slate-500 text-xs mt-1 flex items-center gap-1">
+                        <Calendar size={12} />
+                        Desde: {new Date(usuario.created_at).toLocaleDateString('pt-BR')}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {/* Botão Bloquear/Desbloquear */}
+                      {usuario.ativo ? (
+                        <button
+                          onClick={() => setModalBloqueio(usuario)}
+                          disabled={actionLoading === usuario.id}
+                          className="flex items-center gap-1 px-3 py-1.5 bg-yellow-600 hover:bg-yellow-500 rounded-lg text-white text-sm transition-colors disabled:opacity-50"
+                        >
+                          <Ban size={16} />
+                          Bloquear
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => desbloquearUsuario(usuario)}
+                          disabled={actionLoading === usuario.id}
+                          className="flex items-center gap-1 px-3 py-1.5 bg-green-600 hover:bg-green-500 rounded-lg text-white text-sm transition-colors disabled:opacity-50"
+                        >
+                          {actionLoading === usuario.id ? (
+                            <Loader2 className="animate-spin" size={16} />
+                          ) : (
+                            <UserCheck size={16} />
+                          )}
+                          Desbloquear
+                        </button>
+                      )}
+                      
+                      {/* Botão Excluir */}
+                      <button
+                        onClick={() => setModalExclusao(usuario)}
+                        disabled={actionLoading === usuario.id}
+                        className="flex items-center gap-1 px-3 py-1.5 bg-red-600 hover:bg-red-500 rounded-lg text-white text-sm transition-colors disabled:opacity-50"
+                      >
+                        <Trash2 size={16} />
+                        Excluir
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
         )}
       </div>
+
+      {/* ============================================ */}
+      {/* MODAL: Confirmar Bloqueio */}
+      {/* ============================================ */}
+      {modalBloqueio && (
+        <div 
+          className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+          onClick={(e) => e.target === e.currentTarget && setModalBloqueio(null)}
+        >
+          <div className="bg-gradient-to-br from-slate-800 to-slate-900 border border-slate-700 rounded-2xl p-6 max-w-md w-full shadow-2xl">
+            {/* Header */}
+            <div className="flex items-center gap-4 mb-6">
+              <div className="w-14 h-14 bg-yellow-500/20 rounded-2xl flex items-center justify-center">
+                <Ban className="text-yellow-400" size={28} />
+              </div>
+              <div>
+                <h2 className="text-xl font-bold text-white">Bloquear Usuário</h2>
+                <p className="text-slate-400 text-sm">O usuário não conseguirá fazer login</p>
+              </div>
+            </div>
+
+            {/* Info do usuário */}
+            <div className="bg-slate-900/50 rounded-xl p-4 mb-6">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 bg-yellow-500/20 rounded-full flex items-center justify-center">
+                  <span className="text-xl font-bold text-yellow-400">
+                    {modalBloqueio.email.charAt(0).toUpperCase()}
+                  </span>
+                </div>
+                <div>
+                  <p className="text-white font-medium">{modalBloqueio.email}</p>
+                  {modalBloqueio.nome && (
+                    <p className="text-slate-400 text-sm">{modalBloqueio.nome}</p>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Aviso */}
+            <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-xl p-4 mb-6">
+              <div className="flex items-start gap-3">
+                <AlertTriangle className="text-yellow-400 flex-shrink-0 mt-0.5" size={20} />
+                <div>
+                  <p className="text-yellow-300 text-sm font-medium">Ação reversível</p>
+                  <p className="text-yellow-200/70 text-sm mt-1">
+                    Você poderá desbloquear este usuário a qualquer momento. Os dados serão preservados.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Botões */}
+            <div className="flex gap-3">
+              <button
+                onClick={() => setModalBloqueio(null)}
+                className="flex-1 py-3 bg-slate-700 hover:bg-slate-600 rounded-xl text-white font-medium transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={() => bloquearUsuario(modalBloqueio)}
+                disabled={actionLoading === modalBloqueio.id}
+                className="flex-1 py-3 bg-yellow-600 hover:bg-yellow-500 rounded-xl text-white font-medium transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                {actionLoading === modalBloqueio.id ? (
+                  <Loader2 className="animate-spin" size={20} />
+                ) : (
+                  <>
+                    <Ban size={20} />
+                    Bloquear
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ============================================ */}
+      {/* MODAL: Confirmar Exclusão */}
+      {/* ============================================ */}
+      {modalExclusao && (
+        <div 
+          className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+          onClick={(e) => e.target === e.currentTarget && setModalExclusao(null)}
+        >
+          <div className="bg-gradient-to-br from-slate-800 to-slate-900 border border-slate-700 rounded-2xl p-6 max-w-md w-full shadow-2xl">
+            {/* Header */}
+            <div className="flex items-center gap-4 mb-6">
+              <div className="w-14 h-14 bg-red-500/20 rounded-2xl flex items-center justify-center">
+                <Trash2 className="text-red-400" size={28} />
+              </div>
+              <div>
+                <h2 className="text-xl font-bold text-white">Excluir Usuário</h2>
+                <p className="text-slate-400 text-sm">Esta ação não pode ser desfeita</p>
+              </div>
+            </div>
+
+            {/* Info do usuário */}
+            <div className="bg-slate-900/50 rounded-xl p-4 mb-6">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 bg-red-500/20 rounded-full flex items-center justify-center">
+                  <span className="text-xl font-bold text-red-400">
+                    {modalExclusao.email.charAt(0).toUpperCase()}
+                  </span>
+                </div>
+                <div>
+                  <p className="text-white font-medium">{modalExclusao.email}</p>
+                  {modalExclusao.nome && (
+                    <p className="text-slate-400 text-sm">{modalExclusao.nome}</p>
+                  )}
+                  <p className="text-slate-500 text-xs mt-1">
+                    Cadastrado em {new Date(modalExclusao.created_at).toLocaleDateString('pt-BR')}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* O que será excluído */}
+            <div className="bg-slate-900/50 rounded-xl p-4 mb-4">
+              <p className="text-slate-400 text-sm mb-3 font-medium">O que será removido:</p>
+              <div className="space-y-2">
+                <div className="flex items-center gap-2 text-sm">
+                  <Check className="text-green-400" size={16} />
+                  <span className="text-slate-300">Acesso ao sistema</span>
+                </div>
+                <div className="flex items-center gap-2 text-sm">
+                  <Check className="text-green-400" size={16} />
+                  <span className="text-slate-300">Pedidos marcados como excluídos</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Aviso sobre Supabase */}
+            <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-4 mb-6">
+              <div className="flex items-start gap-3">
+                <AlertTriangle className="text-amber-400 flex-shrink-0 mt-0.5" size={20} />
+                <div>
+                  <p className="text-amber-300 text-sm font-medium">Exclusão manual necessária</p>
+                  <p className="text-amber-200/70 text-xs mt-1">
+                    Para remover os dados de notas, exclua também no Supabase:
+                    Authentication → Users e as tabelas disciplinas/notas_usuarios
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Botões */}
+            <div className="flex gap-3">
+              <button
+                onClick={() => setModalExclusao(null)}
+                className="flex-1 py-3 bg-slate-700 hover:bg-slate-600 rounded-xl text-white font-medium transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={() => excluirUsuario(modalExclusao)}
+                disabled={actionLoading === modalExclusao.id}
+                className="flex-1 py-3 bg-red-600 hover:bg-red-500 rounded-xl text-white font-medium transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                {actionLoading === modalExclusao.id ? (
+                  <Loader2 className="animate-spin" size={20} />
+                ) : (
+                  <>
+                    <Trash2 size={20} />
+                    Excluir
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
-};
-
-export default AdminPanel;
+}
