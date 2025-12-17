@@ -42,12 +42,27 @@ export const AuthProvider = ({ children }) => {
       }
     }, 5000);
 
-    // Carregar sessão existente
+    // Carregar sessão existente E VERIFICAR AUTORIZAÇÃO
     const loadSession = async () => {
       try {
         const { data: { session } } = await supabase.auth.getSession();
+        
         if (mounted) {
-          setUser(session?.user ?? null);
+          if (session?.user) {
+            // CORREÇÃO: Verificar se o usuário está autorizado
+            const autorizado = await verificarAutorizacao(session.user.email);
+            
+            if (autorizado) {
+              setUser(session.user);
+            } else {
+              // Usuário não autorizado - fazer logout
+              await supabase.auth.signOut();
+              setUser(null);
+              setAuthError('Email não autorizado. Realize o pagamento primeiro.');
+            }
+          } else {
+            setUser(null);
+          }
           setLoading(false);
           isInitialLoad.current = false;
         }
@@ -78,8 +93,8 @@ export const AuthProvider = ({ children }) => {
           return;
         }
 
-        if (event === 'SIGNED_IN' && session?.user) {
-          // Novo login - verificar autorização
+        if ((event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') && session?.user) {
+          // Novo login ou refresh - verificar autorização
           const autorizado = await verificarAutorizacao(session.user.email);
           if (mounted) {
             if (autorizado) {
@@ -100,11 +115,19 @@ export const AuthProvider = ({ children }) => {
       clearTimeout(timeout);
       subscription.unsubscribe();
     };
-  }, [verificarAutorizacao]);
+  }, [verificarAutorizacao, loading]);
 
   const signInWithEmail = async (email, password) => {
     if (!supabase) return { data: null, error: { message: 'Supabase não configurado' } };
     setAuthError(null);
+    
+    // Verificar autorização ANTES de tentar login
+    const autorizado = await verificarAutorizacao(email);
+    if (!autorizado) {
+      setAuthError('Email não autorizado. Realize o pagamento primeiro.');
+      return { data: null, error: { message: 'Email não autorizado.' } };
+    }
+    
     const { data, error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) setAuthError(error.message);
     return { data, error };
@@ -126,6 +149,7 @@ export const AuthProvider = ({ children }) => {
   const signInWithGoogle = async () => {
     if (!supabase) return { data: null, error: { message: 'Supabase não configurado' } };
     setAuthError(null);
+    // Nota: A verificação do Google é feita no onAuthStateChange após o redirect
     return await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: { redirectTo: window.location.origin },
