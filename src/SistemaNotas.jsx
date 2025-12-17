@@ -107,12 +107,15 @@ export default function SistemaNotas({ onOpenAdmin }) {
   const [settingsCurso, setSettingsCurso] = useState('');
   const [savingSettings, setSavingSettings] = useState(false);
 
-  // Mostrar modal de boas-vindas para novos usuários
+  // Mostrar modal de boas-vindas APENAS na primeira vez (usando localStorage)
   useEffect(() => {
-    if (isNewUser && !loading) {
-      setShowWelcomeModal(true);
+    if (!loading && user && !userCurso) {
+      const welcomeShown = localStorage.getItem(`welcomeShown_${user.id}`);
+      if (!welcomeShown) {
+        setShowWelcomeModal(true);
+      }
     }
-  }, [isNewUser, loading]);
+  }, [user, userCurso, loading]);
 
   const handleSaveCurso = async () => {
     if (!cursoInput.trim()) return;
@@ -120,6 +123,18 @@ export default function SistemaNotas({ onOpenAdmin }) {
     await updateUserCurso(cursoInput.trim());
     setSavingCurso(false);
     setShowWelcomeModal(false);
+    // Marcar que o modal foi mostrado
+    if (user) {
+      localStorage.setItem(`welcomeShown_${user.id}`, 'true');
+    }
+  };
+
+  const handleSkipWelcome = () => {
+    setShowWelcomeModal(false);
+    // Marcar que o modal foi mostrado mesmo pulando
+    if (user) {
+      localStorage.setItem(`welcomeShown_${user.id}`, 'true');
+    }
   };
 
   const openSettings = () => {
@@ -1079,7 +1094,7 @@ export default function SistemaNotas({ onOpenAdmin }) {
               {/* Botões */}
               <div className="flex gap-3">
                 <button
-                  onClick={() => setShowWelcomeModal(false)}
+                  onClick={handleSkipWelcome}
                   className="flex-1 py-3 rounded-xl bg-white/5 border border-white/10 text-slate-400 font-medium hover:bg-white/10 transition-colors"
                 >
                   Pular

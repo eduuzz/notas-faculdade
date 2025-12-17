@@ -322,6 +322,17 @@ export default function AdminPanel({ onClose }) {
             <Users size={18} />
             Usuários ({usuarios.length})
           </button>
+          <button
+            onClick={() => setAbaAtiva('historico')}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
+              abaAtiva === 'historico'
+                ? 'bg-purple-600 text-white'
+                : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
+            }`}
+          >
+            <UserX size={18} />
+            Excluídos ({pedidosExcluidos})
+          </button>
         </div>
 
         {/* Busca e Filtros */}
@@ -540,6 +551,74 @@ export default function AdminPanel({ onClose }) {
                   </div>
                 </div>
               ))
+            )}
+          </div>
+        )}
+
+        {/* ============================================ */}
+        {/* ABA: Histórico de Excluídos */}
+        {/* ============================================ */}
+        {abaAtiva === 'historico' && (
+          <div className="space-y-4">
+            <div className="bg-purple-500/10 border border-purple-500/30 rounded-xl p-4 mb-4">
+              <div className="flex items-center gap-3">
+                <UserX className="text-purple-400" size={24} />
+                <div>
+                  <h3 className="text-purple-300 font-medium">Histórico de Exclusões</h3>
+                  <p className="text-purple-200/70 text-sm">Usuários que foram removidos do sistema</p>
+                </div>
+              </div>
+            </div>
+
+            {loading ? (
+              <div className="text-center py-12 text-slate-400">
+                <Loader2 className="animate-spin mx-auto mb-2" size={24} />
+                Carregando...
+              </div>
+            ) : pedidos.filter(p => p.status === 'USUARIO_EXCLUIDO' && (
+              p.nome?.toLowerCase().includes(busca.toLowerCase()) ||
+              p.email?.toLowerCase().includes(busca.toLowerCase())
+            )).length === 0 ? (
+              <div className="text-center py-12 text-slate-400">
+                <UserX className="mx-auto mb-2 opacity-50" size={32} />
+                Nenhum usuário excluído
+              </div>
+            ) : (
+              pedidos
+                .filter(p => p.status === 'USUARIO_EXCLUIDO' && (
+                  p.nome?.toLowerCase().includes(busca.toLowerCase()) ||
+                  p.email?.toLowerCase().includes(busca.toLowerCase())
+                ))
+                .map(pedido => (
+                  <div
+                    key={pedido.id}
+                    className="bg-slate-800/50 border border-purple-500/30 rounded-xl p-4"
+                  >
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-1 flex-wrap">
+                          <span className="font-medium text-white">{pedido.nome || 'Sem nome'}</span>
+                          <span className="px-2 py-0.5 rounded text-xs font-medium bg-purple-500/20 text-purple-300">
+                            Excluído
+                          </span>
+                        </div>
+                        <p className="text-slate-400 text-sm">{pedido.email}</p>
+                        <div className="flex items-center gap-4 mt-2 text-xs text-slate-500">
+                          <span className="flex items-center gap-1">
+                            <Calendar size={12} />
+                            Cadastro: {new Date(pedido.created_at).toLocaleDateString('pt-BR')}
+                          </span>
+                          {pedido.updated_at && (
+                            <span className="flex items-center gap-1">
+                              <Trash2 size={12} />
+                              Excluído: {new Date(pedido.updated_at).toLocaleDateString('pt-BR')}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))
             )}
           </div>
         )}
