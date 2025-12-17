@@ -109,6 +109,21 @@ export default function SistemaNotas({ onOpenAdmin }) {
     return saved ? JSON.parse(saved) : [];
   });
 
+  // Resetar planejamento quando o número de disciplinas mudar significativamente
+  useEffect(() => {
+    const totalDisciplinas = disciplinas.length;
+    const savedTotal = localStorage.getItem('planejamentoTotalDisciplinas');
+    
+    if (savedTotal && parseInt(savedTotal) !== totalDisciplinas) {
+      // Número de disciplinas mudou, resetar planejamento
+      setPlanejamentoSemestres([]);
+    }
+    
+    if (totalDisciplinas > 0) {
+      localStorage.setItem('planejamentoTotalDisciplinas', totalDisciplinas.toString());
+    }
+  }, [disciplinas.length]);
+
   useEffect(() => {
     localStorage.setItem('semestreAtualAno', semestreAtualAno.toString());
     localStorage.setItem('semestreAtualNum', semestreAtualNum.toString());
@@ -455,7 +470,7 @@ export default function SistemaNotas({ onOpenAdmin }) {
                                   <th className="text-center p-3 text-slate-400 font-medium text-sm hidden sm:table-cell">Cr</th>
                                   <th className="text-center p-3 text-slate-400 font-medium text-sm">Status</th>
                                   <th className="text-center p-3 text-slate-400 font-medium text-sm">Nota</th>
-                                  <th className="text-center p-3 text-slate-400 font-medium text-sm w-20">Ações</th>
+                                  <th className="text-center p-3 text-slate-400 font-medium text-sm w-28">Ações</th>
                                 </tr>
                               </thead>
                               <tbody>
@@ -469,7 +484,9 @@ export default function SistemaNotas({ onOpenAdmin }) {
                                       <td className="p-3 text-center font-semibold">{disc.notaFinal ? disc.notaFinal.toFixed(1) : '-'}</td>
                                       <td className="p-3 text-center">
                                         <div className="flex items-center justify-center gap-1">
-                                          {disc.status !== 'NAO_INICIADA' && (
+                                          {disc.status === 'NAO_INICIADA' ? (
+                                            <button onClick={() => setShowIniciarModal(disc.id)} className="px-2 py-1 rounded-lg bg-white/5 border border-white/10 text-xs font-medium text-slate-400 hover:text-white hover:bg-white/10 transition-all">Iniciar</button>
+                                          ) : (
                                             <button onClick={() => startEditNotas(disc)} className="p-1.5 rounded-lg hover:bg-white/10 text-slate-400 hover:text-white transition-all"><Edit2 size={14} /></button>
                                           )}
                                           <button onClick={() => setShowDeleteMenu(disc.id)} className="p-1.5 rounded-lg hover:bg-red-500/20 text-slate-400 hover:text-red-400 transition-all"><Trash2 size={14} /></button>

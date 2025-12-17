@@ -33,7 +33,18 @@ export function useNotas() {
 
   // Criar disciplinas de exemplo para novo usuário
   const criarDisciplinasExemplo = useCallback(async (userId) => {
-    if (!supabase) return;
+    if (!supabase) return [];
+    
+    // Verificar se já existem disciplinas (evita duplicação)
+    const { data: existentes } = await supabase
+      .from('disciplinas')
+      .select('id')
+      .eq('user_id', userId)
+      .limit(1);
+    
+    if (existentes && existentes.length > 0) {
+      return []; // Já tem disciplinas, não criar exemplos
+    }
     
     try {
       const disciplinasComUser = DISCIPLINAS_EXEMPLO.map(d => ({
