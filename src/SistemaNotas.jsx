@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import { Plus, Trash2, BookOpen, Award, TrendingUp, AlertCircle, CheckCircle, GraduationCap, Edit2, X, Clock, PlayCircle, ChevronDown, ChevronUp, Search, Save, Cloud, CloudOff, RefreshCw, LogOut, User, Wifi, WifiOff, Download, Upload as UploadIcon, RotateCcw, Sun, Moon, Monitor, List, LayoutGrid, Shield, ChevronRight, Sparkles } from 'lucide-react';
+import { Plus, Trash2, BookOpen, Award, TrendingUp, AlertCircle, CheckCircle, GraduationCap, Edit2, X, Clock, PlayCircle, ChevronDown, ChevronUp, Search, Save, Cloud, CloudOff, RefreshCw, LogOut, User, Wifi, WifiOff, Download, Upload as UploadIcon, RotateCcw, Sun, Moon, Monitor, List, LayoutGrid, Shield, ChevronRight, Sparkles, Settings } from 'lucide-react';
 import { useNotas } from './useNotas';
 import { useAuth } from './AuthContext';
 import ImportModal from './ImportModal';
@@ -63,7 +63,7 @@ const GradientButton = ({ children, onClick, disabled, variant = 'primary', clas
 };
 
 export default function SistemaNotas({ onOpenAdmin }) {
-  const { user, userName, userCurso, isNewUser, updateUserCurso, signOut } = useAuth();
+  const { user, userName, userCurso, isNewUser, updateUserCurso, updateUserProfile, signOut } = useAuth();
   const {
     disciplinas,
     setDisciplinas,
@@ -101,6 +101,12 @@ export default function SistemaNotas({ onOpenAdmin }) {
   const [cursoInput, setCursoInput] = useState('');
   const [savingCurso, setSavingCurso] = useState(false);
 
+  // Modal de configurações
+  const [showSettingsModal, setShowSettingsModal] = useState(false);
+  const [settingsNome, setSettingsNome] = useState('');
+  const [settingsCurso, setSettingsCurso] = useState('');
+  const [savingSettings, setSavingSettings] = useState(false);
+
   // Mostrar modal de boas-vindas para novos usuários
   useEffect(() => {
     if (isNewUser && !loading) {
@@ -114,6 +120,19 @@ export default function SistemaNotas({ onOpenAdmin }) {
     await updateUserCurso(cursoInput.trim());
     setSavingCurso(false);
     setShowWelcomeModal(false);
+  };
+
+  const openSettings = () => {
+    setSettingsNome(userName || '');
+    setSettingsCurso(userCurso || '');
+    setShowSettingsModal(true);
+  };
+
+  const handleSaveSettings = async () => {
+    setSavingSettings(true);
+    await updateUserProfile(settingsNome.trim(), settingsCurso.trim());
+    setSavingSettings(false);
+    setShowSettingsModal(false);
   };
   
   const [semestreAtualAno, setSemestreAtualAno] = useState(() => {
@@ -343,6 +362,9 @@ export default function SistemaNotas({ onOpenAdmin }) {
                   <Shield size={18} className="text-violet-400" />
                 </button>
               )}
+              <button onClick={openSettings} className="p-2.5 sm:p-3 rounded-2xl bg-white/5 border border-white/10 hover:bg-white/10 transition-all">
+                <Settings size={18} className="text-slate-400" />
+              </button>
               <div className="hidden sm:flex items-center gap-3 px-4 py-2.5 rounded-2xl bg-white/5 border border-white/10">
                 <div className="w-9 h-9 rounded-full bg-gradient-to-br from-violet-500 to-pink-500 flex items-center justify-center text-sm font-semibold">
                   {user?.email?.charAt(0).toUpperCase()}
@@ -1073,6 +1095,83 @@ export default function SistemaNotas({ onOpenAdmin }) {
                     <>
                       <CheckCircle size={18} />
                       Confirmar
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Modal Configurações */}
+        {showSettingsModal && (
+          <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={(e) => e.target === e.currentTarget && setShowSettingsModal(false)}>
+            <div className="bg-gradient-to-br from-slate-800 to-slate-900 border border-white/10 rounded-3xl p-8 max-w-md w-full shadow-2xl">
+              {/* Header */}
+              <div className="flex items-center gap-4 mb-6">
+                <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-slate-600 to-slate-700 flex items-center justify-center">
+                  <Settings size={28} className="text-white" />
+                </div>
+                <div>
+                  <h2 className="text-xl font-bold text-white">Configurações</h2>
+                  <p className="text-slate-400 text-sm">Edite suas informações</p>
+                </div>
+              </div>
+
+              {/* Formulário */}
+              <div className="space-y-4 mb-6">
+                {/* Email (somente leitura) */}
+                <div>
+                  <label className="text-sm text-slate-400 block mb-2">Email</label>
+                  <div className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-slate-500">
+                    {user?.email}
+                  </div>
+                </div>
+
+                {/* Nome */}
+                <div>
+                  <label className="text-sm text-slate-400 block mb-2">Nome</label>
+                  <input
+                    type="text"
+                    value={settingsNome}
+                    onChange={(e) => setSettingsNome(e.target.value)}
+                    className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white focus:outline-none focus:border-violet-500 transition-colors"
+                    placeholder="Seu nome"
+                  />
+                </div>
+
+                {/* Curso */}
+                <div>
+                  <label className="text-sm text-slate-400 block mb-2">Curso</label>
+                  <input
+                    type="text"
+                    value={settingsCurso}
+                    onChange={(e) => setSettingsCurso(e.target.value)}
+                    className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white focus:outline-none focus:border-violet-500 transition-colors"
+                    placeholder="Ex: Ciência da Computação"
+                  />
+                </div>
+              </div>
+
+              {/* Botões */}
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setShowSettingsModal(false)}
+                  className="flex-1 py-3 rounded-xl bg-white/5 border border-white/10 text-slate-400 font-medium hover:bg-white/10 transition-colors"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={handleSaveSettings}
+                  disabled={savingSettings}
+                  className="flex-1 py-3 rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 text-white font-medium hover:from-violet-500 hover:to-indigo-500 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+                >
+                  {savingSettings ? (
+                    <RefreshCw size={18} className="animate-spin" />
+                  ) : (
+                    <>
+                      <Save size={18} />
+                      Salvar
                     </>
                   )}
                 </button>

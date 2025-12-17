@@ -57,6 +57,27 @@ export const AuthProvider = ({ children }) => {
     }
   }, [user]);
 
+  // Função para atualizar perfil completo (nome e curso)
+  const updateUserProfile = useCallback(async (nome, curso) => {
+    if (!user || !supabase) return { error: 'Não autenticado' };
+    try {
+      const { error } = await supabase
+        .from('usuarios_autorizados')
+        .update({ nome, curso })
+        .eq('email', user.email.toLowerCase());
+      
+      if (error) {
+        return { error: error.message };
+      }
+      
+      setUserName(nome || null);
+      setUserCurso(curso || null);
+      return { success: true };
+    } catch (err) {
+      return { error: err.message };
+    }
+  }, [user]);
+
   useEffect(() => {
     if (!isSupabaseConfigured() || !supabase) {
       setLoading(false);
@@ -200,7 +221,7 @@ export const AuthProvider = ({ children }) => {
     <AuthContext.Provider value={{
       user, userName, userCurso, isNewUser, loading, authError,
       signInWithEmail, signUpWithEmail, signInWithGoogle,
-      signOut, verificarAutorizacao, clearAuthError, updateUserCurso,
+      signOut, verificarAutorizacao, clearAuthError, updateUserCurso, updateUserProfile,
     }}>
       {children}
     </AuthContext.Provider>
