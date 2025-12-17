@@ -38,21 +38,30 @@ export const AuthProvider = ({ children }) => {
 
   // Função para atualizar o curso do usuário
   const updateUserCurso = useCallback(async (curso) => {
-    if (!user || !supabase) return { error: 'Não autenticado' };
+    if (!user || !supabase) {
+      console.error('updateUserCurso: Não autenticado');
+      return { error: 'Não autenticado' };
+    }
     try {
-      const { error } = await supabase
+      console.log('Salvando curso:', curso, 'para email:', user.email);
+      
+      const { data, error } = await supabase
         .from('usuarios_autorizados')
         .update({ curso })
-        .eq('email', user.email.toLowerCase());
+        .eq('email', user.email.toLowerCase())
+        .select();
       
       if (error) {
+        console.error('Erro ao salvar curso:', error);
         return { error: error.message };
       }
       
+      console.log('Curso salvo com sucesso:', data);
       setUserCurso(curso);
       setIsNewUser(false);
       return { success: true };
     } catch (err) {
+      console.error('Erro inesperado:', err);
       return { error: err.message };
     }
   }, [user]);

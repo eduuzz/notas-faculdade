@@ -120,13 +120,21 @@ export default function SistemaNotas({ onOpenAdmin }) {
   const handleSaveCurso = async () => {
     if (!cursoInput.trim()) return;
     setSavingCurso(true);
-    await updateUserCurso(cursoInput.trim());
-    setSavingCurso(false);
-    setShowWelcomeModal(false);
-    // Marcar que o modal foi mostrado
-    if (user) {
-      localStorage.setItem(`welcomeShown_${user.id}`, 'true');
+    
+    const result = await updateUserCurso(cursoInput.trim());
+    
+    if (result.error) {
+      console.error('Erro ao salvar curso:', result.error);
+      alert('Erro ao salvar curso. Verifique o console.');
+    } else {
+      setShowWelcomeModal(false);
+      // Marcar que o modal foi mostrado
+      if (user) {
+        localStorage.setItem(`welcomeShown_${user.id}`, 'true');
+      }
     }
+    
+    setSavingCurso(false);
   };
 
   const handleSkipWelcome = () => {
