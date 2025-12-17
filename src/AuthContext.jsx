@@ -7,6 +7,7 @@ export const useAuth = () => useContext(AuthContext);
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
+  const [userName, setUserName] = useState(null);
   const [loading, setLoading] = useState(true);
   const [authError, setAuthError] = useState(null);
   const isInitialLoad = useRef(true);
@@ -16,11 +17,15 @@ export const AuthProvider = ({ children }) => {
     try {
       const { data, error } = await supabase
         .from('usuarios_autorizados')
-        .select('id')
+        .select('id, nome')
         .eq('email', email.toLowerCase())
         .eq('ativo', true)
         .single();
-      return !error && data;
+      if (!error && data) {
+        setUserName(data.nome || null);
+        return true;
+      }
+      return false;
     } catch (err) {
       return false;
     }
@@ -167,7 +172,7 @@ export const AuthProvider = ({ children }) => {
 
   return (
     <AuthContext.Provider value={{
-      user, loading, authError,
+      user, userName, loading, authError,
       signInWithEmail, signUpWithEmail, signInWithGoogle,
       signOut, verificarAutorizacao, clearAuthError,
     }}>
