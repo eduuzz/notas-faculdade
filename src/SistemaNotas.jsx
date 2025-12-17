@@ -321,35 +321,33 @@ export default function SistemaNotas({ onOpenAdmin }) {
           </div>
         </header>
 
-        {/* Tabs + Saudação */}
+        {/* Saudação estilo Apple */}
+        <div className="mb-8">
+          <h2 className="text-2xl sm:text-3xl font-semibold tracking-tight text-white mb-1">
+            {(() => {
+              const hora = new Date().getHours();
+              const saudacao = hora >= 5 && hora < 12 ? 'Bom dia' : hora >= 12 && hora < 18 ? 'Boa tarde' : 'Boa noite';
+              const primeiroNome = userName ? userName.split(' ')[0] : user?.email?.split('@')[0];
+              return `${saudacao}, ${primeiroNome}`;
+            })()}
+          </h2>
+          <p className="text-slate-500 text-sm sm:text-base">Continue de onde parou</p>
+        </div>
+
+        {/* Tabs */}
         <nav className="mb-8 overflow-x-auto">
-          <div className="flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-6">
-            <div className="inline-flex p-1.5 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-xl">
-              {[
-                { id: 'grade', label: '📚 Grade', icon: BookOpen },
-                { id: 'emCurso', label: '⏱️ Em Curso', icon: Clock },
-                { id: 'dashboard', label: '📊 Dashboard', icon: TrendingUp },
-                { id: 'formatura', label: '🎓 Formatura', icon: GraduationCap },
-              ].map(tab => (
-                <button key={tab.id} onClick={() => setActiveTab(tab.id)} className={`px-4 sm:px-6 py-3 rounded-xl text-sm font-medium transition-all duration-300 whitespace-nowrap ${activeTab === tab.id ? 'bg-white/10 text-white shadow-lg' : 'text-slate-400 hover:text-white'}`}>
-                  <span className="hidden sm:inline">{tab.label}</span>
-                  <tab.icon size={18} className="sm:hidden" />
-                </button>
-              ))}
-            </div>
-            
-            {/* Saudação */}
-            <div className="hidden sm:flex items-center gap-2 text-slate-400">
-              <Sparkles size={18} className="text-amber-400" />
-              <span className="text-sm">
-                {(() => {
-                  const hora = new Date().getHours();
-                  const saudacao = hora >= 5 && hora < 12 ? 'Bom dia' : hora >= 12 && hora < 18 ? 'Boa tarde' : 'Boa noite';
-                  const primeiroNome = userName ? userName.split(' ')[0] : user?.email?.split('@')[0];
-                  return `${saudacao}, ${primeiroNome}!`;
-                })()}
-              </span>
-            </div>
+          <div className="inline-flex p-1.5 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-xl">
+            {[
+              { id: 'grade', label: '📚 Grade', icon: BookOpen },
+              { id: 'emCurso', label: '⏱️ Em Curso', icon: Clock },
+              { id: 'dashboard', label: '📊 Dashboard', icon: TrendingUp },
+              { id: 'formatura', label: '🎓 Formatura', icon: GraduationCap },
+            ].map(tab => (
+              <button key={tab.id} onClick={() => setActiveTab(tab.id)} className={`px-4 sm:px-6 py-3 rounded-xl text-sm font-medium transition-all duration-300 whitespace-nowrap ${activeTab === tab.id ? 'bg-white/10 text-white shadow-lg' : 'text-slate-400 hover:text-white'}`}>
+                <span className="hidden sm:inline">{tab.label}</span>
+                <tab.icon size={18} className="sm:hidden" />
+              </button>
+            ))}
           </div>
         </nav>
 
