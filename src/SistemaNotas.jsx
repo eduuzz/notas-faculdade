@@ -323,15 +323,14 @@ export default function SistemaNotas({ onOpenAdmin }) {
 
         {/* Saudação estilo Apple */}
         <div className="mb-8">
-          <h2 className="text-2xl sm:text-3xl font-semibold tracking-tight text-white mb-1">
+          <h2 className="text-2xl sm:text-3xl font-semibold tracking-tight text-white">
             {(() => {
               const hora = new Date().getHours();
               const saudacao = hora >= 5 && hora < 12 ? 'Bom dia' : hora >= 12 && hora < 18 ? 'Boa tarde' : 'Boa noite';
               const primeiroNome = userName ? userName.split(' ')[0] : user?.email?.split('@')[0];
-              return `${saudacao}, ${primeiroNome}`;
+              return `${saudacao}, ${primeiroNome}!`;
             })()}
           </h2>
-          <p className="text-slate-500 text-sm sm:text-base">Continue de onde parou</p>
         </div>
 
         {/* Tabs */}
