@@ -586,14 +586,28 @@ export default function SistemaNotas({ onOpenAdmin }) {
                                   <div className="flex items-center gap-4">
                                     {disc.status === 'NAO_INICIADA' ? (
                                       <button onClick={() => setShowIniciarModal(disc.id)} className="px-4 py-2 rounded-xl bg-white/5 border border-white/10 text-sm font-medium text-slate-400 hover:text-white hover:bg-white/10 transition-all">Iniciar</button>
-                                    ) : disc.notaFinal ? (
-                                      <div className="text-right">
-                                        <p className="text-2xl font-semibold">{disc.notaFinal.toFixed(1)}</p>
-                                        <p className="text-xs text-slate-500">Nota Final</p>
+                                    ) : (disc.ga !== null || disc.gb !== null || disc.notaFinal !== null) ? (
+                                      <div className="flex items-center gap-4">
+                                        {/* GA e GB */}
+                                        <div className="hidden sm:flex items-center gap-3 text-sm">
+                                          <div className="text-center">
+                                            <p className="text-slate-500 text-xs mb-0.5">GA</p>
+                                            <p className="font-medium text-slate-300">{disc.ga !== null ? disc.ga.toFixed(1) : '-'}</p>
+                                          </div>
+                                          <div className="text-center">
+                                            <p className="text-slate-500 text-xs mb-0.5">GB</p>
+                                            <p className="font-medium text-slate-300">{disc.gb !== null ? disc.gb.toFixed(1) : '-'}</p>
+                                          </div>
+                                        </div>
+                                        {/* Nota Final */}
+                                        {disc.notaFinal !== null && (
+                                          <div className="text-right">
+                                            <p className="text-2xl font-semibold">{disc.notaFinal.toFixed(1)}</p>
+                                            <p className="text-xs text-slate-500">Final</p>
+                                          </div>
+                                        )}
                                       </div>
-                                    ) : (disc.ga !== null || disc.gb !== null) && (
-                                      <p className="text-sm text-slate-400">GA: {disc.ga ?? '-'} | GB: {disc.gb ?? '-'}</p>
-                                    )}
+                                    ) : null}
                                     <div className="flex items-center gap-1">
                                       {disc.status !== 'NAO_INICIADA' && (
                                         <button onClick={() => startEditNotas(disc)} className="p-2 rounded-xl hover:bg-white/10 text-slate-500 hover:text-white transition-all"><Edit2 size={16} /></button>
