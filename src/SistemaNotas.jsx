@@ -1436,7 +1436,11 @@ export default function SistemaNotas({ onOpenAdmin }) {
               <div className="mb-6 p-4 rounded-xl bg-gradient-to-br from-violet-500/10 to-indigo-500/10 border border-violet-500/30">
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-3">
-                    {userPlano === 'premium' ? (
+                    {userPlano === 'admin' ? (
+                      <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-red-500 to-rose-600 flex items-center justify-center">
+                        <Shield size={20} className="text-white" />
+                      </div>
+                    ) : userPlano === 'premium' ? (
                       <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center">
                         <Crown size={20} className="text-white" />
                       </div>
@@ -1451,14 +1455,14 @@ export default function SistemaNotas({ onOpenAdmin }) {
                     )}
                     <div>
                       <p className="font-semibold text-white capitalize">Plano {userPlano || 'Pro'}</p>
-                      {userPlanoExpiraEm && (
+                      {userPlanoExpiraEm && userPlano !== 'admin' && (
                         <p className="text-xs text-slate-400">
                           Expira em {new Date(userPlanoExpiraEm).toLocaleDateString('pt-BR')}
                         </p>
                       )}
                     </div>
                   </div>
-                  {userPlano !== 'premium' && (
+                  {userPlano !== 'premium' && userPlano !== 'admin' && (
                     <button
                       onClick={() => {
                         setShowSettingsModal(false);
@@ -1471,7 +1475,9 @@ export default function SistemaNotas({ onOpenAdmin }) {
                   )}
                 </div>
                 <div className="text-xs text-slate-400">
-                  {userPlano === 'premium' ? (
+                  {userPlano === 'admin' ? (
+                    '🛡️ Administrador - Acesso total ao sistema'
+                  ) : userPlano === 'premium' ? (
                     '✨ Você tem acesso a todas as funcionalidades!'
                   ) : userPlano === 'pro' ? (
                     'Faça upgrade para Premium e desbloqueie simulador de notas, múltiplos cursos e mais!'

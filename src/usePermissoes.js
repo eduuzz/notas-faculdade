@@ -15,6 +15,7 @@ const PERMISSOES_POR_PLANO = {
     metasAlertas: false,
     backupExportar: false,
     suportePrioritario: false,
+    acessoAdmin: false,
   },
   pro: {
     limiteDisciplinas: Infinity,
@@ -28,6 +29,7 @@ const PERMISSOES_POR_PLANO = {
     metasAlertas: false,
     backupExportar: false,
     suportePrioritario: false,
+    acessoAdmin: false,
   },
   premium: {
     limiteDisciplinas: Infinity,
@@ -41,6 +43,21 @@ const PERMISSOES_POR_PLANO = {
     metasAlertas: true,
     backupExportar: true,
     suportePrioritario: true,
+    acessoAdmin: false,
+  },
+  admin: {
+    limiteDisciplinas: Infinity,
+    dashboardCompleto: true,
+    dashboardPersonalizavel: true,
+    exportarPdf: true,
+    exportarPdfGraficos: true,
+    previsaoFormatura: true,
+    simuladorNotas: true,
+    multiplosCursos: true,
+    metasAlertas: true,
+    backupExportar: true,
+    suportePrioritario: true,
+    acessoAdmin: true,
   }
 };
 
@@ -57,6 +74,7 @@ export const FUNCIONALIDADES_LABELS = {
   metasAlertas: 'Metas e alertas',
   backupExportar: 'Backup/Exportar dados',
   suportePrioritario: 'Suporte prioritário',
+  acessoAdmin: 'Painel administrativo',
 };
 
 // Plano mínimo necessário para cada funcionalidade
@@ -72,6 +90,7 @@ export const PLANO_MINIMO = {
   metasAlertas: 'premium',
   backupExportar: 'premium',
   suportePrioritario: 'premium',
+  acessoAdmin: 'admin',
 };
 
 export function usePermissoes() {
@@ -107,9 +126,12 @@ export function usePermissoes() {
 
   // Verifica se o plano atual é igual ou superior ao necessário
   const planoSuficiente = (planoNecessario) => {
-    const hierarquia = { basico: 1, pro: 2, premium: 3 };
+    const hierarquia = { basico: 1, pro: 2, premium: 3, admin: 4 };
     return hierarquia[planoAtual] >= hierarquia[planoNecessario];
   };
+
+  // Verifica se é admin
+  const isAdmin = planoAtual === 'admin';
 
   return {
     planoAtual,
@@ -119,6 +141,7 @@ export function usePermissoes() {
     podeAdicionarDisciplina,
     planoNecessario,
     planoSuficiente,
+    isAdmin,
   };
 }
 
