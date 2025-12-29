@@ -229,6 +229,7 @@ export default function AdminPanel({ onClose }) {
     if (!modalPlano) return;
     setActionLoading(modalPlano.id);
     setErro('');
+    setSucesso('');
     
     try {
       const updateData = { 
@@ -236,20 +237,37 @@ export default function AdminPanel({ onClose }) {
         plano_expira_em: editExpiracao ? new Date(editExpiracao).toISOString() : null
       };
 
-      const { error } = await supabase
+      console.log('Salvando plano:', { id: modalPlano.id, ...updateData });
+
+      const { data, error } = await supabase
         .from('usuarios_autorizados')
         .update(updateData)
-        .eq('id', modalPlano.id);
+        .eq('id', modalPlano.id)
+        .select();
+
+      console.log('Resposta:', { data, error });
 
       if (error) {
+        console.error('Erro Supabase:', error);
         setErro('Erro ao salvar plano: ' + error.message);
+      } else if (!data || data.length === 0) {
+        setErro('Nenhum registro atualizado. Verifique se as colunas existem no banco.');
       } else {
+        // Atualiza o usuário localmente para refletir a mudança imediatamente
+        setUsuarios(prev => prev.map(u => 
+          u.id === modalPlano.id 
+            ? { ...u, plano: editPlano, plano_expira_em: editExpiracao ? new Date(editExpiracao).toISOString() : null }
+            : u
+        ));
         setSucesso(`Plano de ${modalPlano.email} atualizado para ${editPlano.toUpperCase()}!`);
         setModalPlano(null);
-        carregarDados();
+        
+        // Recarrega do banco também para garantir sincronia
+        setTimeout(() => carregarDados(), 500);
       }
     } catch (err) {
-      setErro('Erro inesperado');
+      console.error('Erro catch:', err);
+      setErro('Erro inesperado: ' + err.message);
     }
     setActionLoading(null);
   };
