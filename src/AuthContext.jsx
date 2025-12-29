@@ -9,6 +9,8 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [userName, setUserName] = useState(null);
   const [userCurso, setUserCurso] = useState(null);
+  const [userPlano, setUserPlano] = useState(null);
+  const [userPlanoExpiraEm, setUserPlanoExpiraEm] = useState(null);
   const [isNewUser, setIsNewUser] = useState(false);
   const [loading, setLoading] = useState(true);
   const [authError, setAuthError] = useState(null);
@@ -19,13 +21,15 @@ export const AuthProvider = ({ children }) => {
     try {
       const { data, error } = await supabase
         .from('usuarios_autorizados')
-        .select('id, nome, curso')
+        .select('id, nome, curso, plano, plano_expira_em')
         .eq('email', email.toLowerCase())
         .eq('ativo', true)
         .single();
       if (!error && data) {
         setUserName(data.nome || null);
         setUserCurso(data.curso || null);
+        setUserPlano(data.plano || 'pro');
+        setUserPlanoExpiraEm(data.plano_expira_em || null);
         // Se não tem curso, é novo usuário
         setIsNewUser(!data.curso);
         return true;
@@ -228,7 +232,7 @@ export const AuthProvider = ({ children }) => {
 
   return (
     <AuthContext.Provider value={{
-      user, userName, userCurso, isNewUser, loading, authError,
+      user, userName, userCurso, userPlano, userPlanoExpiraEm, isNewUser, loading, authError,
       signInWithEmail, signUpWithEmail, signInWithGoogle,
       signOut, verificarAutorizacao, clearAuthError, updateUserCurso, updateUserProfile,
     }}>

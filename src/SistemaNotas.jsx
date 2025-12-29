@@ -1,9 +1,10 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import { Plus, Trash2, BookOpen, Award, TrendingUp, AlertCircle, CheckCircle, GraduationCap, Edit2, X, Clock, PlayCircle, ChevronDown, ChevronUp, Search, Save, Cloud, CloudOff, RefreshCw, LogOut, User, Wifi, WifiOff, Download, Upload as UploadIcon, RotateCcw, Sun, Moon, Monitor, List, LayoutGrid, Shield, ChevronRight, Sparkles, Settings } from 'lucide-react';
+import { Plus, Trash2, BookOpen, Award, TrendingUp, AlertCircle, CheckCircle, GraduationCap, Edit2, X, Clock, PlayCircle, ChevronDown, ChevronUp, Search, Save, Cloud, CloudOff, RefreshCw, LogOut, User, Wifi, WifiOff, Download, Upload as UploadIcon, RotateCcw, Sun, Moon, Monitor, List, LayoutGrid, Shield, ChevronRight, Sparkles, Settings, Crown, Zap, Star } from 'lucide-react';
 import { useNotas } from './useNotas';
 import { useAuth } from './AuthContext';
 import ImportModal from './ImportModal';
+import UpgradeModal from './UpgradeModal';
 
 // Configuração de status com cores estilo Apple
 const STATUS = {
@@ -63,7 +64,7 @@ const GradientButton = ({ children, onClick, disabled, variant = 'primary', clas
 };
 
 export default function SistemaNotas({ onOpenAdmin }) {
-  const { user, userName, userCurso, isNewUser, updateUserCurso, updateUserProfile, signOut } = useAuth();
+  const { user, userName, userCurso, userPlano, userPlanoExpiraEm, isNewUser, updateUserCurso, updateUserProfile, signOut } = useAuth();
   const {
     disciplinas,
     setDisciplinas,
@@ -106,6 +107,9 @@ export default function SistemaNotas({ onOpenAdmin }) {
   const [settingsNome, setSettingsNome] = useState('');
   const [settingsCurso, setSettingsCurso] = useState('');
   const [savingSettings, setSavingSettings] = useState(false);
+  
+  // Modal de upgrade de plano
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
 
   // Mostrar modal de boas-vindas APENAS na primeira vez (usando localStorage)
   useEffect(() => {
@@ -1143,7 +1147,7 @@ export default function SistemaNotas({ onOpenAdmin }) {
         {/* Modal Configurações */}
         {showSettingsModal && (
           <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={(e) => e.target === e.currentTarget && setShowSettingsModal(false)}>
-            <div className="bg-gradient-to-br from-slate-800 to-slate-900 border border-white/10 rounded-3xl p-8 max-w-md w-full shadow-2xl">
+            <div className="bg-gradient-to-br from-slate-800 to-slate-900 border border-white/10 rounded-3xl p-8 max-w-md w-full shadow-2xl max-h-[90vh] overflow-y-auto">
               {/* Header */}
               <div className="flex items-center gap-4 mb-6">
                 <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-slate-600 to-slate-700 flex items-center justify-center">
@@ -1152,6 +1156,55 @@ export default function SistemaNotas({ onOpenAdmin }) {
                 <div>
                   <h2 className="text-xl font-bold text-white">Configurações</h2>
                   <p className="text-slate-400 text-sm">Edite suas informações</p>
+                </div>
+              </div>
+
+              {/* Seção do Plano */}
+              <div className="mb-6 p-4 rounded-xl bg-gradient-to-br from-violet-500/10 to-indigo-500/10 border border-violet-500/30">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-3">
+                    {userPlano === 'premium' ? (
+                      <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center">
+                        <Crown size={20} className="text-white" />
+                      </div>
+                    ) : userPlano === 'pro' ? (
+                      <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-violet-500 to-indigo-600 flex items-center justify-center">
+                        <Star size={20} className="text-white" />
+                      </div>
+                    ) : (
+                      <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-slate-500 to-slate-600 flex items-center justify-center">
+                        <Zap size={20} className="text-white" />
+                      </div>
+                    )}
+                    <div>
+                      <p className="font-semibold text-white capitalize">Plano {userPlano || 'Pro'}</p>
+                      {userPlanoExpiraEm && (
+                        <p className="text-xs text-slate-400">
+                          Expira em {new Date(userPlanoExpiraEm).toLocaleDateString('pt-BR')}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                  {userPlano !== 'premium' && (
+                    <button
+                      onClick={() => {
+                        setShowSettingsModal(false);
+                        setShowUpgradeModal(true);
+                      }}
+                      className="px-3 py-1.5 rounded-lg bg-gradient-to-r from-violet-600 to-indigo-600 text-white text-xs font-medium hover:from-violet-500 hover:to-indigo-500 transition-all"
+                    >
+                      Upgrade
+                    </button>
+                  )}
+                </div>
+                <div className="text-xs text-slate-400">
+                  {userPlano === 'premium' ? (
+                    '✨ Você tem acesso a todas as funcionalidades!'
+                  ) : userPlano === 'pro' ? (
+                    'Faça upgrade para Premium e desbloqueie simulador de notas, múltiplos cursos e mais!'
+                  ) : (
+                    'Faça upgrade para ter disciplinas ilimitadas, PDF e previsão de formatura!'
+                  )}
                 </div>
               </div>
 
@@ -1215,6 +1268,16 @@ export default function SistemaNotas({ onOpenAdmin }) {
               </div>
             </div>
           </div>
+        )}
+
+        {/* Modal Upgrade de Plano */}
+        {showUpgradeModal && (
+          <UpgradeModal 
+            planoAtual={userPlano} 
+            userEmail={user?.email}
+            userName={userName}
+            onClose={() => setShowUpgradeModal(false)} 
+          />
         )}
 
         {/* FAB Mobile */}
