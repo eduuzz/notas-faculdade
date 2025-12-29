@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Shield, ArrowLeft, RefreshCw, Check, X, Eye, Search, UserPlus, Trash2, Users, FileText, AlertTriangle, Loader2, Mail, Calendar, Edit3, Save, UserX } from 'lucide-react';
+import { Shield, ArrowLeft, RefreshCw, Check, X, Eye, Search, UserPlus, Trash2, Users, FileText, AlertTriangle, Loader2, Mail, Calendar, Edit3, Save, UserX, Crown, Star, Zap } from 'lucide-react';
 import { useAuth } from './AuthContext';
 import { supabase } from './supabaseClient';
 
@@ -24,6 +24,11 @@ export default function AdminPanel({ onClose }) {
   const [modalExclusao, setModalExclusao] = useState(null);
   const [modalEditar, setModalEditar] = useState(null);
   const [editNome, setEditNome] = useState('');
+  
+  // Modal de plano
+  const [modalPlano, setModalPlano] = useState(null);
+  const [editPlano, setEditPlano] = useState('pro');
+  const [editExpiracao, setEditExpiracao] = useState('');
 
   const isAdmin = user?.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase();
 
@@ -57,23 +62,54 @@ export default function AdminPanel({ onClose }) {
     setSucesso('');
     try {
       const jaAutorizado = usuarios.find(u => u.email === pedido.email.toLowerCase());
+      
+      // Calcular data de expiração baseada no período
+      let dataExpiracao = null;
+      if (pedido.periodo) {
+        const agora = new Date();
+        if (pedido.periodo === 'mensal') {
+          agora.setMonth(agora.getMonth() + 1);
+        } else if (pedido.periodo === 'semestral') {
+          agora.setMonth(agora.getMonth() + 6);
+        } else if (pedido.periodo === 'anual') {
+          agora.setFullYear(agora.getFullYear() + 1);
+        }
+        dataExpiracao = agora.toISOString();
+      }
+      
       if (!jaAutorizado) {
         const { error: insertError } = await supabase
           .from('usuarios_autorizados')
-          .insert([{ email: pedido.email.toLowerCase(), ativo: true, nome: pedido.nome }]);
+          .insert([{ 
+            email: pedido.email.toLowerCase(), 
+            ativo: true, 
+            nome: pedido.nome,
+            plano: pedido.plano || 'pro',
+            plano_expira_em: dataExpiracao
+          }]);
         if (insertError) {
           setErro('Erro ao autorizar: ' + insertError.message);
           setActionLoading(null);
           return;
         }
+      } else {
+        // Atualizar plano do usuário existente
+        await supabase
+          .from('usuarios_autorizados')
+          .update({ 
+            plano: pedido.plano || 'pro',
+            plano_expira_em: dataExpiracao
+          })
+          .eq('email', pedido.email.toLowerCase());
       }
+      
       const { error: updateError } = await supabase
         .from('pedidos')
         .update({ status: 'APROVADO', updated_at: new Date().toISOString() })
         .eq('id', pedido.id);
       if (updateError) setErro('Erro ao aprovar');
       else {
-        setSucesso(`Pedido de ${pedido.nome} aprovado!`);
+        setSucesso(`Pedido de ${pedido.nome} aprovado! Plano: ${(pedido.plano || 'pro').toUpperCase()}`);
         carregarDados();
       }
     } catch (err) {
@@ -186,6 +222,43 @@ export default function AdminPanel({ onClose }) {
       setErro('Erro inesperado ao excluir usuário');
     }
     setActionLoading(null);
+  };
+
+  // Salvar plano do usuário
+  const salvarPlano = async () => {
+    if (!modalPlano) return;
+    setActionLoading(modalPlano.id);
+    setErro('');
+    
+    try {
+      const updateData = { 
+        plano: editPlano,
+        plano_expira_em: editExpiracao ? new Date(editExpiracao).toISOString() : null
+      };
+
+      const { error } = await supabase
+        .from('usuarios_autorizados')
+        .update(updateData)
+        .eq('id', modalPlano.id);
+
+      if (error) {
+        setErro('Erro ao salvar plano: ' + error.message);
+      } else {
+        setSucesso(`Plano de ${modalPlano.email} atualizado para ${editPlano.toUpperCase()}!`);
+        setModalPlano(null);
+        carregarDados();
+      }
+    } catch (err) {
+      setErro('Erro inesperado');
+    }
+    setActionLoading(null);
+  };
+
+  // Abrir modal de plano
+  const abrirModalPlano = (usuario) => {
+    setModalPlano(usuario);
+    setEditPlano(usuario.plano || 'pro');
+    setEditExpiracao(usuario.plano_expira_em ? usuario.plano_expira_em.split('T')[0] : '');
   };
 
   // Filtros de pedidos
@@ -394,19 +467,51 @@ export default function AdminPanel({ onClose }) {
                         <span className={`px-2 py-0.5 rounded text-xs font-medium ${getStatusColor(pedido.status)}`}>
                           {getStatusLabel(pedido.status)}
                         </span>
+                        {/* Badge do Plano solicitado */}
+                        {pedido.plano && (
+                          <span className={`px-2 py-0.5 rounded-full text-xs font-medium flex items-center gap-1 ${
+                            pedido.plano === 'premium' ? 'bg-amber-500/20 text-amber-300' :
+                            pedido.plano === 'basico' ? 'bg-slate-500/20 text-slate-300' :
+                            'bg-violet-500/20 text-violet-300'
+                          }`}>
+                            {pedido.plano === 'premium' ? <Crown size={10} /> :
+                             pedido.plano === 'basico' ? <Zap size={10} /> :
+                             <Star size={10} />}
+                            {pedido.plano.toUpperCase()}
+                          </span>
+                        )}
+                        {/* Período */}
+                        {pedido.periodo && (
+                          <span className="px-2 py-0.5 rounded bg-slate-700 text-slate-300 text-xs">
+                            {pedido.periodo}
+                          </span>
+                        )}
                       </div>
                       <p className="text-slate-400 text-sm flex items-center gap-1">
                         <Mail size={14} />
                         {pedido.email}
                       </p>
-                      <p className="text-slate-500 text-xs mt-1 flex items-center gap-1">
-                        <Calendar size={12} />
-                        {new Date(pedido.created_at).toLocaleString('pt-BR')}
-                      </p>
+                      <div className="flex items-center gap-4 mt-1">
+                        <p className="text-slate-500 text-xs flex items-center gap-1">
+                          <Calendar size={12} />
+                          {new Date(pedido.created_at).toLocaleString('pt-BR')}
+                        </p>
+                        {/* Valor do pedido */}
+                        {pedido.valor && (
+                          <p className="text-emerald-400 text-xs font-medium">
+                            R$ {pedido.valor.toFixed(2)}
+                          </p>
+                        )}
+                      </div>
                       {pedido.status === 'USUARIO_EXCLUIDO' && (
                         <p className="text-purple-400 text-xs mt-2 flex items-center gap-1">
                           <UserX size={12} />
                           Este usuário foi excluído do sistema
+                        </p>
+                      )}
+                      {pedido.tipo === 'UPGRADE' && (
+                        <p className="text-amber-400 text-xs mt-1 flex items-center gap-1">
+                          ⬆️ Upgrade de plano
                         </p>
                       )}
                     </div>
@@ -514,6 +619,19 @@ export default function AdminPanel({ onClose }) {
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-1 flex-wrap">
                         <span className="font-medium text-white">{usuario.email}</span>
+                        {/* Badge do Plano */}
+                        <span className={`px-2 py-0.5 rounded-full text-xs font-medium flex items-center gap-1 ${
+                          usuario.plano === 'admin' ? 'bg-red-500/20 text-red-300' :
+                          usuario.plano === 'premium' ? 'bg-amber-500/20 text-amber-300' :
+                          usuario.plano === 'basico' ? 'bg-slate-500/20 text-slate-300' :
+                          'bg-violet-500/20 text-violet-300'
+                        }`}>
+                          {usuario.plano === 'admin' ? <Shield size={10} /> :
+                           usuario.plano === 'premium' ? <Crown size={10} /> :
+                           usuario.plano === 'basico' ? <Zap size={10} /> :
+                           <Star size={10} />}
+                          {(usuario.plano || 'pro').toUpperCase()}
+                        </span>
                       </div>
                       <div className="flex items-center gap-2">
                         {usuario.nome ? (
@@ -532,12 +650,31 @@ export default function AdminPanel({ onClose }) {
                           <Edit3 size={14} />
                         </button>
                       </div>
-                      <p className="text-slate-500 text-xs mt-1 flex items-center gap-1">
-                        <Calendar size={12} />
-                        Desde: {new Date(usuario.created_at).toLocaleDateString('pt-BR')}
-                      </p>
+                      <div className="flex items-center gap-4 mt-1">
+                        <p className="text-slate-500 text-xs flex items-center gap-1">
+                          <Calendar size={12} />
+                          Desde: {new Date(usuario.created_at).toLocaleDateString('pt-BR')}
+                        </p>
+                        {usuario.plano_expira_em && (
+                          <p className={`text-xs flex items-center gap-1 ${
+                            new Date(usuario.plano_expira_em) < new Date() ? 'text-red-400' : 'text-slate-500'
+                          }`}>
+                            {new Date(usuario.plano_expira_em) < new Date() ? '⚠️ Expirado:' : 'Expira:'}
+                            {new Date(usuario.plano_expira_em).toLocaleDateString('pt-BR')}
+                          </p>
+                        )}
+                      </div>
                     </div>
                     <div className="flex items-center gap-2">
+                      {/* Botão Plano */}
+                      <button
+                        onClick={() => abrirModalPlano(usuario)}
+                        disabled={actionLoading === usuario.id}
+                        className="flex items-center gap-1 px-3 py-1.5 bg-violet-600 hover:bg-violet-500 rounded-lg text-white text-sm transition-colors disabled:opacity-50"
+                      >
+                        <Crown size={16} />
+                        Plano
+                      </button>
                       {/* Botão Excluir */}
                       <button
                         onClick={() => setModalExclusao(usuario)}
@@ -623,6 +760,144 @@ export default function AdminPanel({ onClose }) {
           </div>
         )}
       </div>
+
+      {/* ============================================ */}
+      {/* MODAL: Gerenciar Plano */}
+      {/* ============================================ */}
+      {modalPlano && (
+        <div 
+          className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+          onClick={(e) => e.target === e.currentTarget && setModalPlano(null)}
+        >
+          <div className="bg-gradient-to-br from-slate-800 to-slate-900 border border-slate-700 rounded-2xl p-6 max-w-md w-full shadow-2xl">
+            {/* Header */}
+            <div className="flex items-center gap-4 mb-6">
+              <div className="w-14 h-14 bg-violet-500/20 rounded-2xl flex items-center justify-center">
+                <Crown className="text-violet-400" size={28} />
+              </div>
+              <div>
+                <h2 className="text-xl font-bold text-white">Gerenciar Plano</h2>
+                <p className="text-slate-400 text-sm">{modalPlano.email}</p>
+              </div>
+            </div>
+
+            {/* Seletor de Plano */}
+            <div className="mb-4">
+              <label className="block text-slate-400 text-sm mb-2">Plano</label>
+              <div className="grid grid-cols-2 gap-2">
+                {[
+                  { id: 'basico', label: 'Básico', icon: Zap, cor: 'slate' },
+                  { id: 'pro', label: 'Pro', icon: Star, cor: 'violet' },
+                  { id: 'premium', label: 'Premium', icon: Crown, cor: 'amber' },
+                  { id: 'admin', label: 'Admin', icon: Shield, cor: 'red' },
+                ].map(plano => (
+                  <button
+                    key={plano.id}
+                    onClick={() => setEditPlano(plano.id)}
+                    className={`flex items-center gap-2 p-3 rounded-xl border-2 transition-all ${
+                      editPlano === plano.id 
+                        ? plano.cor === 'slate' ? 'border-slate-400 bg-slate-500/20' :
+                          plano.cor === 'violet' ? 'border-violet-400 bg-violet-500/20' :
+                          plano.cor === 'amber' ? 'border-amber-400 bg-amber-500/20' :
+                          'border-red-400 bg-red-500/20'
+                        : 'border-slate-700 bg-slate-800/50 hover:border-slate-600'
+                    }`}
+                  >
+                    <plano.icon size={18} className={
+                      plano.cor === 'slate' ? 'text-slate-400' :
+                      plano.cor === 'violet' ? 'text-violet-400' :
+                      plano.cor === 'amber' ? 'text-amber-400' :
+                      'text-red-400'
+                    } />
+                    <span className="text-white font-medium">{plano.label}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Data de Expiração */}
+            <div className="mb-6">
+              <label className="block text-slate-400 text-sm mb-2">
+                Data de Expiração 
+                <span className="text-slate-500 ml-1">(opcional)</span>
+              </label>
+              <input
+                type="date"
+                value={editExpiracao}
+                onChange={(e) => setEditExpiracao(e.target.value)}
+                className="w-full px-4 py-3 bg-slate-900 border border-slate-700 rounded-xl text-white focus:outline-none focus:border-violet-500"
+              />
+              {editPlano === 'admin' && (
+                <p className="text-amber-400 text-xs mt-2">
+                  ⚠️ Admin não precisa de data de expiração
+                </p>
+              )}
+              <div className="flex gap-2 mt-2">
+                <button
+                  onClick={() => {
+                    const d = new Date();
+                    d.setMonth(d.getMonth() + 1);
+                    setEditExpiracao(d.toISOString().split('T')[0]);
+                  }}
+                  className="px-2 py-1 text-xs bg-slate-700 hover:bg-slate-600 rounded text-slate-300"
+                >
+                  +1 mês
+                </button>
+                <button
+                  onClick={() => {
+                    const d = new Date();
+                    d.setMonth(d.getMonth() + 6);
+                    setEditExpiracao(d.toISOString().split('T')[0]);
+                  }}
+                  className="px-2 py-1 text-xs bg-slate-700 hover:bg-slate-600 rounded text-slate-300"
+                >
+                  +6 meses
+                </button>
+                <button
+                  onClick={() => {
+                    const d = new Date();
+                    d.setFullYear(d.getFullYear() + 1);
+                    setEditExpiracao(d.toISOString().split('T')[0]);
+                  }}
+                  className="px-2 py-1 text-xs bg-slate-700 hover:bg-slate-600 rounded text-slate-300"
+                >
+                  +1 ano
+                </button>
+                <button
+                  onClick={() => setEditExpiracao('')}
+                  className="px-2 py-1 text-xs bg-slate-700 hover:bg-slate-600 rounded text-slate-300"
+                >
+                  Limpar
+                </button>
+              </div>
+            </div>
+
+            {/* Botões */}
+            <div className="flex gap-3">
+              <button
+                onClick={() => setModalPlano(null)}
+                className="flex-1 py-3 bg-slate-700 hover:bg-slate-600 rounded-xl text-white font-medium transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={salvarPlano}
+                disabled={actionLoading === modalPlano.id}
+                className="flex-1 py-3 bg-violet-600 hover:bg-violet-500 rounded-xl text-white font-medium transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                {actionLoading === modalPlano.id ? (
+                  <Loader2 className="animate-spin" size={20} />
+                ) : (
+                  <>
+                    <Save size={20} />
+                    Salvar
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ============================================ */}
       {/* MODAL: Editar Nome */}
