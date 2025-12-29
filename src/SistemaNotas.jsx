@@ -350,7 +350,18 @@ export default function SistemaNotas({ onOpenAdmin }) {
   };
 
   const exportarPDF = () => {
+    console.log('=== DEBUG PDF ===');
+    console.log('userPlano:', userPlano);
+    console.log('temPermissao exportarPdf:', temPermissao('exportarPdf'));
+    console.log('temPermissao exportarPdfGraficos:', temPermissao('exportarPdfGraficos'));
+    
     const { jsPDF } = window.jspdf;
+    if (!jsPDF) {
+      console.error('jsPDF não está disponível!');
+      alert('Erro: biblioteca PDF não carregada. Recarregue a página.');
+      return;
+    }
+    
     const doc = new jsPDF();
     const podeGraficos = temPermissao('exportarPdfGraficos');
     
@@ -717,7 +728,7 @@ export default function SistemaNotas({ onOpenAdmin }) {
         { value: estatisticas.aprovadas, color: emerald },
         { value: estatisticas.emCurso, color: blue },
         { value: estatisticas.reprovadas, color: red },
-        { value: estatisticas.naoIniciadas, color: gray300 || [209, 213, 219] },
+        { value: estatisticas.naoIniciadas, color: gray400 },
       ];
       
       doc.setFontSize(11);
