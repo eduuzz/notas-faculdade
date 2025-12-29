@@ -357,33 +357,77 @@ export default function SistemaNotas({ onOpenAdmin }) {
     // Cores
     const corPrimaria = [124, 58, 237]; // violet-500
     const corSecundaria = [100, 116, 139]; // slate-500
+    const corVerde = [16, 185, 129]; // emerald-500
+    const corAzul = [59, 130, 246]; // blue-500
+    const corVermelha = [239, 68, 68]; // red-500
+    const corCinza = [148, 163, 184]; // slate-400
     
-    // Header
+    // Header com gradiente simulado
     doc.setFillColor(...corPrimaria);
-    doc.rect(0, 0, 210, 40, 'F');
+    doc.rect(0, 0, 210, 45, 'F');
+    
+    // Título
     doc.setTextColor(255, 255, 255);
-    doc.setFontSize(24);
+    doc.setFontSize(28);
     doc.setFont(undefined, 'bold');
-    doc.text('Grade Curricular', 105, 22, { align: 'center' });
-    doc.setFontSize(11);
+    doc.text('Grade Curricular', 105, 20, { align: 'center' });
+    
+    // Subtítulo (curso)
+    doc.setFontSize(12);
     doc.setFont(undefined, 'normal');
-    doc.text(userCurso || 'Meu Curso', 105, 32, { align: 'center' });
+    doc.text(userCurso || 'Ciencia da Computacao', 105, 30, { align: 'center' });
+    
+    // Linha decorativa
+    doc.setDrawColor(255, 255, 255);
+    doc.setLineWidth(0.5);
+    doc.line(60, 36, 150, 36);
     
     // Info do aluno
-    doc.setTextColor(0, 0, 0);
+    doc.setTextColor(60, 60, 60);
     doc.setFontSize(10);
-    doc.text(`Aluno: ${userName || user?.email}`, 14, 50);
-    doc.text(`Gerado em: ${new Date().toLocaleDateString('pt-BR')} às ${new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`, 14, 56);
+    doc.setFont(undefined, 'normal');
+    doc.text(`Aluno: ${userName || 'Estudante'}`, 14, 55);
+    doc.text(`Gerado em: ${new Date().toLocaleDateString('pt-BR')} as ${new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`, 14, 61);
     
-    // Estatísticas resumidas
-    doc.setFillColor(248, 250, 252);
-    doc.roundedRect(14, 62, 182, 20, 3, 3, 'F');
-    doc.setFontSize(9);
-    doc.setTextColor(...corSecundaria);
-    const statsText = `✓ Aprovadas: ${estatisticas.aprovadas}    ⏱ Em Curso: ${estatisticas.emCurso}    📊 Progresso: ${estatisticas.progresso.toFixed(0)}%    ⭐ Média: ${estatisticas.mediaGeral.toFixed(1)}`;
-    doc.text(statsText, 105, 74, { align: 'center' });
+    // Cards de estatísticas
+    const cardY = 70;
+    const cardWidth = 44;
+    const cardHeight = 22;
+    const cardSpacing = 2;
     
-    let y = 92;
+    const cards = [
+      { label: 'Aprovadas', value: estatisticas.aprovadas, color: corVerde },
+      { label: 'Em Curso', value: estatisticas.emCurso, color: corAzul },
+      { label: 'Progresso', value: `${estatisticas.progresso.toFixed(0)}%`, color: corPrimaria },
+      { label: 'Media Geral', value: estatisticas.mediaGeral.toFixed(1), color: [245, 158, 11] }, // amber
+    ];
+    
+    cards.forEach((card, i) => {
+      const x = 14 + (cardWidth + cardSpacing) * i;
+      
+      // Fundo do card
+      doc.setFillColor(248, 250, 252);
+      doc.roundedRect(x, cardY, cardWidth, cardHeight, 3, 3, 'F');
+      
+      // Barra colorida no topo
+      doc.setFillColor(...card.color);
+      doc.roundedRect(x, cardY, cardWidth, 4, 3, 3, 'F');
+      doc.rect(x, cardY + 2, cardWidth, 2, 'F');
+      
+      // Valor
+      doc.setFontSize(16);
+      doc.setFont(undefined, 'bold');
+      doc.setTextColor(30, 30, 30);
+      doc.text(String(card.value), x + cardWidth/2, cardY + 14, { align: 'center' });
+      
+      // Label
+      doc.setFontSize(7);
+      doc.setFont(undefined, 'normal');
+      doc.setTextColor(...corSecundaria);
+      doc.text(card.label, x + cardWidth/2, cardY + 20, { align: 'center' });
+    });
+    
+    let y = 102;
     
     // Disciplinas por período
     periodos.forEach(periodo => {
@@ -393,154 +437,214 @@ export default function SistemaNotas({ onOpenAdmin }) {
       // Verificar se precisa de nova página
       if (y > 250) { doc.addPage(); y = 20; }
       
-      // Título do período
+      // Header do período
       const aprovadas = discs.filter(d => d.status === 'APROVADA').length;
+      const percentual = Math.round((aprovadas / discs.length) * 100);
+      
       doc.setFillColor(...corPrimaria);
-      doc.roundedRect(14, y - 5, 182, 10, 2, 2, 'F');
+      doc.roundedRect(14, y - 6, 182, 12, 3, 3, 'F');
+      
       doc.setTextColor(255, 255, 255);
       doc.setFontSize(11);
       doc.setFont(undefined, 'bold');
-      doc.text(`${periodo}º Semestre`, 18, y + 2);
+      doc.text(`${periodo}. Semestre`, 20, y + 2);
+      
       doc.setFontSize(9);
       doc.setFont(undefined, 'normal');
-      doc.text(`${aprovadas}/${discs.length} concluídas`, 190, y + 2, { align: 'right' });
-      y += 12;
+      doc.text(`${aprovadas}/${discs.length} concluidas (${percentual}%)`, 188, y + 2, { align: 'right' });
+      
+      y += 14;
       
       // Lista de disciplinas
-      doc.setTextColor(0, 0, 0);
       discs.forEach(d => {
-        if (y > 270) { doc.addPage(); y = 20; }
+        if (y > 275) { doc.addPage(); y = 20; }
         
         const status = STATUS[d.status];
-        const nota = d.notaFinal ? d.notaFinal.toFixed(1) : '-';
+        const nota = d.notaFinal ? d.notaFinal.toFixed(1) : null;
         
-        // Status color indicator
+        // Indicador de status (bolinha)
         const statusColors = {
-          'APROVADA': [16, 185, 129],
-          'EM_CURSO': [59, 130, 246],
-          'REPROVADA': [239, 68, 68],
-          'NAO_INICIADA': [100, 116, 139]
+          'APROVADA': corVerde,
+          'EM_CURSO': corAzul,
+          'REPROVADA': corVermelha,
+          'NAO_INICIADA': corCinza
         };
-        doc.setFillColor(...(statusColors[d.status] || statusColors['NAO_INICIADA']));
-        doc.circle(20, y - 1, 2, 'F');
+        doc.setFillColor(...(statusColors[d.status] || corCinza));
+        doc.circle(20, y - 1.5, 2.5, 'F');
         
+        // Nome da disciplina
         doc.setFontSize(10);
-        doc.setFont(undefined, 'normal');
-        doc.setTextColor(0, 0, 0);
+        doc.setFont(undefined, 'bold');
+        doc.setTextColor(30, 30, 30);
         doc.text(d.nome, 26, y);
         
-        doc.setFontSize(9);
+        // Detalhes
+        doc.setFontSize(8);
+        doc.setFont(undefined, 'normal');
         doc.setTextColor(...corSecundaria);
-        doc.text(`${d.creditos} cr • ${status.label}${d.notaFinal ? ` • Nota: ${nota}` : ''}${d.semestreCursado ? ` • ${d.semestreCursado}` : ''}`, 26, y + 5);
         
-        y += 12;
+        let detalhes = `${d.creditos} creditos`;
+        detalhes += ` | ${status.label}`;
+        if (nota) detalhes += ` | Nota: ${nota}`;
+        if (d.semestreCursado) detalhes += ` | ${d.semestreCursado}`;
+        
+        doc.text(detalhes, 26, y + 5);
+        
+        y += 13;
       });
-      y += 4;
+      
+      y += 5;
     });
     
-    // Página de resumo (Premium: com gráficos visuais)
+    // Página de resumo
     doc.addPage();
     
     // Header da página de resumo
     doc.setFillColor(...corPrimaria);
-    doc.rect(0, 0, 210, 30, 'F');
+    doc.rect(0, 0, 210, 35, 'F');
     doc.setTextColor(255, 255, 255);
-    doc.setFontSize(18);
+    doc.setFontSize(22);
     doc.setFont(undefined, 'bold');
-    doc.text('Resumo Acadêmico', 105, 20, { align: 'center' });
+    doc.text('Resumo Academico', 105, 22, { align: 'center' });
     
-    // Cards de estatísticas
-    doc.setTextColor(0, 0, 0);
-    const cards = [
-      { label: 'Total', value: estatisticas.total, x: 14 },
-      { label: 'Aprovadas', value: estatisticas.aprovadas, x: 62 },
-      { label: 'Em Curso', value: estatisticas.emCurso, x: 110 },
-      { label: 'Progresso', value: `${estatisticas.progresso.toFixed(0)}%`, x: 158 },
+    // Cards grandes de estatísticas
+    const resumoY = 50;
+    const resumoCards = [
+      { label: 'Total de Disciplinas', value: estatisticas.total, x: 14, width: 58 },
+      { label: 'Aprovadas', value: estatisticas.aprovadas, x: 76, width: 58 },
+      { label: 'Progresso', value: `${estatisticas.progresso.toFixed(0)}%`, x: 138, width: 58 },
     ];
     
-    cards.forEach(card => {
+    resumoCards.forEach(card => {
       doc.setFillColor(248, 250, 252);
-      doc.roundedRect(card.x, 40, 44, 30, 3, 3, 'F');
-      doc.setFontSize(8);
+      doc.roundedRect(card.x, resumoY, card.width, 35, 4, 4, 'F');
+      
+      doc.setFontSize(9);
       doc.setTextColor(...corSecundaria);
-      doc.text(card.label, card.x + 22, 50, { align: 'center' });
-      doc.setFontSize(16);
+      doc.text(card.label, card.x + card.width/2, resumoY + 12, { align: 'center' });
+      
+      doc.setFontSize(24);
       doc.setFont(undefined, 'bold');
-      doc.setTextColor(0, 0, 0);
-      doc.text(String(card.value), card.x + 22, 62, { align: 'center' });
+      doc.setTextColor(30, 30, 30);
+      doc.text(String(card.value), card.x + card.width/2, resumoY + 28, { align: 'center' });
     });
     
-    // Média geral destacada
+    // Card de média geral (destaque)
     doc.setFillColor(...corPrimaria);
-    doc.roundedRect(14, 78, 182, 25, 3, 3, 'F');
+    doc.roundedRect(14, 95, 182, 30, 4, 4, 'F');
+    
     doc.setTextColor(255, 255, 255);
     doc.setFontSize(12);
     doc.setFont(undefined, 'normal');
-    doc.text('Média Geral', 30, 92);
-    doc.setFontSize(20);
+    doc.text('Media Geral Ponderada', 24, 113);
+    
+    doc.setFontSize(28);
     doc.setFont(undefined, 'bold');
-    doc.text(estatisticas.mediaGeral.toFixed(2), 180, 92, { align: 'right' });
+    doc.text(estatisticas.mediaGeral.toFixed(2), 186, 115, { align: 'right' });
     
     if (podeGraficos) {
-      // Gráfico de barras por período (versão Premium)
-      doc.setFontSize(12);
+      // Gráfico de barras por período (Premium)
+      doc.setFontSize(14);
       doc.setFont(undefined, 'bold');
-      doc.setTextColor(0, 0, 0);
-      doc.text('Desempenho por Período', 14, 118);
+      doc.setTextColor(30, 30, 30);
+      doc.text('Desempenho por Semestre', 14, 145);
       
-      let barY = 125;
-      const barWidth = 150;
+      let barY = 155;
+      const barMaxWidth = 130;
+      
       periodos.forEach(periodo => {
         const discs = disciplinas.filter(d => d.periodo === periodo);
         if (discs.length === 0) return;
+        
+        if (barY > 270) return; // Limite de espaço
         
         const aprovadas = discs.filter(d => d.status === 'APROVADA').length;
         const percentual = (aprovadas / discs.length) * 100;
-        const filledWidth = (percentual / 100) * barWidth;
+        const filledWidth = (percentual / 100) * barMaxWidth;
         
+        // Label do semestre
         doc.setFontSize(9);
-        doc.setTextColor(...corSecundaria);
-        doc.text(`${periodo}º Sem`, 14, barY + 4);
+        doc.setFont(undefined, 'bold');
+        doc.setTextColor(60, 60, 60);
+        doc.text(`${periodo}. Sem`, 14, barY + 6);
         
         // Barra de fundo
         doc.setFillColor(229, 231, 235);
-        doc.roundedRect(40, barY, barWidth, 8, 2, 2, 'F');
+        doc.roundedRect(45, barY, barMaxWidth, 10, 2, 2, 'F');
         
-        // Barra preenchida
+        // Barra preenchida com cor baseada no percentual
         if (filledWidth > 0) {
-          doc.setFillColor(16, 185, 129);
-          doc.roundedRect(40, barY, Math.max(filledWidth, 4), 8, 2, 2, 'F');
+          if (percentual >= 80) {
+            doc.setFillColor(...corVerde);
+          } else if (percentual >= 50) {
+            doc.setFillColor(245, 158, 11); // amber
+          } else {
+            doc.setFillColor(...corVermelha);
+          }
+          doc.roundedRect(45, barY, Math.max(filledWidth, 4), 10, 2, 2, 'F');
         }
         
-        doc.setTextColor(0, 0, 0);
-        doc.text(`${percentual.toFixed(0)}%`, 195, barY + 5);
+        // Percentual
+        doc.setFontSize(9);
+        doc.setFont(undefined, 'bold');
+        doc.setTextColor(60, 60, 60);
+        doc.text(`${percentual.toFixed(0)}%`, 180, barY + 7);
         
-        barY += 14;
+        // Info adicional
+        doc.setFontSize(7);
+        doc.setFont(undefined, 'normal');
+        doc.setTextColor(...corSecundaria);
+        doc.text(`${aprovadas}/${discs.length}`, 190, barY + 7);
+        
+        barY += 16;
       });
       
       // Legenda
-      doc.setFontSize(8);
+      const legendY = 275;
+      doc.setFillColor(...corVerde);
+      doc.circle(60, legendY, 3, 'F');
+      doc.setFontSize(7);
       doc.setTextColor(...corSecundaria);
-      doc.text('📊 Relatório Premium - Sistema de Notas', 105, 285, { align: 'center' });
-    } else {
-      // Versão Pro - sem gráficos
-      doc.setFontSize(10);
-      doc.setTextColor(...corSecundaria);
-      doc.text('Resumo por período:', 14, 118);
+      doc.text('80%+', 65, legendY + 1.5);
       
-      let listY = 128;
+      doc.setFillColor(245, 158, 11);
+      doc.circle(90, legendY, 3, 'F');
+      doc.text('50-79%', 95, legendY + 1.5);
+      
+      doc.setFillColor(...corVermelha);
+      doc.circle(125, legendY, 3, 'F');
+      doc.text('<50%', 130, legendY + 1.5);
+      
+      // Rodapé Premium
+      doc.setFontSize(8);
+      doc.setTextColor(...corPrimaria);
+      doc.text('Relatorio Premium - Sistema de Notas', 105, 290, { align: 'center' });
+    } else {
+      // Versão Pro - Lista simples
+      doc.setFontSize(12);
+      doc.setFont(undefined, 'bold');
+      doc.setTextColor(30, 30, 30);
+      doc.text('Resumo por Semestre', 14, 145);
+      
+      let listY = 158;
       periodos.forEach(periodo => {
         const discs = disciplinas.filter(d => d.periodo === periodo);
         if (discs.length === 0) return;
+        
         const aprovadas = discs.filter(d => d.status === 'APROVADA').length;
+        const percentual = ((aprovadas/discs.length)*100).toFixed(0);
+        
         doc.setFontSize(10);
-        doc.setTextColor(0, 0, 0);
-        doc.text(`${periodo}º Semestre: ${aprovadas}/${discs.length} concluídas (${((aprovadas/discs.length)*100).toFixed(0)}%)`, 20, listY);
-        listY += 8;
+        doc.setFont(undefined, 'normal');
+        doc.setTextColor(60, 60, 60);
+        doc.text(`${periodo}. Semestre: ${aprovadas}/${discs.length} concluidas (${percentual}%)`, 20, listY);
+        listY += 10;
       });
       
+      // Rodapé Pro
       doc.setFontSize(8);
-      doc.text('Sistema de Notas - Plano Pro', 105, 285, { align: 'center' });
+      doc.setTextColor(...corSecundaria);
+      doc.text('Sistema de Notas - Plano Pro', 105, 290, { align: 'center' });
     }
     
     doc.save(`grade-curricular-${new Date().toISOString().split('T')[0]}.pdf`);
