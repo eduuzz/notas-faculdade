@@ -1,8 +1,9 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import { Plus, Trash2, BookOpen, Award, TrendingUp, AlertCircle, CheckCircle, GraduationCap, Edit2, X, Clock, PlayCircle, ChevronDown, ChevronUp, Search, Save, Cloud, CloudOff, RefreshCw, LogOut, User, Wifi, WifiOff, Download, Upload as UploadIcon, RotateCcw, Sun, Moon, Monitor, List, LayoutGrid, Shield, ChevronRight, Sparkles, Settings, Crown, Zap, Star } from 'lucide-react';
+import { Plus, Trash2, BookOpen, Award, TrendingUp, AlertCircle, CheckCircle, GraduationCap, Edit2, X, Clock, PlayCircle, ChevronDown, ChevronUp, Search, Save, Cloud, CloudOff, RefreshCw, LogOut, User, Wifi, WifiOff, Download, Upload as UploadIcon, RotateCcw, Sun, Moon, Monitor, List, LayoutGrid, Shield, ChevronRight, Sparkles, Settings, Crown, Zap, Star, Lock, FileText, Calculator, Target, Database } from 'lucide-react';
 import { useNotas } from './useNotas';
 import { useAuth } from './AuthContext';
+import { usePermissoes } from './usePermissoes';
 import ImportModal from './ImportModal';
 import UpgradeModal from './UpgradeModal';
 
@@ -63,8 +64,62 @@ const GradientButton = ({ children, onClick, disabled, variant = 'primary', clas
   );
 };
 
+// Componente para mostrar funcionalidade bloqueada
+const FeatureLock = ({ planoNecessario, children, onUpgrade }) => {
+  const planoLabel = planoNecessario === 'pro' ? 'Pro' : 'Premium';
+  const gradiente = planoNecessario === 'pro' 
+    ? 'from-violet-500 to-indigo-600' 
+    : 'from-amber-500 to-orange-600';
+  
+  return (
+    <div className="relative">
+      <div className="opacity-50 pointer-events-none blur-[1px]">
+        {children}
+      </div>
+      <div className="absolute inset-0 flex items-center justify-center bg-black/40 backdrop-blur-sm rounded-2xl">
+        <div className="text-center p-4">
+          <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${gradiente} flex items-center justify-center mx-auto mb-3 shadow-lg`}>
+            <Lock size={24} className="text-white" />
+          </div>
+          <p className="text-white font-medium mb-1">Recurso {planoLabel}</p>
+          <p className="text-slate-400 text-sm mb-3">Faça upgrade para desbloquear</p>
+          <button
+            onClick={onUpgrade}
+            className={`px-4 py-2 rounded-lg bg-gradient-to-r ${gradiente} text-white text-sm font-medium hover:scale-105 transition-transform`}
+          >
+            Fazer Upgrade
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Botão que abre upgrade quando funcionalidade bloqueada
+const BotaoComUpgrade = ({ temPermissao, planoNecessario, onUpgrade, onClick, children, className, disabled }) => {
+  if (!temPermissao) {
+    return (
+      <button
+        onClick={onUpgrade}
+        className={`${className} relative group`}
+        title={`Requer plano ${planoNecessario === 'pro' ? 'Pro' : 'Premium'}`}
+      >
+        <span className="opacity-50">{children}</span>
+        <Lock size={14} className="absolute -top-1 -right-1 text-amber-400" />
+      </button>
+    );
+  }
+  
+  return (
+    <button onClick={onClick} disabled={disabled} className={className}>
+      {children}
+    </button>
+  );
+};
+
 export default function SistemaNotas({ onOpenAdmin }) {
   const { user, userName, userCurso, userPlano, userPlanoExpiraEm, isNewUser, updateUserCurso, updateUserProfile, signOut } = useAuth();
+  const { permissoes, podeAdicionarDisciplina, getLimiteDisciplinas, temPermissao } = usePermissoes();
   const {
     disciplinas,
     setDisciplinas,
@@ -110,6 +165,12 @@ export default function SistemaNotas({ onOpenAdmin }) {
   
   // Modal de upgrade de plano
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  
+  // Modal do simulador de notas
+  const [showSimulador, setShowSimulador] = useState(false);
+  const [simuladorDisciplina, setSimuladorDisciplina] = useState(null);
+  const [simuladorGA, setSimuladorGA] = useState('');
+  const [simuladorGB, setSimuladorGB] = useState('');
 
   // Mostrar modal de boas-vindas APENAS na primeira vez (usando localStorage)
   useEffect(() => {
@@ -291,38 +352,198 @@ export default function SistemaNotas({ onOpenAdmin }) {
   const exportarPDF = () => {
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
-    doc.setFontSize(20);
-    doc.text('Grade Curricular', 105, 20, { align: 'center' });
+    const podeGraficos = temPermissao('exportarPdfGraficos');
+    
+    // Cores
+    const corPrimaria = [124, 58, 237]; // violet-500
+    const corSecundaria = [100, 116, 139]; // slate-500
+    
+    // Header
+    doc.setFillColor(...corPrimaria);
+    doc.rect(0, 0, 210, 40, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(24);
+    doc.setFont(undefined, 'bold');
+    doc.text('Grade Curricular', 105, 22, { align: 'center' });
+    doc.setFontSize(11);
+    doc.setFont(undefined, 'normal');
+    doc.text(userCurso || 'Meu Curso', 105, 32, { align: 'center' });
+    
+    // Info do aluno
+    doc.setTextColor(0, 0, 0);
     doc.setFontSize(10);
-    doc.text(`Gerado em: ${new Date().toLocaleDateString('pt-BR')}`, 105, 28, { align: 'center' });
-    let y = 40;
+    doc.text(`Aluno: ${userName || user?.email}`, 14, 50);
+    doc.text(`Gerado em: ${new Date().toLocaleDateString('pt-BR')} às ${new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`, 14, 56);
+    
+    // Estatísticas resumidas
+    doc.setFillColor(248, 250, 252);
+    doc.roundedRect(14, 62, 182, 20, 3, 3, 'F');
+    doc.setFontSize(9);
+    doc.setTextColor(...corSecundaria);
+    const statsText = `✓ Aprovadas: ${estatisticas.aprovadas}    ⏱ Em Curso: ${estatisticas.emCurso}    📊 Progresso: ${estatisticas.progresso.toFixed(0)}%    ⭐ Média: ${estatisticas.mediaGeral.toFixed(1)}`;
+    doc.text(statsText, 105, 74, { align: 'center' });
+    
+    let y = 92;
+    
+    // Disciplinas por período
     periodos.forEach(periodo => {
       const discs = disciplinas.filter(d => d.periodo === periodo);
       if (discs.length === 0) return;
-      doc.setFontSize(14);
+      
+      // Verificar se precisa de nova página
+      if (y > 250) { doc.addPage(); y = 20; }
+      
+      // Título do período
+      const aprovadas = discs.filter(d => d.status === 'APROVADA').length;
+      doc.setFillColor(...corPrimaria);
+      doc.roundedRect(14, y - 5, 182, 10, 2, 2, 'F');
+      doc.setTextColor(255, 255, 255);
+      doc.setFontSize(11);
       doc.setFont(undefined, 'bold');
-      doc.text(`${periodo}º Semestre`, 14, y);
-      y += 8;
-      doc.setFontSize(10);
+      doc.text(`${periodo}º Semestre`, 18, y + 2);
+      doc.setFontSize(9);
       doc.setFont(undefined, 'normal');
+      doc.text(`${aprovadas}/${discs.length} concluídas`, 190, y + 2, { align: 'right' });
+      y += 12;
+      
+      // Lista de disciplinas
+      doc.setTextColor(0, 0, 0);
       discs.forEach(d => {
-        const status = STATUS[d.status].label;
-        const nota = d.notaFinal ? d.notaFinal.toFixed(1) : '-';
-        doc.text(`• ${d.nome} - ${status} ${d.notaFinal ? `(${nota})` : ''}`, 18, y);
-        y += 6;
         if (y > 270) { doc.addPage(); y = 20; }
+        
+        const status = STATUS[d.status];
+        const nota = d.notaFinal ? d.notaFinal.toFixed(1) : '-';
+        
+        // Status color indicator
+        const statusColors = {
+          'APROVADA': [16, 185, 129],
+          'EM_CURSO': [59, 130, 246],
+          'REPROVADA': [239, 68, 68],
+          'NAO_INICIADA': [100, 116, 139]
+        };
+        doc.setFillColor(...(statusColors[d.status] || statusColors['NAO_INICIADA']));
+        doc.circle(20, y - 1, 2, 'F');
+        
+        doc.setFontSize(10);
+        doc.setFont(undefined, 'normal');
+        doc.setTextColor(0, 0, 0);
+        doc.text(d.nome, 26, y);
+        
+        doc.setFontSize(9);
+        doc.setTextColor(...corSecundaria);
+        doc.text(`${d.creditos} cr • ${status.label}${d.notaFinal ? ` • Nota: ${nota}` : ''}${d.semestreCursado ? ` • ${d.semestreCursado}` : ''}`, 26, y + 5);
+        
+        y += 12;
       });
-      y += 6;
+      y += 4;
     });
+    
+    // Página de resumo (Premium: com gráficos visuais)
     doc.addPage();
-    doc.setFontSize(16);
+    
+    // Header da página de resumo
+    doc.setFillColor(...corPrimaria);
+    doc.rect(0, 0, 210, 30, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(18);
     doc.setFont(undefined, 'bold');
-    doc.text('Resumo', 14, 20);
-    doc.setFontSize(11);
+    doc.text('Resumo Acadêmico', 105, 20, { align: 'center' });
+    
+    // Cards de estatísticas
+    doc.setTextColor(0, 0, 0);
+    const cards = [
+      { label: 'Total', value: estatisticas.total, x: 14 },
+      { label: 'Aprovadas', value: estatisticas.aprovadas, x: 62 },
+      { label: 'Em Curso', value: estatisticas.emCurso, x: 110 },
+      { label: 'Progresso', value: `${estatisticas.progresso.toFixed(0)}%`, x: 158 },
+    ];
+    
+    cards.forEach(card => {
+      doc.setFillColor(248, 250, 252);
+      doc.roundedRect(card.x, 40, 44, 30, 3, 3, 'F');
+      doc.setFontSize(8);
+      doc.setTextColor(...corSecundaria);
+      doc.text(card.label, card.x + 22, 50, { align: 'center' });
+      doc.setFontSize(16);
+      doc.setFont(undefined, 'bold');
+      doc.setTextColor(0, 0, 0);
+      doc.text(String(card.value), card.x + 22, 62, { align: 'center' });
+    });
+    
+    // Média geral destacada
+    doc.setFillColor(...corPrimaria);
+    doc.roundedRect(14, 78, 182, 25, 3, 3, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(12);
     doc.setFont(undefined, 'normal');
-    doc.text(`Total: ${estatisticas.total} | Aprovadas: ${estatisticas.aprovadas} | Em curso: ${estatisticas.emCurso}`, 14, 35);
-    doc.text(`Progresso: ${estatisticas.progresso.toFixed(1)}% | Média: ${estatisticas.mediaGeral.toFixed(2)}`, 14, 43);
-    doc.save('grade-curricular.pdf');
+    doc.text('Média Geral', 30, 92);
+    doc.setFontSize(20);
+    doc.setFont(undefined, 'bold');
+    doc.text(estatisticas.mediaGeral.toFixed(2), 180, 92, { align: 'right' });
+    
+    if (podeGraficos) {
+      // Gráfico de barras por período (versão Premium)
+      doc.setFontSize(12);
+      doc.setFont(undefined, 'bold');
+      doc.setTextColor(0, 0, 0);
+      doc.text('Desempenho por Período', 14, 118);
+      
+      let barY = 125;
+      const barWidth = 150;
+      periodos.forEach(periodo => {
+        const discs = disciplinas.filter(d => d.periodo === periodo);
+        if (discs.length === 0) return;
+        
+        const aprovadas = discs.filter(d => d.status === 'APROVADA').length;
+        const percentual = (aprovadas / discs.length) * 100;
+        const filledWidth = (percentual / 100) * barWidth;
+        
+        doc.setFontSize(9);
+        doc.setTextColor(...corSecundaria);
+        doc.text(`${periodo}º Sem`, 14, barY + 4);
+        
+        // Barra de fundo
+        doc.setFillColor(229, 231, 235);
+        doc.roundedRect(40, barY, barWidth, 8, 2, 2, 'F');
+        
+        // Barra preenchida
+        if (filledWidth > 0) {
+          doc.setFillColor(16, 185, 129);
+          doc.roundedRect(40, barY, Math.max(filledWidth, 4), 8, 2, 2, 'F');
+        }
+        
+        doc.setTextColor(0, 0, 0);
+        doc.text(`${percentual.toFixed(0)}%`, 195, barY + 5);
+        
+        barY += 14;
+      });
+      
+      // Legenda
+      doc.setFontSize(8);
+      doc.setTextColor(...corSecundaria);
+      doc.text('📊 Relatório Premium - Sistema de Notas', 105, 285, { align: 'center' });
+    } else {
+      // Versão Pro - sem gráficos
+      doc.setFontSize(10);
+      doc.setTextColor(...corSecundaria);
+      doc.text('Resumo por período:', 14, 118);
+      
+      let listY = 128;
+      periodos.forEach(periodo => {
+        const discs = disciplinas.filter(d => d.periodo === periodo);
+        if (discs.length === 0) return;
+        const aprovadas = discs.filter(d => d.status === 'APROVADA').length;
+        doc.setFontSize(10);
+        doc.setTextColor(0, 0, 0);
+        doc.text(`${periodo}º Semestre: ${aprovadas}/${discs.length} concluídas (${((aprovadas/discs.length)*100).toFixed(0)}%)`, 20, listY);
+        listY += 8;
+      });
+      
+      doc.setFontSize(8);
+      doc.text('Sistema de Notas - Plano Pro', 105, 285, { align: 'center' });
+    }
+    
+    doc.save(`grade-curricular-${new Date().toISOString().split('T')[0]}.pdf`);
   };
 
   const dadosGrafico = [
@@ -427,16 +648,26 @@ export default function SistemaNotas({ onOpenAdmin }) {
         <nav className="mb-8 overflow-x-auto">
           <div className="inline-flex p-1.5 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-xl">
             {[
-              { id: 'grade', label: '📚 Grade', icon: BookOpen },
-              { id: 'emCurso', label: '⏱️ Em Curso', icon: Clock },
-              { id: 'dashboard', label: '📊 Dashboard', icon: TrendingUp },
-              { id: 'formatura', label: '🎓 Formatura', icon: GraduationCap },
-            ].map(tab => (
-              <button key={tab.id} onClick={() => setActiveTab(tab.id)} className={`px-4 sm:px-6 py-3 rounded-xl text-sm font-medium transition-all duration-300 whitespace-nowrap ${activeTab === tab.id ? 'bg-white/10 text-white shadow-lg' : 'text-slate-400 hover:text-white'}`}>
-                <span className="hidden sm:inline">{tab.label}</span>
-                <tab.icon size={18} className="sm:hidden" />
-              </button>
-            ))}
+              { id: 'grade', label: '📚 Grade', icon: BookOpen, requerPermissao: null },
+              { id: 'emCurso', label: '⏱️ Em Curso', icon: Clock, requerPermissao: null },
+              { id: 'dashboard', label: '📊 Dashboard', icon: TrendingUp, requerPermissao: null },
+              { id: 'formatura', label: '🎓 Formatura', icon: GraduationCap, requerPermissao: 'previsaoFormatura' },
+            ].map(tab => {
+              const bloqueado = tab.requerPermissao && !temPermissao(tab.requerPermissao);
+              return (
+                <button 
+                  key={tab.id} 
+                  onClick={() => bloqueado ? setShowUpgradeModal(true) : setActiveTab(tab.id)} 
+                  className={`relative px-4 sm:px-6 py-3 rounded-xl text-sm font-medium transition-all duration-300 whitespace-nowrap ${
+                    activeTab === tab.id ? 'bg-white/10 text-white shadow-lg' : 'text-slate-400 hover:text-white'
+                  } ${bloqueado ? 'opacity-60' : ''}`}
+                >
+                  <span className="hidden sm:inline">{tab.label}</span>
+                  <tab.icon size={18} className="sm:hidden" />
+                  {bloqueado && <Lock size={12} className="absolute -top-1 -right-1 text-amber-400" />}
+                </button>
+              );
+            })}
           </div>
         </nav>
 
@@ -479,11 +710,37 @@ export default function SistemaNotas({ onOpenAdmin }) {
                 <option value="REPROVADA" className="bg-slate-800">Reprovadas</option>
               </select>
               <div className="flex gap-2 flex-wrap">
-                <GradientButton variant="success" onClick={exportarPDF}><Download size={18} /><span className="hidden sm:inline">PDF</span></GradientButton>
+                <GradientButton 
+                  variant="success" 
+                  onClick={() => temPermissao('exportarPdf') ? exportarPDF() : setShowUpgradeModal(true)}
+                  className={!temPermissao('exportarPdf') ? 'relative' : ''}
+                >
+                  <Download size={18} />
+                  <span className="hidden sm:inline">PDF</span>
+                  {!temPermissao('exportarPdf') && <Lock size={12} className="absolute -top-1 -right-1 text-amber-400" />}
+                </GradientButton>
                 <GradientButton variant="amber" onClick={() => setShowImportModal(true)}><UploadIcon size={18} /><span className="hidden sm:inline">Importar</span></GradientButton>
-                <GradientButton variant="purple" onClick={() => setShowAddMultiplas(true)}><Plus size={18} /><span className="hidden sm:inline">Várias</span></GradientButton>
-                <GradientButton onClick={() => setShowAddDisciplina(true)}><Plus size={18} /><span className="hidden sm:inline">Nova</span></GradientButton>
+                <GradientButton 
+                  variant="purple" 
+                  onClick={() => podeAdicionarDisciplina(disciplinas.length) ? setShowAddMultiplas(true) : setShowUpgradeModal(true)}
+                >
+                  <Plus size={18} /><span className="hidden sm:inline">Várias</span>
+                </GradientButton>
+                <GradientButton 
+                  onClick={() => podeAdicionarDisciplina(disciplinas.length) ? setShowAddDisciplina(true) : setShowUpgradeModal(true)}
+                >
+                  <Plus size={18} /><span className="hidden sm:inline">Nova</span>
+                </GradientButton>
               </div>
+              {/* Indicador de limite para plano básico */}
+              {getLimiteDisciplinas() !== Infinity && (
+                <div className="text-xs text-slate-500">
+                  {disciplinas.length}/{getLimiteDisciplinas()} disciplinas
+                  {disciplinas.length >= getLimiteDisciplinas() && (
+                    <span className="text-amber-400 ml-2">• Limite atingido</span>
+                  )}
+                </div>
+              )}
             </div>
 
             {/* Toggle buttons */}
@@ -636,7 +893,23 @@ export default function SistemaNotas({ onOpenAdmin }) {
         {/* Tab Em Curso */}
         {activeTab === 'emCurso' && (
           <div className="space-y-4">
-            <h2 className="text-xl font-semibold mb-4">Disciplinas em Curso</h2>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-semibold">Disciplinas em Curso</h2>
+              {/* Botão Simulador */}
+              <button
+                onClick={() => temPermissao('simuladorNotas') ? setShowSimulador(true) : setShowUpgradeModal(true)}
+                className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all ${
+                  temPermissao('simuladorNotas')
+                    ? 'bg-gradient-to-r from-amber-500 to-orange-600 text-white shadow-lg shadow-amber-500/25 hover:scale-105'
+                    : 'bg-white/5 border border-white/10 text-slate-400'
+                }`}
+              >
+                <Calculator size={18} />
+                Simulador
+                {!temPermissao('simuladorNotas') && <Lock size={14} className="text-amber-400" />}
+              </button>
+            </div>
+            
             {disciplinas.filter(d => d.status === 'EM_CURSO').length === 0 ? (
               <GlassCard className="p-8 text-center" hover={false}>
                 <Clock size={48} className="mx-auto text-slate-600 mb-4" />
@@ -1243,6 +1516,95 @@ export default function SistemaNotas({ onOpenAdmin }) {
                 </div>
               </div>
 
+              {/* Seção Backup/Exportar (Premium) */}
+              <div className="mb-6 p-4 rounded-xl bg-white/5 border border-white/10">
+                <div className="flex items-center gap-3 mb-3">
+                  <Database size={20} className="text-amber-400" />
+                  <h4 className="font-medium text-white">Backup de Dados</h4>
+                  {!temPermissao('backupExportar') && (
+                    <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-400 text-xs font-medium flex items-center gap-1">
+                      <Lock size={10} /> Premium
+                    </span>
+                  )}
+                </div>
+                <p className="text-slate-400 text-sm mb-3">
+                  Exporte seus dados para backup ou importe de outro dispositivo.
+                </p>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => {
+                      if (!temPermissao('backupExportar')) {
+                        setShowSettingsModal(false);
+                        setShowUpgradeModal(true);
+                        return;
+                      }
+                      const dados = {
+                        versao: '1.0',
+                        exportadoEm: new Date().toISOString(),
+                        usuario: { nome: userName, email: user?.email, curso: userCurso },
+                        disciplinas: disciplinas
+                      };
+                      const blob = new Blob([JSON.stringify(dados, null, 2)], { type: 'application/json' });
+                      const url = URL.createObjectURL(blob);
+                      const a = document.createElement('a');
+                      a.href = url;
+                      a.download = `backup-notas-${new Date().toISOString().split('T')[0]}.json`;
+                      a.click();
+                      URL.revokeObjectURL(url);
+                    }}
+                    className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-sm font-medium transition-all ${
+                      temPermissao('backupExportar')
+                        ? 'bg-amber-500/20 text-amber-400 hover:bg-amber-500/30'
+                        : 'bg-white/5 text-slate-500'
+                    }`}
+                  >
+                    <Download size={16} />
+                    Exportar
+                    {!temPermissao('backupExportar') && <Lock size={12} />}
+                  </button>
+                  <button
+                    onClick={() => {
+                      if (!temPermissao('backupExportar')) {
+                        setShowSettingsModal(false);
+                        setShowUpgradeModal(true);
+                        return;
+                      }
+                      const input = document.createElement('input');
+                      input.type = 'file';
+                      input.accept = '.json';
+                      input.onchange = async (e) => {
+                        const file = e.target.files[0];
+                        if (!file) return;
+                        try {
+                          const texto = await file.text();
+                          const dados = JSON.parse(texto);
+                          if (dados.disciplinas && Array.isArray(dados.disciplinas)) {
+                            if (confirm(`Importar ${dados.disciplinas.length} disciplinas? Isso substituirá os dados atuais.`)) {
+                              setDisciplinas(dados.disciplinas);
+                              alert('Dados importados com sucesso!');
+                            }
+                          } else {
+                            alert('Arquivo inválido');
+                          }
+                        } catch (err) {
+                          alert('Erro ao ler arquivo');
+                        }
+                      };
+                      input.click();
+                    }}
+                    className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-sm font-medium transition-all ${
+                      temPermissao('backupExportar')
+                        ? 'bg-white/5 text-slate-300 hover:bg-white/10'
+                        : 'bg-white/5 text-slate-500'
+                    }`}
+                  >
+                    <UploadIcon size={16} />
+                    Importar
+                    {!temPermissao('backupExportar') && <Lock size={12} />}
+                  </button>
+                </div>
+              </div>
+
               {/* Botões */}
               <div className="flex gap-3">
                 <button
@@ -1280,9 +1642,139 @@ export default function SistemaNotas({ onOpenAdmin }) {
           />
         )}
 
+        {/* Modal Simulador de Notas (Premium) */}
+        {showSimulador && (
+          <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={(e) => e.target === e.currentTarget && setShowSimulador(false)}>
+            <div className="bg-gradient-to-br from-slate-800 to-slate-900 border border-amber-500/30 rounded-3xl p-8 max-w-lg w-full shadow-2xl">
+              {/* Header */}
+              <div className="flex items-center gap-4 mb-6">
+                <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center shadow-lg shadow-amber-500/30">
+                  <Calculator size={28} className="text-white" />
+                </div>
+                <div>
+                  <h2 className="text-xl font-bold text-white">Simulador de Notas</h2>
+                  <p className="text-amber-400 text-sm">✨ Recurso Premium</p>
+                </div>
+              </div>
+
+              {/* Seletor de disciplina */}
+              <div className="mb-6">
+                <label className="text-sm text-slate-400 block mb-2">Disciplina</label>
+                <select
+                  value={simuladorDisciplina || ''}
+                  onChange={(e) => {
+                    const disc = disciplinas.find(d => d.id === e.target.value);
+                    setSimuladorDisciplina(e.target.value);
+                    setSimuladorGA(disc?.ga?.toString() || '');
+                    setSimuladorGB(disc?.gb?.toString() || '');
+                  }}
+                  className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white focus:outline-none focus:border-amber-500"
+                >
+                  <option value="" className="bg-slate-800">Selecione uma disciplina</option>
+                  {disciplinas.filter(d => d.status === 'EM_CURSO').map(d => (
+                    <option key={d.id} value={d.id} className="bg-slate-800">{d.nome}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Inputs de notas */}
+              <div className="grid grid-cols-2 gap-4 mb-6">
+                <div>
+                  <label className="text-sm text-slate-400 block mb-2">Nota GA (atual ou esperada)</label>
+                  <input
+                    type="number"
+                    step="0.1"
+                    min="0"
+                    max="10"
+                    value={simuladorGA}
+                    onChange={(e) => setSimuladorGA(e.target.value)}
+                    className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white focus:outline-none focus:border-amber-500 text-center text-xl"
+                    placeholder="0.0"
+                  />
+                </div>
+                <div>
+                  <label className="text-sm text-slate-400 block mb-2">Nota GB (atual ou esperada)</label>
+                  <input
+                    type="number"
+                    step="0.1"
+                    min="0"
+                    max="10"
+                    value={simuladorGB}
+                    onChange={(e) => setSimuladorGB(e.target.value)}
+                    className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white focus:outline-none focus:border-amber-500 text-center text-xl"
+                    placeholder="0.0"
+                  />
+                </div>
+              </div>
+
+              {/* Resultado */}
+              {(simuladorGA || simuladorGB) && (
+                <div className="mb-6">
+                  {(() => {
+                    const ga = parseFloat(simuladorGA) || 0;
+                    const gb = parseFloat(simuladorGB) || 0;
+                    const disc = disciplinas.find(d => d.id === simuladorDisciplina);
+                    const notaMinima = disc?.notaMinima || 6.0;
+                    const mediaFinal = (ga + gb) / 2;
+                    const precisaNaGB = Math.max(0, (notaMinima * 2) - ga);
+                    const aprovado = mediaFinal >= notaMinima;
+                    
+                    return (
+                      <div className={`p-4 rounded-xl border ${aprovado ? 'bg-emerald-500/10 border-emerald-500/30' : 'bg-red-500/10 border-red-500/30'}`}>
+                        <div className="flex items-center justify-between mb-3">
+                          <span className="text-slate-400">Média calculada:</span>
+                          <span className={`text-2xl font-bold ${aprovado ? 'text-emerald-400' : 'text-red-400'}`}>
+                            {mediaFinal.toFixed(1)}
+                          </span>
+                        </div>
+                        
+                        {simuladorGA && !simuladorGB && (
+                          <div className="pt-3 border-t border-white/10">
+                            <p className="text-sm text-slate-400 mb-1">Para atingir média {notaMinima}:</p>
+                            <p className="text-lg font-semibold text-amber-400">
+                              Você precisa de {precisaNaGB.toFixed(1)} na GB
+                            </p>
+                            {precisaNaGB > 10 && (
+                              <p className="text-xs text-red-400 mt-1">⚠️ Nota necessária maior que 10</p>
+                            )}
+                          </div>
+                        )}
+                        
+                        {simuladorGA && simuladorGB && (
+                          <p className={`text-sm font-medium ${aprovado ? 'text-emerald-400' : 'text-red-400'}`}>
+                            {aprovado ? '✓ Aprovado!' : '✗ Reprovado - média abaixo de ' + notaMinima}
+                          </p>
+                        )}
+                      </div>
+                    );
+                  })()}
+                </div>
+              )}
+
+              {/* Dica */}
+              <div className="bg-white/5 rounded-xl p-3 mb-6">
+                <p className="text-xs text-slate-400">
+                  💡 <strong>Dica:</strong> Digite apenas a nota da GA para descobrir quanto você precisa tirar na GB para passar.
+                </p>
+              </div>
+
+              {/* Botão fechar */}
+              <button
+                onClick={() => setShowSimulador(false)}
+                className="w-full py-3 rounded-xl bg-white/5 border border-white/10 text-slate-400 font-medium hover:bg-white/10 transition-colors"
+              >
+                Fechar
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* FAB Mobile */}
-        <button onClick={() => setShowAddDisciplina(true)} className="fixed bottom-6 right-6 w-14 h-14 rounded-full bg-gradient-to-br from-violet-600 to-indigo-600 flex items-center justify-center shadow-2xl shadow-violet-500/40 hover:scale-110 transition-transform duration-300 sm:hidden">
-          <Plus size={24} />
+        <button 
+          onClick={() => podeAdicionarDisciplina(disciplinas.length) ? setShowAddDisciplina(true) : setShowUpgradeModal(true)} 
+          className="fixed bottom-6 right-6 w-14 h-14 rounded-full bg-gradient-to-br from-violet-600 to-indigo-600 flex items-center justify-center shadow-2xl shadow-violet-500/40 hover:scale-110 transition-transform duration-300 sm:hidden"
+        >
+          {podeAdicionarDisciplina(disciplinas.length) ? <Plus size={24} /> : <Lock size={24} />}
         </button>
       </div>
     </div>
