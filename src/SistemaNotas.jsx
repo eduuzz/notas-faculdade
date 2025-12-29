@@ -556,7 +556,7 @@ export default function SistemaNotas({ onOpenAdmin }) {
         const discs = disciplinas.filter(d => d.periodo === periodo);
         if (discs.length === 0) return;
         
-        if (barY > 270) return; // Limite de espaço
+        if (barY > 250) return; // Limite de espaço (deixa espaço para legenda)
         
         const aprovadas = discs.filter(d => d.status === 'APROVADA').length;
         const percentual = (aprovadas / discs.length) * 100;
@@ -594,31 +594,37 @@ export default function SistemaNotas({ onOpenAdmin }) {
         doc.setFontSize(7);
         doc.setFont(undefined, 'normal');
         doc.setTextColor(...corSecundaria);
-        doc.text(`${aprovadas}/${discs.length}`, 190, barY + 7);
+        doc.text(`${aprovadas}/${discs.length}`, 192, barY + 7);
         
         barY += 16;
       });
       
-      // Legenda
-      const legendY = 275;
+      // Legenda - posicionada após as barras com espaçamento
+      const legendY = Math.max(barY + 10, 260);
+      
+      // Fundo da legenda
+      doc.setFillColor(248, 250, 252);
+      doc.roundedRect(45, legendY - 5, 120, 16, 3, 3, 'F');
+      
+      // Itens da legenda
+      doc.setFontSize(8);
       doc.setFillColor(...corVerde);
-      doc.circle(60, legendY, 3, 'F');
-      doc.setFontSize(7);
-      doc.setTextColor(...corSecundaria);
-      doc.text('80%+', 65, legendY + 1.5);
+      doc.circle(55, legendY + 3, 3, 'F');
+      doc.setTextColor(60, 60, 60);
+      doc.text('80%+', 61, legendY + 5);
       
       doc.setFillColor(245, 158, 11);
-      doc.circle(90, legendY, 3, 'F');
-      doc.text('50-79%', 95, legendY + 1.5);
+      doc.circle(95, legendY + 3, 3, 'F');
+      doc.text('50-79%', 101, legendY + 5);
       
       doc.setFillColor(...corVermelha);
-      doc.circle(125, legendY, 3, 'F');
-      doc.text('<50%', 130, legendY + 1.5);
+      doc.circle(140, legendY + 3, 3, 'F');
+      doc.text('<50%', 146, legendY + 5);
       
       // Rodapé Premium
       doc.setFontSize(8);
       doc.setTextColor(...corPrimaria);
-      doc.text('Relatorio Premium - Sistema de Notas', 105, 290, { align: 'center' });
+      doc.text('Relatorio Premium - Sistema de Notas', 105, 287, { align: 'center' });
     } else {
       // Versão Pro - Lista simples
       doc.setFontSize(12);
