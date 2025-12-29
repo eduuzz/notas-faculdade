@@ -256,7 +256,7 @@ export default function UpgradeModal({ planoAtual, userEmail, userName, onClose 
             return (
               <div
                 key={plano.id}
-                className={`relative rounded-2xl p-6 ${plano.bg} border ${plano.border} transition-all hover:scale-[1.02]`}
+                className={`relative rounded-2xl p-6 ${plano.bg} border ${plano.border} transition-all hover:scale-[1.02] flex flex-col`}
               >
                 <div className="flex items-center gap-3 mb-4">
                   <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${plano.gradient} flex items-center justify-center`}>
@@ -270,10 +270,10 @@ export default function UpgradeModal({ planoAtual, userEmail, userName, onClose 
                   <span className="text-slate-400 text-sm">/{periodo === 'mensal' ? 'mês' : periodo === 'semestral' ? 'sem' : 'ano'}</span>
                 </div>
 
-                <ul className="space-y-2 mb-6">
+                <ul className="space-y-2 mb-6 flex-1">
                   {plano.funcionalidades.map((func, idx) => (
                     <li key={idx} className="flex items-center gap-2 text-sm text-slate-300">
-                      <Check size={14} className="text-emerald-400" />
+                      <Check size={14} className="text-emerald-400 flex-shrink-0" />
                       {func}
                     </li>
                   ))}
@@ -281,7 +281,7 @@ export default function UpgradeModal({ planoAtual, userEmail, userName, onClose 
 
                 <button
                   onClick={() => handleSelecionarPlano(plano.id)}
-                  className={`w-full py-3 rounded-xl bg-gradient-to-r ${plano.gradient} text-white font-semibold shadow-lg ${plano.shadow} transition-all hover:scale-[1.02] flex items-center justify-center gap-2`}
+                  className={`w-full py-3 rounded-xl bg-gradient-to-r ${plano.gradient} text-white font-semibold shadow-lg ${plano.shadow} transition-all hover:scale-[1.02] flex items-center justify-center gap-2 mt-auto`}
                 >
                   Fazer Upgrade
                   <ArrowRight size={18} />
