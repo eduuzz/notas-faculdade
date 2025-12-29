@@ -2,11 +2,10 @@ import React, { useState } from 'react';
 import { GraduationCap, Mail, Lock, Eye, EyeOff, AlertCircle, ArrowLeft, Upload, CheckCircle, User, X, Copy, Check } from 'lucide-react';
 import { useAuth } from './AuthContext';
 import { supabase } from './supabaseClient';
+import Planos from './Planos';
 
 // Configurações de pagamento
 const CONFIG = {
-  precoOriginal: 'R$ 19,90',
-  precoPromocional: 'R$ 14,90',
   chavePix: 'notasedu.pix@gmail.com',
   whatsapp: '5551989929557',
   whatsappFormatado: '(51) 98992-9557'
@@ -16,7 +15,7 @@ export default function Login() {
   const { signInWithEmail, signInWithGoogle, signUpWithEmail, authError, clearAuthError } = useAuth();
   const [isLogin, setIsLogin] = useState(true);
   const [isForgotPassword, setIsForgotPassword] = useState(false);
-  const [showPromo, setShowPromo] = useState(false);
+  const [showPlanos, setShowPlanos] = useState(false);
   const [showFormulario, setShowFormulario] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -169,7 +168,6 @@ export default function Login() {
         setPedidoData({ nome: '', email: '', comprovante: null });
         setTimeout(() => {
           setShowFormulario(false);
-          setShowPromo(false);
           setSuccess('');
         }, 3000);
       }
@@ -188,6 +186,11 @@ export default function Login() {
       <div className="absolute top-[40%] left-[50%] w-[300px] h-[300px] bg-fuchsia-600/5 rounded-full blur-[80px]" />
     </div>
   );
+
+  // Tela de Planos
+  if (showPlanos) {
+    return <Planos onVoltar={() => setShowPlanos(false)} />;
+  }
 
   // Tela de Formulário de Pedido
   if (showFormulario) {
@@ -310,119 +313,6 @@ export default function Login() {
                 </svg>
                 {CONFIG.whatsappFormatado}
               </a>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // Tela de Promoção
-  if (showPromo) {
-    return (
-      <div className="min-h-screen bg-[#09090b] text-white flex items-center justify-center p-4">
-        <Background />
-        <div className="relative z-10 w-full max-w-md">
-          <div className="relative overflow-hidden rounded-3xl bg-white/[0.03] backdrop-blur-xl border border-white/10 p-8">
-            <button
-              onClick={() => { setShowPromo(false); setError(''); setSuccess(''); }}
-              className="flex items-center gap-2 text-slate-400 hover:text-white transition-colors mb-6"
-            >
-              <ArrowLeft size={18} />
-              <span className="text-sm">Voltar ao login</span>
-            </button>
-
-            <div className="text-center mb-6">
-              <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-violet-500 to-indigo-600 shadow-xl shadow-violet-500/30 mb-4">
-                <GraduationCap size={32} className="text-white" />
-              </div>
-              <h1 className="text-xl font-semibold">Sistema de Notas</h1>
-              <p className="text-slate-500 text-sm mt-1">Acesso vitalício</p>
-            </div>
-
-            {/* Preço */}
-            <div className="bg-gradient-to-br from-violet-500/10 to-indigo-500/10 border border-violet-500/30 rounded-2xl p-6 mb-6 text-center">
-              <div className="text-red-400 text-sm font-semibold mb-1">🔥 PROMOÇÃO DE LANÇAMENTO</div>
-              <div className="text-slate-400 text-sm mb-1">
-                <span className="line-through">{CONFIG.precoOriginal}</span>
-              </div>
-              <div className="text-4xl font-bold text-white">
-                {CONFIG.precoPromocional.split(',')[0]}<span className="text-2xl">,{CONFIG.precoPromocional.split(',')[1]}</span>
-              </div>
-              <div className="text-emerald-400 text-sm mt-2 flex items-center justify-center gap-1">
-                <CheckCircle size={14} />
-                Pagamento único, acesso vitalício
-              </div>
-            </div>
-
-            {/* Passo a passo */}
-            <div className="space-y-4 mb-6">
-              <h3 className="font-semibold text-white">Como funciona:</h3>
-              <div className="space-y-3">
-                {[
-                  'Faça o Pix usando a chave abaixo',
-                  'Clique em "Enviar Comprovante"',
-                  'Aguarde a confirmação (até 24h)',
-                  'Crie sua conta e aproveite!'
-                ].map((step, i) => (
-                  <div key={i} className="flex items-start gap-3">
-                    <span className="flex-shrink-0 w-6 h-6 bg-violet-500 rounded-full flex items-center justify-center text-white text-sm font-bold">
-                      {i + 1}
-                    </span>
-                    <span className="text-slate-300 text-sm">{step}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Chave Pix */}
-            <div className="bg-slate-800/50 rounded-xl p-4 mb-4">
-              <div className="text-slate-400 text-xs mb-2">Chave Pix (Email)</div>
-              <div className="flex items-center justify-between">
-                <code className="text-white text-sm">{CONFIG.chavePix}</code>
-                <button
-                  onClick={copiarChavePix}
-                  className="p-2 hover:bg-white/10 rounded-lg transition-colors"
-                >
-                  {copiado ? (
-                    <Check size={18} className="text-emerald-400" />
-                  ) : (
-                    <Copy size={18} className="text-slate-400" />
-                  )}
-                </button>
-              </div>
-            </div>
-
-            {/* Botão Enviar Comprovante */}
-            <button
-              onClick={() => setShowFormulario(true)}
-              className="w-full py-4 rounded-2xl bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-500 hover:to-green-500 font-semibold shadow-lg shadow-emerald-500/25 transition-all duration-300 hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-2"
-            >
-              <Upload size={18} />
-              Enviar Comprovante
-            </button>
-
-            {/* WhatsApp alternativo */}
-            <div className="mt-4 text-center">
-              <span className="text-slate-500 text-sm">ou envie pelo </span>
-              <a
-                href={`https://wa.me/${CONFIG.whatsapp}?text=Olá! Quero adquirir o Sistema de Notas.`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-emerald-400 hover:text-emerald-300 text-sm font-medium"
-              >
-                WhatsApp
-              </a>
-            </div>
-
-            {/* Já paguei */}
-            <div className="mt-6 pt-4 border-t border-white/10 text-center">
-              <button
-                onClick={() => { setShowPromo(false); setIsLogin(false); }}
-                className="text-violet-400 hover:text-violet-300 text-sm"
-              >
-                Já paguei e quero criar minha conta →
-              </button>
             </div>
           </div>
         </div>
@@ -634,8 +524,8 @@ export default function Login() {
               <button
                 onClick={() => {
                   if (isLogin) {
-                    // Na tela de login → vai para promoção/cadastro
-                    setShowPromo(true);
+                    // Na tela de login → vai para planos
+                    setShowPlanos(true);
                   } else {
                     // Na tela de cadastro → volta para login
                     setIsLogin(true);
@@ -649,7 +539,7 @@ export default function Login() {
             {isLogin && (
               <p className="text-slate-500 text-sm">
                 <button 
-                  onClick={() => { setShowPromo(false); setIsLogin(false); }}
+                  onClick={() => { setIsLogin(false); }}
                   className="hover:text-violet-400 transition-colors"
                 >
                   Já paguei e quero criar minha conta →
@@ -713,11 +603,11 @@ export default function Login() {
               <button
                 onClick={() => {
                   setShowNaoAutorizado(false);
-                  setShowPromo(true);
+                  setShowPlanos(true);
                 }}
                 className="w-full py-3 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 rounded-xl text-white font-semibold transition-all"
               >
-                Quero me cadastrar
+                Ver planos
               </button>
               <button
                 onClick={() => setShowNaoAutorizado(false)}
