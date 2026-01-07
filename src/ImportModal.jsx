@@ -16,18 +16,10 @@ export default function ImportModal({ onClose, onImport, disciplinasExistentes =
     const disciplinas = [];
     const disciplinasAdicionadas = new Set();
 
-    // Lista de palavras/frases para ignorar
-    const ignorar = [
+    // Lista de palavras/frases para ignorar no nome
+    const palavrasIgnorar = [
       'atividades complementares',
-      'atividades acadêmicas',
       'quadro de atividades',
-      'pré-requisitos',
-      'correquisitos',
-      'cred.',
-      'horas',
-      'aula',
-      'obs.',
-      'seq.',
       'universidade',
       'unisinos',
       'coordenação',
@@ -37,102 +29,124 @@ export default function ImportModal({ onClose, onImport, disciplinasExistentes =
       'telefone',
       'e-mail',
       'observações',
-      'trilha',
-      'optativa'
+      'matriz curricular',
+      'habilitação',
+      'bacharelado',
+      'curso de',
+      'seq.',
+      'cred.',
+      'horas-aula',
+      'horas práticas',
+      'horas de estágio',
+      'pré-requisitos',
+      'correquisitos'
     ];
 
-    // Primeiro, tentar encontrar padrões de código + nome (5 dígitos seguidos de texto)
-    // Padrão: código de 5 dígitos, nome da disciplina, créditos, carga horária
-    const padraoCompleto = /\b(\d{5})\s+([A-Za-zÀ-ÿ][A-Za-zÀ-ÿ\s:,\-()]+?)(?:\s+(\d)\s+(\d{2,3})|\s+(\d)\s|$)/g;
+    // Estratégia 1: Encontrar todos os códigos de 5 dígitos e seus nomes
+    // O PDF tem formato: código nome créditos cargaHoraria
     
-    let match;
-    while ((match = padraoCompleto.exec(text)) !== null) {
-      const codigo = match[1];
-      let nome = match[2].trim();
-      const creditos = parseInt(match[3] || match[5] || '4');
-      const cargaHoraria = parseInt(match[4] || '60');
-
-      // Limpar o nome
-      nome = nome
-        .replace(/\s+/g, ' ')
-        .replace(/\s*(ou|e|,)\s*$/i, '')
-        .replace(/\d+$/, '')
-        .trim();
-
-      // Validar
-      if (nome.length < 3) continue;
-      if (nome.length > 100) continue;
-      if (/^\d+$/.test(nome)) continue;
+    // Primeiro, encontrar todos os códigos de 5 dígitos
+    const todosOsCodigos = text.match(/\b\d{5}\b/g) || [];
+    const codigosUnicos = [...new Set(todosOsCodigos)];
+    
+    // Para cada código, tentar encontrar o nome da disciplina
+    for (const codigo of codigosUnicos) {
+      // Criar regex para encontrar o código seguido do nome
+      // Padrão: código + texto até encontrar números ou fim
+      const regexNome = new RegExp(codigo + '\\s+([A-Za-zÀ-ÿ][A-Za-zÀ-ÿ\\s:,\\-\\.\\(\\)]+?)(?:\\s+\\d|$)', 'g');
+      const matchNome = regexNome.exec(text);
       
-      const nomeLower = nome.toLowerCase();
-      if (ignorar.some(i => nomeLower.includes(i))) continue;
-      
-      const chave = `${codigo}-${nomeLower}`;
-      if (disciplinasAdicionadas.has(chave)) continue;
-
-      disciplinas.push({
-        nome,
-        creditos: creditos >= 1 && creditos <= 12 ? creditos : 4,
-        cargaHoraria: cargaHoraria >= 15 && cargaHoraria <= 200 ? cargaHoraria : 60,
-        periodo: 1,
-        fonte: 'pdf'
-      });
-      disciplinasAdicionadas.add(chave);
+      if (matchNome && matchNome[1]) {
+        let nome = matchNome[1].trim();
+        
+        // Limpar o nome
+        nome = nome
+          .replace(/\s+/g, ' ')  // Normalizar espaços
+          .replace(/\s*(ou|e|,)\s*$/i, '')  // Remover "ou", "e", "," do final
+          .replace(/\s+\d+.*$/, '')  // Remover números do final
+          .trim();
+        
+        // Validações
+        if (nome.length < 3 || nome.length > 120) continue;
+        if (/^\d+$/.test(nome)) continue;
+        if (/^[A-Z]{2,5}$/.test(nome)) continue; // Siglas isoladas
+        
+        const nomeLower = nome.toLowerCase();
+        if (palavrasIgnorar.some(p => nomeLower.includes(p))) continue;
+        
+        // Evitar duplicatas
+        if (disciplinasAdicionadas.has(codigo)) continue;
+        
+        // Tentar extrair créditos e carga horária próximos ao código
+        const contextRegex = new RegExp(codigo + '\\s+' + nome.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\s+(\\d)\\s+(\\d{2,3})', 'i');
+        const contextMatch = contextRegex.exec(text);
+        
+        let creditos = 4;
+        let cargaHoraria = 60;
+        
+        if (contextMatch) {
+          creditos = parseInt(contextMatch[1]) || 4;
+          cargaHoraria = parseInt(contextMatch[2]) || 60;
+        }
+        
+        disciplinas.push({
+          nome,
+          creditos: creditos >= 1 && creditos <= 12 ? creditos : 4,
+          cargaHoraria: cargaHoraria >= 15 && cargaHoraria <= 200 ? cargaHoraria : 60,
+          periodo: 1,
+          fonte: 'pdf'
+        });
+        disciplinasAdicionadas.add(codigo);
+      }
     }
 
-    // Se não encontrou muitas disciplinas pelo padrão completo, tentar linha por linha
-    if (disciplinas.length < 5) {
-      const linhas = text.split(/[\n\r]+/).filter(l => l.trim());
+    // Estratégia 2: Se não encontrou muitas, tentar linha por linha (para texto colado manualmente)
+    if (disciplinas.length < 10) {
+      const linhas = text.split(/[\n\r]+/).filter(l => l.trim().length > 3);
       
       for (const linha of linhas) {
         const trimmed = linha.trim();
-        if (trimmed.length < 5) continue;
         
-        const linheLower = trimmed.toLowerCase();
-        if (ignorar.some(i => linheLower.includes(i))) continue;
-
-        // Tentar extrair código e nome
-        const matchLinha = trimmed.match(/^(\d{5})?\s*([A-Za-zÀ-ÿ][A-Za-zÀ-ÿ\s:,\-()]+)/);
-        if (matchLinha) {
-          let nome = matchLinha[2].trim();
-          
-          // Extrair créditos e carga horária
-          const numeros = trimmed.match(/\b(\d{1,2})\b/g);
-          let creditos = 4;
-          let cargaHoraria = 60;
-          
-          if (numeros && numeros.length >= 2) {
-            const nums = numeros.map(n => parseInt(n));
-            for (let i = 0; i < nums.length - 1; i++) {
-              if (nums[i] >= 1 && nums[i] <= 12 && nums[i + 1] >= 15 && nums[i + 1] <= 200) {
-                creditos = nums[i];
-                cargaHoraria = nums[i + 1];
-                break;
-              }
-            }
-          }
-
-          // Limpar nome
-          nome = nome
-            .replace(/\s+\d+\s*.*$/, '')
-            .replace(/\s+/g, ' ')
-            .trim();
-
-          if (nome.length < 3 || nome.length > 100) continue;
-          if (/^\d+$/.test(nome)) continue;
-          
-          const nomeLower = nome.toLowerCase();
-          if (disciplinasAdicionadas.has(nomeLower)) continue;
-
-          disciplinas.push({
-            nome,
-            creditos,
-            cargaHoraria,
-            periodo: 1,
-            fonte: 'texto'
-          });
-          disciplinasAdicionadas.add(nomeLower);
+        // Ignorar linhas com palavras-chave
+        const linhaLower = trimmed.toLowerCase();
+        if (palavrasIgnorar.some(p => linhaLower.includes(p))) continue;
+        
+        // Tentar extrair: pode ter código no início ou não
+        let nome = trimmed;
+        let creditos = 4;
+        let cargaHoraria = 60;
+        
+        // Remover código do início se houver
+        nome = nome.replace(/^\d{5}\s+/, '');
+        
+        // Remover números do final (créditos, carga horária, etc)
+        const matchNumeros = nome.match(/^(.+?)\s+(\d{1,2})\s+(\d{2,3})(?:\s+\d+)*\s*$/);
+        if (matchNumeros) {
+          nome = matchNumeros[1];
+          creditos = parseInt(matchNumeros[2]) || 4;
+          cargaHoraria = parseInt(matchNumeros[3]) || 60;
+        } else {
+          nome = nome.replace(/\s+\d+\s*$/g, '').replace(/\s+\d+\s+\d+.*$/, '');
         }
+        
+        nome = nome.trim();
+        
+        // Validações
+        if (nome.length < 3 || nome.length > 120) continue;
+        if (/^\d+$/.test(nome)) continue;
+        if (/^[A-Z]{2,5}$/.test(nome)) continue;
+        
+        const nomeLower = nome.toLowerCase();
+        if (disciplinasAdicionadas.has(nomeLower)) continue;
+        
+        disciplinas.push({
+          nome,
+          creditos: creditos >= 1 && creditos <= 12 ? creditos : 4,
+          cargaHoraria: cargaHoraria >= 15 && cargaHoraria <= 200 ? cargaHoraria : 60,
+          periodo: 1,
+          fonte: 'texto'
+        });
+        disciplinasAdicionadas.add(nomeLower);
       }
     }
 
