@@ -1,22 +1,25 @@
 import React, { useState, useCallback, useRef } from 'react';
-import { X, Upload, FileText, AlertCircle, CheckCircle, ChevronDown, ChevronUp, Info, File, Loader2 } from 'lucide-react';
+import { X, Upload, FileText, AlertCircle, CheckCircle, ChevronDown, ChevronUp, Info, File, Loader2, Eye, EyeOff } from 'lucide-react';
 
 export default function ImportModal({ onClose, onImport, disciplinasExistentes = [] }) {
-  const [modo, setModo] = useState('pdf'); // 'pdf', 'texto'
+  const [modo, setModo] = useState('texto'); // 'pdf', 'texto' - começar em texto que é mais confiável
   const [texto, setTexto] = useState('');
   const [disciplinasPreview, setDisciplinasPreview] = useState([]);
   const [expandido, setExpandido] = useState(false);
   const [processandoPdf, setProcessandoPdf] = useState(false);
   const [arquivoPdf, setArquivoPdf] = useState(null);
   const [erroPdf, setErroPdf] = useState(null);
+  const [mostrarTextoExtraido, setMostrarTextoExtraido] = useState(false);
+  const [textoExtraidoPdf, setTextoExtraidoPdf] = useState('');
   const fileInputRef = useRef(null);
 
-  // Parser para texto colado ou extraído do PDF
+  // Parser para texto colado - formato esperado:
+  // Linha por linha: "Nome da Disciplina" ou "Nome da Disciplina 4 60" ou "1 60963 Nome 4 60"
   const parseTexto = useCallback((text) => {
     const disciplinas = [];
     const disciplinasAdicionadas = new Set();
 
-    // Lista de palavras/frases para ignorar no nome
+    // Lista de palavras/frases para ignorar
     const palavrasIgnorar = [
       'atividades complementares',
       'quadro de atividades',
@@ -40,162 +43,98 @@ export default function ImportModal({ onClose, onImport, disciplinasExistentes =
       'horas de estágio',
       'pré-requisitos',
       'correquisitos',
-      'ciência da computação'
+      'ciência da computação',
+      'grade curricular',
+      'total de',
+      'créditos totais'
     ];
 
-    // Estratégia 1: Buscar padrão completo do PDF UNISINOS
-    // Formato: SEMESTRE CÓDIGO NOME CRÉDITOS CARGA_HORÁRIA [outros números]
-    // Ex: "1 60963 Raciocínio Lógico 4 60 30"
-    // Ex: "2 60966 Algoritmos e Programação: Estruturas Lineares 8 120 30 60964"
+    const linhas = text.split(/[\n\r]+/).filter(l => l.trim().length > 2);
     
-    // Regex para capturar: semestre (1-8), código (5 dígitos), nome, créditos, carga horária
-    const padraoCompleto = /\b([1-8])\s+(\d{5})\s+([A-Za-zÀ-ÿ][A-Za-zÀ-ÿ\s:,\-\.\(\)]+?)\s+(\d{1,2})\s+(\d{2,3})\b/g;
-    
-    let match;
-    while ((match = padraoCompleto.exec(text)) !== null) {
-      const semestre = parseInt(match[1]);
-      const codigo = match[2];
-      let nome = match[3].trim();
-      const creditos = parseInt(match[4]);
-      const cargaHoraria = parseInt(match[5]);
+    for (const linha of linhas) {
+      let trimmed = linha.trim();
+      
+      // Ignorar linhas com palavras-chave
+      const linhaLower = trimmed.toLowerCase();
+      if (palavrasIgnorar.some(p => linhaLower.includes(p))) continue;
+      
+      // Ignorar linhas que são só números
+      if (/^[\d\s,\.]+$/.test(trimmed)) continue;
+      
+      // Ignorar linhas muito curtas
+      if (trimmed.length < 4) continue;
+
+      let nome = '';
+      let creditos = 4;
+      let cargaHoraria = 60;
+      let periodo = 1;
+
+      // Padrão 1: SEMESTRE CÓDIGO NOME CRÉDITOS CARGA (ex: "1 60963 Raciocínio Lógico 4 60")
+      const padraoCompleto = trimmed.match(/^([1-8])\s+(\d{5})\s+(.+?)\s+(\d{1,2})\s+(\d{2,3})(?:\s|$)/);
+      if (padraoCompleto) {
+        periodo = parseInt(padraoCompleto[1]);
+        nome = padraoCompleto[3].trim();
+        creditos = parseInt(padraoCompleto[4]);
+        cargaHoraria = parseInt(padraoCompleto[5]);
+      } 
+      // Padrão 2: CÓDIGO NOME CRÉDITOS CARGA (ex: "60963 Raciocínio Lógico 4 60")
+      else {
+        const padraoCodigo = trimmed.match(/^(\d{5})\s+(.+?)\s+(\d{1,2})\s+(\d{2,3})(?:\s|$)/);
+        if (padraoCodigo) {
+          nome = padraoCodigo[2].trim();
+          creditos = parseInt(padraoCodigo[3]);
+          cargaHoraria = parseInt(padraoCodigo[4]);
+        }
+        // Padrão 3: NOME CRÉDITOS CARGA (ex: "Raciocínio Lógico 4 60")
+        else {
+          const padraoSimples = trimmed.match(/^(.+?)\s+(\d{1,2})\s+(\d{2,3})(?:\s|$)/);
+          if (padraoSimples) {
+            nome = padraoSimples[1].trim();
+            creditos = parseInt(padraoSimples[2]);
+            cargaHoraria = parseInt(padraoSimples[3]);
+          }
+          // Padrão 4: Só o nome (ex: "Raciocínio Lógico")
+          else {
+            // Remover números do início e fim
+            nome = trimmed
+              .replace(/^\d+\s+/, '') // Remove números do início
+              .replace(/\s+\d+(\s+\d+)*\s*$/, '') // Remove números do final
+              .trim();
+          }
+        }
+      }
 
       // Limpar o nome
       nome = nome
         .replace(/\s+/g, ' ')
         .replace(/\s*(ou|e|,)\s*$/i, '')
+        .replace(/^\d+\s*/, '')
         .trim();
 
       // Validações
-      if (nome.length < 3 || nome.length > 120) continue;
+      if (nome.length < 3 || nome.length > 150) continue;
       if (/^\d+$/.test(nome)) continue;
+      if (/^[A-Z]{1,5}$/.test(nome)) continue; // Siglas isoladas
       
       const nomeLower = nome.toLowerCase();
       if (palavrasIgnorar.some(p => nomeLower.includes(p))) continue;
-      
-      if (disciplinasAdicionadas.has(codigo)) continue;
+      if (disciplinasAdicionadas.has(nomeLower)) continue;
+
+      // Validar créditos e carga horária
+      if (creditos < 1 || creditos > 12) creditos = 4;
+      if (cargaHoraria < 15 || cargaHoraria > 200) cargaHoraria = 60;
 
       disciplinas.push({
         nome,
-        creditos: creditos >= 1 && creditos <= 12 ? creditos : 4,
-        cargaHoraria: cargaHoraria >= 15 && cargaHoraria <= 200 ? cargaHoraria : 60,
-        periodo: semestre,
-        fonte: 'pdf'
+        creditos,
+        cargaHoraria,
+        periodo,
+        fonte: 'texto'
       });
-      disciplinasAdicionadas.add(codigo);
+      disciplinasAdicionadas.add(nomeLower);
     }
 
-    // Estratégia 2: Se não encontrou muitas, tentar sem o semestre no início
-    // Alguns PDFs podem ter formato: CÓDIGO NOME CRÉDITOS CARGA_HORÁRIA
-    if (disciplinas.length < 10) {
-      const padraoSemSemestre = /\b(\d{5})\s+([A-Za-zÀ-ÿ][A-Za-zÀ-ÿ\s:,\-\.\(\)]+?)\s+(\d{1,2})\s+(\d{2,3})\b/g;
-      
-      while ((match = padraoSemSemestre.exec(text)) !== null) {
-        const codigo = match[1];
-        let nome = match[2].trim();
-        const creditos = parseInt(match[3]);
-        const cargaHoraria = parseInt(match[4]);
-
-        // Limpar o nome
-        nome = nome
-          .replace(/\s+/g, ' ')
-          .replace(/\s*(ou|e|,)\s*$/i, '')
-          .trim();
-
-        // Validações
-        if (nome.length < 3 || nome.length > 120) continue;
-        if (/^\d+$/.test(nome)) continue;
-        
-        const nomeLower = nome.toLowerCase();
-        if (palavrasIgnorar.some(p => nomeLower.includes(p))) continue;
-        
-        if (disciplinasAdicionadas.has(codigo)) continue;
-
-        disciplinas.push({
-          nome,
-          creditos: creditos >= 1 && creditos <= 12 ? creditos : 4,
-          cargaHoraria: cargaHoraria >= 15 && cargaHoraria <= 200 ? cargaHoraria : 60,
-          periodo: 1, // Sem info de semestre, vai pro 1
-          fonte: 'pdf'
-        });
-        disciplinasAdicionadas.add(codigo);
-      }
-    }
-
-    // Estratégia 3: Fallback para texto colado linha por linha
-    if (disciplinas.length < 5) {
-      const linhas = text.split(/[\n\r]+/).filter(l => l.trim().length > 3);
-      
-      for (const linha of linhas) {
-        const trimmed = linha.trim();
-        
-        // Ignorar linhas com palavras-chave
-        const linhaLower = trimmed.toLowerCase();
-        if (palavrasIgnorar.some(p => linhaLower.includes(p))) continue;
-        
-        // Tentar extrair com semestre: "1 60963 Nome 4 60"
-        const matchComSemestre = trimmed.match(/^([1-8])\s+(\d{5})?\s*(.+?)\s+(\d{1,2})\s+(\d{2,3})(?:\s|$)/);
-        if (matchComSemestre) {
-          const semestre = parseInt(matchComSemestre[1]);
-          let nome = matchComSemestre[3].trim();
-          const creditos = parseInt(matchComSemestre[4]);
-          const cargaHoraria = parseInt(matchComSemestre[5]);
-          
-          nome = nome.replace(/\s+/g, ' ').trim();
-          
-          if (nome.length >= 3 && nome.length <= 120 && !/^\d+$/.test(nome)) {
-            const nomeLower = nome.toLowerCase();
-            if (!disciplinasAdicionadas.has(nomeLower)) {
-              disciplinas.push({
-                nome,
-                creditos: creditos >= 1 && creditos <= 12 ? creditos : 4,
-                cargaHoraria: cargaHoraria >= 15 && cargaHoraria <= 200 ? cargaHoraria : 60,
-                periodo: semestre,
-                fonte: 'texto'
-              });
-              disciplinasAdicionadas.add(nomeLower);
-            }
-          }
-          continue;
-        }
-        
-        // Tentar extrair sem semestre
-        let nome = trimmed;
-        let creditos = 4;
-        let cargaHoraria = 60;
-        
-        // Remover código do início se houver
-        nome = nome.replace(/^\d{5}\s+/, '');
-        
-        // Remover números do final
-        const matchNumeros = nome.match(/^(.+?)\s+(\d{1,2})\s+(\d{2,3})(?:\s+\d+)*\s*$/);
-        if (matchNumeros) {
-          nome = matchNumeros[1];
-          creditos = parseInt(matchNumeros[2]) || 4;
-          cargaHoraria = parseInt(matchNumeros[3]) || 60;
-        } else {
-          nome = nome.replace(/\s+\d+\s*$/g, '').replace(/\s+\d+\s+\d+.*$/, '');
-        }
-        
-        nome = nome.trim();
-        
-        if (nome.length < 3 || nome.length > 120) continue;
-        if (/^\d+$/.test(nome)) continue;
-        
-        const nomeLower = nome.toLowerCase();
-        if (disciplinasAdicionadas.has(nomeLower)) continue;
-        
-        disciplinas.push({
-          nome,
-          creditos: creditos >= 1 && creditos <= 12 ? creditos : 4,
-          cargaHoraria: cargaHoraria >= 15 && cargaHoraria <= 200 ? cargaHoraria : 60,
-          periodo: 1,
-          fonte: 'texto'
-        });
-        disciplinasAdicionadas.add(nomeLower);
-      }
-    }
-
-    // Ordenar por semestre
+    // Ordenar por período e nome
     return disciplinas.sort((a, b) => a.periodo - b.periodo || a.nome.localeCompare(b.nome));
   }, []);
 
@@ -204,6 +143,7 @@ export default function ImportModal({ onClose, onImport, disciplinasExistentes =
     setProcessandoPdf(true);
     setErroPdf(null);
     setArquivoPdf(file);
+    setTextoExtraidoPdf('');
 
     try {
       // Carregar pdf.js via script tag se não estiver carregado
@@ -228,20 +168,37 @@ export default function ImportModal({ onClose, onImport, disciplinasExistentes =
       for (let i = 1; i <= pdf.numPages; i++) {
         const page = await pdf.getPage(i);
         const textContent = await page.getTextContent();
-        const pageText = textContent.items.map(item => item.str).join(' ');
-        textoCompleto += pageText + '\n';
+        // Tentar manter a estrutura de linhas
+        let ultimoY = null;
+        let linhaAtual = '';
+        
+        for (const item of textContent.items) {
+          if (ultimoY !== null && Math.abs(item.transform[5] - ultimoY) > 5) {
+            textoCompleto += linhaAtual.trim() + '\n';
+            linhaAtual = '';
+          }
+          linhaAtual += item.str + ' ';
+          ultimoY = item.transform[5];
+        }
+        if (linhaAtual.trim()) {
+          textoCompleto += linhaAtual.trim() + '\n';
+        }
+        textoCompleto += '\n';
       }
 
+      setTextoExtraidoPdf(textoCompleto);
       setTexto(textoCompleto);
       const disciplinas = parseTexto(textoCompleto);
       setDisciplinasPreview(disciplinas);
 
       if (disciplinas.length === 0) {
-        setErroPdf('Nenhuma disciplina reconhecida. Tente copiar o texto do PDF e colar na aba "Colar Texto".');
+        setErroPdf('Nenhuma disciplina reconhecida automaticamente. Clique em "Ver texto extraído" para copiar e ajustar manualmente na aba "Colar Texto".');
+      } else if (disciplinas.length < 20) {
+        setErroPdf(`Apenas ${disciplinas.length} disciplinas encontradas. Se faltam disciplinas, clique em "Ver texto extraído" para verificar.`);
       }
     } catch (error) {
       console.error('Erro ao processar PDF:', error);
-      setErroPdf('Erro ao ler o PDF. Tente copiar o texto do PDF e colar na aba "Colar Texto".');
+      setErroPdf('Erro ao ler o PDF. Tente copiar o texto do PDF manualmente e colar na aba "Colar Texto".');
     } finally {
       setProcessandoPdf(false);
     }
@@ -298,6 +255,14 @@ export default function ImportModal({ onClose, onImport, disciplinasExistentes =
 
   const disciplinasNovas = disciplinasPreview.filter(d => !verificarDuplicata(d.nome));
   const disciplinasDuplicadas = disciplinasPreview.filter(d => verificarDuplicata(d.nome));
+  
+  // Agrupar por período para mostrar no preview
+  const disciplinasPorPeriodo = disciplinasPreview.reduce((acc, d) => {
+    const p = d.periodo || 1;
+    if (!acc[p]) acc[p] = [];
+    acc[p].push(d);
+    return acc;
+  }, {});
 
   return (
     <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
@@ -310,7 +275,7 @@ export default function ImportModal({ onClose, onImport, disciplinasExistentes =
             </div>
             <div>
               <h2 className="text-xl font-bold text-white">Importar Cadeiras</h2>
-              <p className="text-slate-400 text-sm">Upload de PDF ou cole o texto</p>
+              <p className="text-slate-400 text-sm">Cole o texto ou faça upload do PDF</p>
             </div>
           </div>
           <button onClick={onClose} className="p-2 rounded-xl hover:bg-white/10 transition-all">
@@ -320,17 +285,6 @@ export default function ImportModal({ onClose, onImport, disciplinasExistentes =
 
         {/* Tabs */}
         <div className="flex gap-2 p-4 border-b border-white/10">
-          <button
-            onClick={() => { setModo('pdf'); setDisciplinasPreview([]); setErroPdf(null); }}
-            className={`flex-1 py-2.5 px-4 rounded-xl text-sm font-medium transition-all flex items-center justify-center gap-2 ${
-              modo === 'pdf' 
-                ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30' 
-                : 'bg-white/5 text-slate-400 border border-white/10 hover:bg-white/10'
-            }`}
-          >
-            <File size={18} />
-            Upload PDF
-          </button>
           <button
             onClick={() => { setModo('texto'); setDisciplinasPreview([]); }}
             className={`flex-1 py-2.5 px-4 rounded-xl text-sm font-medium transition-all flex items-center justify-center gap-2 ${
@@ -342,10 +296,65 @@ export default function ImportModal({ onClose, onImport, disciplinasExistentes =
             <FileText size={18} />
             Colar Texto
           </button>
+          <button
+            onClick={() => { setModo('pdf'); setDisciplinasPreview([]); setErroPdf(null); }}
+            className={`flex-1 py-2.5 px-4 rounded-xl text-sm font-medium transition-all flex items-center justify-center gap-2 ${
+              modo === 'pdf' 
+                ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30' 
+                : 'bg-white/5 text-slate-400 border border-white/10 hover:bg-white/10'
+            }`}
+          >
+            <File size={18} />
+            Upload PDF
+          </button>
         </div>
 
         {/* Content */}
         <div className="p-6 overflow-y-auto max-h-[50vh]">
+          {modo === 'texto' && (
+            <div className="space-y-4">
+              <div>
+                <label className="text-sm text-slate-400 block mb-2">
+                  Cole a lista de disciplinas (uma por linha)
+                </label>
+                <textarea
+                  value={texto}
+                  onChange={(e) => setTexto(e.target.value)}
+                  rows={8}
+                  className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white text-sm focus:outline-none focus:border-amber-500/50 resize-none font-mono"
+                  placeholder={`Cole aqui a lista de disciplinas...
+
+Formatos aceitos:
+• Nome da Disciplina
+• Nome da Disciplina 4 60
+• 60963 Nome da Disciplina 4 60
+• 1 60963 Nome da Disciplina 4 60
+
+Exemplo:
+Raciocínio Lógico 4 60
+Algoritmos e Programação 8 120
+Cálculo I 4 60`}
+                />
+              </div>
+
+              <div className="bg-blue-500/10 border border-blue-500/30 rounded-xl p-3 flex items-start gap-2">
+                <Info size={16} className="text-blue-400 mt-0.5 flex-shrink-0" />
+                <p className="text-blue-300 text-xs">
+                  <strong>Dica:</strong> Abra o PDF no navegador, selecione todo o texto (Ctrl+A), copie (Ctrl+C) e cole aqui. 
+                  Cada linha será uma disciplina. Números no final serão interpretados como créditos e carga horária.
+                </p>
+              </div>
+
+              <button
+                onClick={analisarTexto}
+                disabled={!texto.trim()}
+                className="w-full py-3 rounded-xl bg-gradient-to-r from-amber-500 to-orange-600 text-white font-medium hover:scale-[1.02] transition-all disabled:opacity-50 disabled:hover:scale-100"
+              >
+                Analisar Texto
+              </button>
+            </div>
+          )}
+
           {modo === 'pdf' && (
             <div className="space-y-4">
               {/* Área de upload */}
@@ -373,7 +382,7 @@ export default function ImportModal({ onClose, onImport, disciplinasExistentes =
                     <p className="text-amber-300 font-medium">Processando PDF...</p>
                     <p className="text-slate-500 text-sm">Extraindo texto do documento</p>
                   </div>
-                ) : arquivoPdf && !erroPdf ? (
+                ) : arquivoPdf ? (
                   <div className="flex flex-col items-center gap-3">
                     <CheckCircle size={40} className="text-emerald-400" />
                     <p className="text-emerald-300 font-medium">{arquivoPdf.name}</p>
@@ -389,49 +398,53 @@ export default function ImportModal({ onClose, onImport, disciplinasExistentes =
               </div>
 
               {erroPdf && (
-                <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-4 flex items-start gap-3">
-                  <AlertCircle size={20} className="text-red-400 mt-0.5" />
-                  <div>
-                    <p className="text-red-300 font-medium">Erro ao processar</p>
-                    <p className="text-red-200/70 text-sm">{erroPdf}</p>
+                <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-4 flex items-start gap-3">
+                  <AlertCircle size={20} className="text-amber-400 mt-0.5 flex-shrink-0" />
+                  <div className="flex-1">
+                    <p className="text-amber-300 text-sm">{erroPdf}</p>
                   </div>
                 </div>
               )}
 
-              <div className="flex items-center gap-2 text-xs text-slate-500">
-                <Info size={14} />
-                <span>O sistema extrai automaticamente os nomes das disciplinas do PDF</span>
-              </div>
-            </div>
-          )}
+              {/* Botão para ver texto extraído */}
+              {textoExtraidoPdf && (
+                <div className="space-y-2">
+                  <button
+                    onClick={() => setMostrarTextoExtraido(!mostrarTextoExtraido)}
+                    className="flex items-center gap-2 text-sm text-slate-400 hover:text-white transition-all"
+                  >
+                    {mostrarTextoExtraido ? <EyeOff size={16} /> : <Eye size={16} />}
+                    {mostrarTextoExtraido ? 'Ocultar texto extraído' : 'Ver texto extraído do PDF'}
+                  </button>
+                  
+                  {mostrarTextoExtraido && (
+                    <div className="space-y-2">
+                      <textarea
+                        value={textoExtraidoPdf}
+                        readOnly
+                        rows={6}
+                        className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white text-xs focus:outline-none resize-none font-mono"
+                      />
+                      <button
+                        onClick={() => {
+                          navigator.clipboard.writeText(textoExtraidoPdf);
+                        }}
+                        className="text-xs text-cyan-400 hover:text-cyan-300"
+                      >
+                        📋 Copiar texto
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
 
-          {modo === 'texto' && (
-            <div className="space-y-4">
-              <div>
-                <label className="text-sm text-slate-400 block mb-2">
-                  Cole o texto das cadeiras (do PDF ou site)
-                </label>
-                <textarea
-                  value={texto}
-                  onChange={(e) => setTexto(e.target.value)}
-                  rows={6}
-                  className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white text-sm focus:outline-none focus:border-amber-500/50 resize-none font-mono"
-                  placeholder="Cole aqui o texto com as disciplinas...&#10;&#10;Exemplo:&#10;Cálculo I&#10;Física I&#10;Programação I&#10;&#10;Ou com créditos:&#10;Cálculo I    4    60&#10;Física I    4    60"
-                />
+              <div className="bg-blue-500/10 border border-blue-500/30 rounded-xl p-3 flex items-start gap-2">
+                <Info size={16} className="text-blue-400 mt-0.5 flex-shrink-0" />
+                <p className="text-blue-300 text-xs">
+                  <strong>Nota:</strong> A extração automática de PDF pode não ser 100% precisa. 
+                  Se faltar disciplinas, recomendamos usar a aba "Colar Texto" copiando o conteúdo do PDF manualmente.
+                </p>
               </div>
-
-              <div className="flex items-center gap-2 text-xs text-slate-500">
-                <Info size={14} />
-                <span>Cada linha será interpretada como uma disciplina</span>
-              </div>
-
-              <button
-                onClick={analisarTexto}
-                disabled={!texto.trim()}
-                className="w-full py-3 rounded-xl bg-gradient-to-r from-amber-500 to-orange-600 text-white font-medium hover:scale-[1.02] transition-all disabled:opacity-50 disabled:hover:scale-100"
-              >
-                Analisar Texto
-              </button>
             </div>
           )}
 
@@ -462,6 +475,15 @@ export default function ImportModal({ onClose, onImport, disciplinasExistentes =
                   <p className="text-xs text-slate-400">Duplicadas</p>
                 </div>
               </div>
+              
+              {/* Info de semestres */}
+              <div className="flex flex-wrap gap-2">
+                {Object.keys(disciplinasPorPeriodo).sort((a, b) => a - b).map(p => (
+                  <span key={p} className="text-xs px-2 py-1 rounded-lg bg-violet-500/20 text-violet-300 border border-violet-500/30">
+                    {p}º sem: {disciplinasPorPeriodo[p].length}
+                  </span>
+                ))}
+              </div>
 
               {/* Lista */}
               {expandido && (
@@ -479,7 +501,7 @@ export default function ImportModal({ onClose, onImport, disciplinasExistentes =
                       >
                         <div className="flex items-start justify-between">
                           <div className="flex-1">
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-2 flex-wrap">
                               <p className="text-white font-medium text-sm">{d.nome}</p>
                               {isDuplicada && (
                                 <span className="text-xs px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-400">
@@ -488,6 +510,7 @@ export default function ImportModal({ onClose, onImport, disciplinasExistentes =
                               )}
                             </div>
                             <div className="flex items-center gap-3 mt-1 text-xs text-slate-500">
+                              <span>{d.periodo}º sem</span>
                               <span>{d.creditos} cr</span>
                               <span>{d.cargaHoraria}h</span>
                             </div>
