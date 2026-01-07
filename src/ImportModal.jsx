@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useRef } from 'react';
-import { X, Upload, FileText, AlertCircle, CheckCircle, ChevronDown, ChevronUp, Info, File, Loader2, Eye, EyeOff, Sparkles, Zap } from 'lucide-react';
+import { X, Upload, FileText, AlertCircle, CheckCircle, ChevronDown, ChevronUp, Info, File, Loader2, Eye, EyeOff, Zap } from 'lucide-react';
 
 export default function ImportModal({ onClose, onImport, disciplinasExistentes = [] }) {
   const [modo, setModo] = useState('texto'); // 'pdf', 'texto'
@@ -7,213 +7,99 @@ export default function ImportModal({ onClose, onImport, disciplinasExistentes =
   const [disciplinasPreview, setDisciplinasPreview] = useState([]);
   const [expandido, setExpandido] = useState(false);
   const [processandoPdf, setProcessandoPdf] = useState(false);
-  const [processandoIA, setProcessandoIA] = useState(false);
   const [arquivoPdf, setArquivoPdf] = useState(null);
   const [erroPdf, setErroPdf] = useState(null);
   const [mostrarTextoExtraido, setMostrarTextoExtraido] = useState(false);
   const [textoExtraidoPdf, setTextoExtraidoPdf] = useState('');
   const fileInputRef = useRef(null);
 
-  // Análise inteligente com Claude API
-  const analisarComIA = useCallback(async (textoParaAnalisar) => {
-    setProcessandoIA(true);
-    setErroPdf(null);
-
-    try {
-      const response = await fetch('https://api.anthropic.com/v1/messages', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          model: 'claude-sonnet-4-20250514',
-          max_tokens: 8000,
-          messages: [
-            {
-              role: 'user',
-              content: `Analise este texto de grade curricular universitária e extraia as disciplinas.
-
-ESTRUTURA DO PDF:
-- "Seq." = Semestre (1-8 para obrigatórias, 9+ ou "Trilha X" para optativas/trilhas)
-- "N." = Código da disciplina (número de 5 dígitos, ex: 60963)
-- "Atividades Acadêmicas" = Nome da disciplina
-- "Cred." = Créditos
-- "Horas-Aula" = Carga horária principal (usar este valor)
-- "Horas Práticas" = ignorar para carga horária
-- "Horas de Estágio" = ignorar
-- "Pré-requisitos" = códigos das disciplinas necessárias antes
-- "Correquisitos" = códigos das disciplinas que devem ser cursadas junto
-- "Obs." = ignorar
-
-REGRAS IMPORTANTES:
-1. Extrair APENAS disciplinas reais (que tem código de 5 dígitos)
-2. O período/semestre vem da coluna "Seq." (1-8 = semestre regular, outros = optativas/trilhas)
-3. Trilhas como "Trilha Empreendedorismo", "Trilha Mestrado", etc. devem ter periodo = 9
-4. Disciplinas optativas sem semestre definido devem ter periodo = 0
-5. Vincular o código (N.) a cada disciplina - é OBRIGATÓRIO
-6. Extrair pré-requisitos e correquisitos como arrays de códigos
-7. NÃO duplicar disciplinas (mesmo código = mesma disciplina)
-8. Ignorar cabeçalhos, totais, observações e textos que não são disciplinas
-
-Retorne APENAS um JSON válido:
-{
-  "disciplinas": [
-    {
-      "codigo": "60963",
-      "nome": "Raciocínio Lógico",
-      "creditos": 4,
-      "cargaHoraria": 60,
-      "periodo": 1,
-      "preRequisitos": [],
-      "coRequisitos": []
-    },
-    {
-      "codigo": "60966",
-      "nome": "Algoritmos e Programação: Estruturas Lineares",
-      "creditos": 8,
-      "cargaHoraria": 120,
-      "periodo": 2,
-      "preRequisitos": ["60964"],
-      "coRequisitos": []
-    }
-  ]
-}
-
-IMPORTANTE: Retorne SOMENTE o JSON, sem explicações ou texto adicional.
-
-Texto do PDF:
-${textoParaAnalisar.substring(0, 25000)}`
-            }
-          ]
-        })
-      });
-
-      if (!response.ok) {
-        throw new Error('Erro na API');
-      }
-
-      const data = await response.json();
-      const conteudo = data.content[0].text;
-
-      // Tentar extrair JSON da resposta
-      const jsonMatch = conteudo.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        const resultado = JSON.parse(jsonMatch[0]);
-        if (resultado.disciplinas && Array.isArray(resultado.disciplinas)) {
-          // Processar e remover duplicatas por código
-          const codigosVistos = new Set();
-          const disciplinasProcessadas = resultado.disciplinas
-            .filter(d => {
-              // Deve ter código válido
-              if (!d.codigo || codigosVistos.has(d.codigo)) return false;
-              codigosVistos.add(d.codigo);
-              return true;
-            })
-            .map(d => ({
-              codigo: d.codigo,
-              nome: d.nome,
-              creditos: d.creditos || 4,
-              cargaHoraria: d.cargaHoraria || 60,
-              periodo: d.periodo || 1,
-              preRequisitos: d.preRequisitos || [],
-              coRequisitos: d.coRequisitos || [],
-              fonte: 'ia'
-            }));
-
-          setDisciplinasPreview(disciplinasProcessadas.sort((a, b) => 
-            a.periodo - b.periodo || a.nome.localeCompare(b.nome)
-          ));
-          return true;
-        }
-      }
-      throw new Error('Formato inválido');
-    } catch (error) {
-      console.error('Erro na análise IA:', error);
-      setErroPdf('Erro na análise inteligente. Tente o modo manual ou cole o texto na aba "Colar Texto".');
-      return false;
-    } finally {
-      setProcessandoIA(false);
-    }
-  }, []);
-
-  // Parser manual para texto colado
-  const parseTextoManual = useCallback((text) => {
+  // Parser para texto - APENAS disciplinas com código de 5 dígitos
+  const parseTexto = useCallback((text) => {
     const disciplinas = [];
-    const disciplinasAdicionadas = new Set();
+    const codigosAdicionados = new Set();
 
+    // Palavras que indicam que a linha NÃO é uma disciplina
     const palavrasIgnorar = [
       'atividades complementares', 'quadro de atividades', 'universidade',
       'unisinos', 'coordenação', 'duração', 'reconhecimento', 'portaria',
       'telefone', 'e-mail', 'observações', 'matriz curricular', 'habilitação',
       'bacharelado', 'curso de', 'seq.', 'cred.', 'horas-aula', 'horas práticas',
       'horas de estágio', 'pré-requisitos', 'correquisitos', 'ciência da computação',
-      'grade curricular', 'total de', 'créditos totais'
+      'grade curricular', 'total de', 'créditos totais', 'atividades acadêmicas',
+      'obs.', 'n.'
     ];
 
-    const linhas = text.split(/[\n\r]+/).filter(l => l.trim().length > 2);
+    const linhas = text.split(/[\n\r]+/);
     
     for (const linha of linhas) {
-      let trimmed = linha.trim();
+      const trimmed = linha.trim();
+      if (trimmed.length < 10) continue;
+      
       const linhaLower = trimmed.toLowerCase();
       
-      if (palavrasIgnorar.some(p => linhaLower.includes(p))) continue;
-      if (/^[\d\s,\.]+$/.test(trimmed)) continue;
-      if (trimmed.length < 4) continue;
+      // Ignorar cabeçalhos
+      if (palavrasIgnorar.some(p => linhaLower.startsWith(p) || linhaLower === p)) continue;
 
-      let nome = '';
-      let creditos = 4;
-      let cargaHoraria = 60;
-      let periodo = 1;
-
-      // Padrão: SEMESTRE CÓDIGO NOME CRÉDITOS CARGA
-      const padraoCompleto = trimmed.match(/^([1-8])\s+(\d{5})\s+(.+?)\s+(\d{1,2})\s+(\d{2,3})(?:\s|$)/);
-      if (padraoCompleto) {
-        periodo = parseInt(padraoCompleto[1]);
-        nome = padraoCompleto[3].trim();
-        creditos = parseInt(padraoCompleto[4]);
-        cargaHoraria = parseInt(padraoCompleto[5]);
-      } else {
-        // Padrão: CÓDIGO NOME CRÉDITOS CARGA
-        const padraoCodigo = trimmed.match(/^(\d{5})\s+(.+?)\s+(\d{1,2})\s+(\d{2,3})(?:\s|$)/);
-        if (padraoCodigo) {
-          nome = padraoCodigo[2].trim();
-          creditos = parseInt(padraoCodigo[3]);
-          cargaHoraria = parseInt(padraoCodigo[4]);
-        } else {
-          // Padrão: NOME CRÉDITOS CARGA
-          const padraoSimples = trimmed.match(/^(.+?)\s+(\d{1,2})\s+(\d{2,3})(?:\s|$)/);
-          if (padraoSimples) {
-            nome = padraoSimples[1].trim();
-            creditos = parseInt(padraoSimples[2]);
-            cargaHoraria = parseInt(padraoSimples[3]);
-          } else {
-            nome = trimmed.replace(/^\d+\s+/, '').replace(/\s+\d+(\s+\d+)*\s*$/, '').trim();
-          }
-        }
-      }
-
-      nome = nome.replace(/\s+/g, ' ').replace(/\s*(ou|e|,)\s*$/i, '').replace(/^\d+\s*/, '').trim();
-
+      // OBRIGATÓRIO: deve conter código de 5 dígitos
+      // Padrão esperado: [semestre] CÓDIGO NOME [créditos] [carga] [outros números]
+      // Exemplo: "1 60963 Raciocínio Lógico 4 60 30"
+      // Exemplo: "60963 Raciocínio Lógico 4 60"
+      
+      // Primeiro, encontrar o código de 5 dígitos na linha
+      const codigoMatch = trimmed.match(/\b(\d{5})\b/);
+      if (!codigoMatch) continue;
+      
+      const codigo = codigoMatch[1];
+      if (codigosAdicionados.has(codigo)) continue;
+      
+      // Extrair semestre (número de 1 dígito antes do código)
+      const antesCodigo = trimmed.substring(0, codigoMatch.index).trim();
+      const semestreMatch = antesCodigo.match(/^(\d)$/);
+      const semestre = semestreMatch ? parseInt(semestreMatch[1]) : 1;
+      
+      // Extrair o resto após o código
+      const depoisCodigo = trimmed.substring(codigoMatch.index + 5).trim();
+      
+      // Regex para extrair: NOME seguido de números (créditos, carga, etc)
+      // O nome vai até encontrar uma sequência de números
+      const nomeMatch = depoisCodigo.match(/^([A-Za-zÀ-ÿ][A-Za-zÀ-ÿ\s:,\-\.\(\)\/]+?)(?:\s+(\d{1,2})\s+(\d{2,3}))?/);
+      
+      if (!nomeMatch) continue;
+      
+      let nome = nomeMatch[1].trim();
+      const creditos = nomeMatch[2] ? parseInt(nomeMatch[2]) : 4;
+      const cargaHoraria = nomeMatch[3] ? parseInt(nomeMatch[3]) : 60;
+      
+      // Limpar nome
+      nome = nome
+        .replace(/\s+/g, ' ')
+        .replace(/\s*(ou|e|,)\s*$/i, '')
+        .replace(/\d+\s*$/, '')
+        .trim();
+      
+      // Validações
       if (nome.length < 3 || nome.length > 150) continue;
       if (/^\d+$/.test(nome)) continue;
-      if (/^[A-Z]{1,5}$/.test(nome)) continue;
-      
-      const nomeLower = nome.toLowerCase();
-      if (palavrasIgnorar.some(p => nomeLower.includes(p))) continue;
-      if (disciplinasAdicionadas.has(nomeLower)) continue;
+      if (/^[a-z\s]+$/i.test(nome) && nome.split(' ').length < 2) continue; // Palavras soltas
 
-      if (creditos < 1 || creditos > 12) creditos = 4;
-      if (cargaHoraria < 15 || cargaHoraria > 200) cargaHoraria = 60;
-
-      disciplinas.push({ nome, creditos, cargaHoraria, periodo, fonte: 'texto' });
-      disciplinasAdicionadas.add(nomeLower);
+      disciplinas.push({
+        codigo,
+        nome,
+        creditos: creditos >= 1 && creditos <= 12 ? creditos : 4,
+        cargaHoraria: cargaHoraria >= 15 && cargaHoraria <= 200 ? cargaHoraria : 60,
+        periodo: semestre >= 1 && semestre <= 9 ? semestre : 1,
+        preRequisitos: [],
+        coRequisitos: [],
+        fonte: 'texto'
+      });
+      codigosAdicionados.add(codigo);
     }
 
     return disciplinas.sort((a, b) => a.periodo - b.periodo || a.nome.localeCompare(b.nome));
   }, []);
 
   // Processar arquivo PDF
-  const processarPdf = useCallback(async (file, usarIA = true) => {
+  const processarPdf = useCallback(async (file) => {
     setProcessandoPdf(true);
     setErroPdf(null);
     setArquivoPdf(file);
@@ -262,50 +148,46 @@ ${textoParaAnalisar.substring(0, 25000)}`
 
       setTextoExtraidoPdf(textoCompleto);
       setTexto(textoCompleto);
-      setProcessandoPdf(false);
-
-      // Usar IA para análise
-      if (usarIA) {
-        const sucesso = await analisarComIA(textoCompleto);
-        if (!sucesso) {
-          // Fallback para parser manual
-          const disciplinas = parseTextoManual(textoCompleto);
-          setDisciplinasPreview(disciplinas);
-          if (disciplinas.length === 0) {
-            setErroPdf('Nenhuma disciplina encontrada. Tente ver o texto extraído e colar manualmente.');
-          }
-        }
-      } else {
-        const disciplinas = parseTextoManual(textoCompleto);
-        setDisciplinasPreview(disciplinas);
+      
+      // Processar com parser
+      const disciplinas = parseTexto(textoCompleto);
+      setDisciplinasPreview(disciplinas);
+      
+      if (disciplinas.length === 0) {
+        setErroPdf('Nenhuma disciplina com código encontrada. Verifique o texto extraído.');
+      } else if (disciplinas.length < 10) {
+        setErroPdf(`Apenas ${disciplinas.length} disciplinas encontradas. Verifique se o PDF tem o formato esperado.`);
       }
 
     } catch (error) {
       console.error('Erro ao processar PDF:', error);
       setErroPdf('Erro ao ler o PDF. Tente copiar o texto manualmente.');
+    } finally {
       setProcessandoPdf(false);
     }
-  }, [analisarComIA, parseTextoManual]);
+  }, [parseTexto]);
 
   const handleFileUpload = (event) => {
     const file = event.target.files[0];
     if (file) {
       if (file.type === 'application/pdf') {
-        processarPdf(file, true);
+        processarPdf(file);
       } else {
         setErroPdf('Por favor, selecione um arquivo PDF.');
       }
     }
   };
 
-  const analisarTexto = useCallback(async (usarIA = false) => {
-    if (usarIA) {
-      await analisarComIA(texto);
+  const analisarTexto = useCallback(() => {
+    const disciplinas = parseTexto(texto);
+    setDisciplinasPreview(disciplinas);
+    
+    if (disciplinas.length === 0) {
+      setErroPdf('Nenhuma disciplina com código de 5 dígitos encontrada.');
     } else {
-      const disciplinas = parseTextoManual(texto);
-      setDisciplinasPreview(disciplinas);
+      setErroPdf(null);
     }
-  }, [texto, analisarComIA, parseTextoManual]);
+  }, [texto, parseTexto]);
 
   const verificarDuplicata = (d) => {
     // Verificar por código (se existir) ou por nome
@@ -364,7 +246,7 @@ ${textoParaAnalisar.substring(0, 25000)}`
             </div>
             <div>
               <h2 className="text-xl font-bold text-white">Importar Cadeiras</h2>
-              <p className="text-slate-400 text-sm">Análise inteligente com IA</p>
+              <p className="text-slate-400 text-sm">Upload de PDF ou cole o texto</p>
             </div>
           </div>
           <button onClick={onClose} className="p-2 rounded-xl hover:bg-white/10 transition-all">
@@ -375,7 +257,7 @@ ${textoParaAnalisar.substring(0, 25000)}`
         {/* Tabs */}
         <div className="flex gap-2 p-4 border-b border-white/10">
           <button
-            onClick={() => { setModo('texto'); setDisciplinasPreview([]); }}
+            onClick={() => { setModo('texto'); setDisciplinasPreview([]); setErroPdf(null); }}
             className={`flex-1 py-2.5 px-4 rounded-xl text-sm font-medium transition-all flex items-center justify-center gap-2 ${
               modo === 'texto' 
                 ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30' 
@@ -404,61 +286,57 @@ ${textoParaAnalisar.substring(0, 25000)}`
             <div className="space-y-4">
               <div>
                 <label className="text-sm text-slate-400 block mb-2">
-                  Cole a lista de disciplinas
+                  Cole a lista de disciplinas (com código de 5 dígitos)
                 </label>
                 <textarea
                   value={texto}
                   onChange={(e) => setTexto(e.target.value)}
                   rows={8}
                   className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white text-sm focus:outline-none focus:border-amber-500/50 resize-none font-mono"
-                  placeholder={`Cole aqui o texto do PDF ou lista de disciplinas...
+                  placeholder={`Cole o texto do PDF aqui...
 
-A IA vai analisar e extrair automaticamente:
-• Nome da disciplina
-• Créditos
-• Carga horária
-• Semestre`}
+Formato esperado (cada linha):
+SEMESTRE CÓDIGO NOME CRÉDITOS CARGA
+
+Exemplo:
+1 60963 Raciocínio Lógico 4 60
+1 60964 Algoritmos e Programação: Fundamentos 8 120
+2 60966 Algoritmos e Programação: Estruturas Lineares 8 120`}
                 />
               </div>
 
-              <div className="flex gap-2">
-                <button
-                  onClick={() => analisarTexto(true)}
-                  disabled={!texto.trim() || isProcessando}
-                  className="flex-1 py-3 rounded-xl bg-gradient-to-r from-violet-500 to-purple-600 text-white font-medium hover:scale-[1.02] transition-all disabled:opacity-50 disabled:hover:scale-100 flex items-center justify-center gap-2"
-                >
-                  {processandoIA ? (
-                    <><Loader2 size={18} className="animate-spin" /> Analisando...</>
-                  ) : (
-                    <><Sparkles size={18} /> Análise com IA</>
-                  )}
-                </button>
-                <button
-                  onClick={() => analisarTexto(false)}
-                  disabled={!texto.trim() || isProcessando}
-                  className="px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-slate-400 font-medium hover:bg-white/10 transition-all disabled:opacity-50"
-                  title="Análise manual sem IA"
-                >
-                  <Zap size={18} />
-                </button>
-              </div>
+              <button
+                onClick={analisarTexto}
+                disabled={!texto.trim() || processandoPdf}
+                className="w-full py-3 rounded-xl bg-gradient-to-r from-amber-500 to-orange-600 text-white font-medium hover:scale-[1.02] transition-all disabled:opacity-50 disabled:hover:scale-100 flex items-center justify-center gap-2"
+              >
+                <Zap size={18} />
+                Analisar Texto
+              </button>
 
-              <div className="bg-violet-500/10 border border-violet-500/30 rounded-xl p-3 flex items-start gap-2">
-                <Sparkles size={16} className="text-violet-400 mt-0.5 flex-shrink-0" />
-                <p className="text-violet-300 text-xs">
-                  <strong>IA ativada:</strong> O Claude analisa o texto e extrai as disciplinas com nome, créditos, carga horária e semestre automaticamente.
+              <div className="bg-blue-500/10 border border-blue-500/30 rounded-xl p-3 flex items-start gap-2">
+                <Info size={16} className="text-blue-400 mt-0.5 flex-shrink-0" />
+                <p className="text-blue-300 text-xs">
+                  <strong>Importante:</strong> As disciplinas devem ter código de 5 dígitos (ex: 60963). Linhas sem código serão ignoradas.
                 </p>
               </div>
+
+              {erroPdf && (
+                <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-4 flex items-start gap-3">
+                  <AlertCircle size={20} className="text-amber-400 mt-0.5 flex-shrink-0" />
+                  <p className="text-amber-300 text-sm">{erroPdf}</p>
+                </div>
+              )}
             </div>
           )}
 
           {modo === 'pdf' && (
             <div className="space-y-4">
               <div
-                onClick={() => !isProcessando && fileInputRef.current?.click()}
+                onClick={() => !processandoPdf && fileInputRef.current?.click()}
                 className={`border-2 border-dashed rounded-2xl p-8 text-center cursor-pointer transition-all ${
-                  isProcessando 
-                    ? 'border-violet-500/50 bg-violet-500/10 cursor-wait' 
+                  processandoPdf 
+                    ? 'border-amber-500/50 bg-amber-500/10 cursor-wait' 
                     : arquivoPdf && disciplinasPreview.length > 0
                       ? 'border-emerald-500/50 bg-emerald-500/10' 
                       : 'border-white/20 hover:border-amber-500/50 hover:bg-amber-500/5'
@@ -475,13 +353,8 @@ A IA vai analisar e extrair automaticamente:
                 {processandoPdf ? (
                   <div className="flex flex-col items-center gap-3">
                     <Loader2 size={40} className="text-amber-400 animate-spin" />
-                    <p className="text-amber-300 font-medium">Extraindo texto do PDF...</p>
-                  </div>
-                ) : processandoIA ? (
-                  <div className="flex flex-col items-center gap-3">
-                    <Sparkles size={40} className="text-violet-400 animate-pulse" />
-                    <p className="text-violet-300 font-medium">IA analisando disciplinas...</p>
-                    <p className="text-slate-500 text-sm">Isso pode levar alguns segundos</p>
+                    <p className="text-amber-300 font-medium">Processando PDF...</p>
+                    <p className="text-slate-500 text-sm">Extraindo e analisando texto</p>
                   </div>
                 ) : arquivoPdf && disciplinasPreview.length > 0 ? (
                   <div className="flex flex-col items-center gap-3">
@@ -493,7 +366,7 @@ A IA vai analisar e extrair automaticamente:
                   <div className="flex flex-col items-center gap-3">
                     <Upload size={40} className="text-slate-500" />
                     <p className="text-white font-medium">Clique para selecionar o PDF</p>
-                    <p className="text-slate-500 text-sm">A IA vai analisar automaticamente</p>
+                    <p className="text-slate-500 text-sm">Grade curricular com códigos de 5 dígitos</p>
                   </div>
                 )}
               </div>
