@@ -118,59 +118,151 @@ ${textoParaAnalisar.substring(0, 20000)}`
     }
   }, []);
 
-  // Parser manual para texto
+  // Parser manual otimizado para PDFs UNISINOS
+  // Formato: SEQ. | N. (código 5 dígitos) | ATIVIDADES ACADÊMICAS | OBS. | CRED. | HORAS-AULA | ...
   const parseTextoManual = useCallback((text) => {
     const disciplinas = [];
     const codigosAdicionados = new Set();
+    const nomesAdicionados = new Set();
 
-    const palavrasIgnorar = [
-      'atividades complementares', 'universidade', 'unisinos', 'coordenação',
-      'matriz curricular', 'grade curricular', 'total de', 'créditos totais'
+    // Palavras/frases que indicam NÃO é disciplina
+    const ignorarLinhas = [
+      'seq.', 'cred.', 'horas-aula', 'horas práticas', 'pré-requisitos',
+      'correquisitos', 'obs.', 'atividades acadêmicas', 'universidade',
+      'unisinos', 'coordenação', 'reconhecimento', 'portaria', 'duração',
+      'telefone', 'e-mail', 'observações', 'quadro de atividades',
+      'atividades complementares', 'grupos', 'paridade', 'limite máximo',
+      'horas extraclasse', 'horas de estágio', 'ch teórica', 'ch de prática'
+    ];
+
+    // Nomes genéricos que não são disciplinas reais
+    const nomesGenericos = [
+      'atividades complementares', 'projeto aplicado i', 'projeto aplicado ii',
+      'optativa', 'livre escolha', 'atividade optativa', 'trilha'
     ];
 
     const linhas = text.split(/[\n\r]+/);
+    let semestreAtual = 1;
     
     for (const linha of linhas) {
       const trimmed = linha.trim();
-      if (trimmed.length < 10) continue;
+      if (trimmed.length < 8) continue;
       
       const linhaLower = trimmed.toLowerCase();
-      if (palavrasIgnorar.some(p => linhaLower.includes(p))) continue;
+      
+      // Pular linhas de cabeçalho/metadados
+      if (ignorarLinhas.some(p => linhaLower.startsWith(p) || linhaLower === p)) continue;
+      
+      // Detectar seções de trilhas (período 9+)
+      if (linhaLower.includes('trilha empreendedorismo') || 
+          linhaLower.includes('trilha inovação') ||
+          linhaLower.includes('trilha internacionalização') ||
+          linhaLower.includes('trilha mestrado') ||
+          linhaLower.includes('trilhas específicas')) {
+        semestreAtual = 9;
+        continue;
+      }
 
-      // Encontrar código de 5 dígitos
+      // PADRÃO UNISINOS: [SEQ] CÓDIGO NOME [OBS] CRED HORAS ...
+      // Exemplos:
+      // "1 40210 Conhecendo o Direito 4 60"
+      // "40210 Conhecendo o Direito 4 60"
+      // "2 10540 Desenvolvimento Pessoal e Profissional: Liderança 3 1 15"
+      
+      // Buscar código de 5 dígitos (coluna N.)
       const codigoMatch = trimmed.match(/\b(\d{5})\b/);
-      if (!codigoMatch) continue;
       
-      const codigo = codigoMatch[1];
-      if (codigosAdicionados.has(codigo)) continue;
-      
-      // Extrair semestre
-      const antesCodigo = trimmed.substring(0, codigoMatch.index).trim();
-      const semestreMatch = antesCodigo.match(/^(\d)$/);
-      const semestre = semestreMatch ? parseInt(semestreMatch[1]) : 1;
-      
-      // Extrair nome e números
-      const depoisCodigo = trimmed.substring(codigoMatch.index + 5).trim();
-      const nomeMatch = depoisCodigo.match(/^([A-Za-zÀ-ÿ][A-Za-zÀ-ÿ\s:,\-\.\(\)\/]+?)(?:\s+(\d{1,2})\s+(\d{2,3}))?/);
-      
-      if (!nomeMatch) continue;
-      
-      let nome = nomeMatch[1].trim().replace(/\s+/g, ' ').replace(/\s*(ou|e|,)\s*$/i, '').replace(/\d+\s*$/, '').trim();
-      const creditos = nomeMatch[2] ? parseInt(nomeMatch[2]) : 4;
-      const cargaHoraria = nomeMatch[3] ? parseInt(nomeMatch[3]) : 60;
-      
-      if (nome.length < 3 || nome.length > 150) continue;
-      if (/^\d+$/.test(nome)) continue;
-
-      disciplinas.push({
-        codigo,
-        nome,
-        creditos: creditos >= 1 && creditos <= 12 ? creditos : 4,
-        cargaHoraria: cargaHoraria >= 15 && cargaHoraria <= 200 ? cargaHoraria : 60,
-        periodo: semestre >= 1 && semestre <= 9 ? semestre : 1,
-        fonte: 'texto'
-      });
-      codigosAdicionados.add(codigo);
+      if (codigoMatch) {
+        const codigo = codigoMatch[1];
+        
+        // Evitar duplicatas
+        if (codigosAdicionados.has(codigo)) continue;
+        
+        // Extrair semestre (número de 1-2 dígitos ANTES do código)
+        const antesCodigo = trimmed.substring(0, codigoMatch.index).trim();
+        const semMatch = antesCodigo.match(/^(\d{1,2})$/);
+        if (semMatch) {
+          const sem = parseInt(semMatch[1]);
+          if (sem >= 1 && sem <= 10) semestreAtual = sem;
+        }
+        
+        // Extrair tudo após o código
+        const depoisCodigo = trimmed.substring(codigoMatch.index + 5).trim();
+        
+        // Separar em tokens
+        const tokens = depoisCodigo.split(/\s+/);
+        
+        // Encontrar onde começam os números (créditos, carga horária)
+        // O nome termina quando encontramos sequência de números no final
+        let indiceFimNome = tokens.length;
+        let numerosFinais = [];
+        
+        // Procurar de trás pra frente por números
+        for (let i = tokens.length - 1; i >= 0; i--) {
+          if (/^\d+$/.test(tokens[i])) {
+            numerosFinais.unshift(parseInt(tokens[i]));
+            indiceFimNome = i;
+          } else if (numerosFinais.length > 0) {
+            break; // Parou de ser número, encontramos o fim dos números
+          }
+        }
+        
+        // Nome = tokens do início até onde começam os números
+        let nome = tokens.slice(0, indiceFimNome).join(' ').trim();
+        
+        // Limpar "ou", "OU", números soltos no final do nome
+        nome = nome
+          .replace(/\s+(ou|OU|e|,)\s*$/i, '')
+          .replace(/\s+\d+\s*$/, '')
+          .replace(/\s+/g, ' ')
+          .trim();
+        
+        // Extrair créditos e carga horária dos números finais
+        // Padrão: [OBS] CRED HORAS-AULA [HORAS-PRATICAS] [HORAS-ESTAGIO] ...
+        let creditos = 4;
+        let cargaHoraria = 60;
+        
+        if (numerosFinais.length >= 2) {
+          // Primeiro número pequeno (1-6) geralmente é crédito
+          // Segundo número (15-200) geralmente é carga horária
+          for (const num of numerosFinais) {
+            if (num >= 1 && num <= 8 && creditos === 4) {
+              creditos = num;
+            } else if (num >= 15 && num <= 200 && cargaHoraria === 60) {
+              cargaHoraria = num;
+              break;
+            }
+          }
+        } else if (numerosFinais.length === 1) {
+          // Só tem um número - provavelmente crédito ou carga
+          const num = numerosFinais[0];
+          if (num >= 15 && num <= 200) {
+            cargaHoraria = num;
+          } else if (num >= 1 && num <= 8) {
+            creditos = num;
+          }
+        }
+        
+        // Validações do nome
+        if (nome.length < 3 || nome.length > 200) continue;
+        if (/^\d+$/.test(nome)) continue; // Nome é só número
+        if (nomesGenericos.some(g => nome.toLowerCase().includes(g))) continue;
+        
+        const nomeLower = nome.toLowerCase();
+        if (nomesAdicionados.has(nomeLower)) continue;
+        
+        disciplinas.push({
+          codigo,
+          nome,
+          creditos,
+          cargaHoraria,
+          periodo: semestreAtual,
+          fonte: 'manual'
+        });
+        
+        codigosAdicionados.add(codigo);
+        nomesAdicionados.add(nomeLower);
+      }
     }
 
     return disciplinas.sort((a, b) => a.periodo - b.periodo || a.nome.localeCompare(b.nome));
@@ -230,15 +322,19 @@ ${textoParaAnalisar.substring(0, 20000)}`
       if (usarIA) {
         const sucesso = await analisarComIA(textoCompleto);
         if (!sucesso) {
+          // Fallback para parser manual
           const disciplinas = parseTextoManual(textoCompleto);
           setDisciplinasPreview(disciplinas);
           if (disciplinas.length === 0) {
-            setErroPdf('Nenhuma disciplina encontrada.');
+            setErroPdf('Nenhuma disciplina com código de 5 dígitos encontrada. Verifique se o PDF é uma grade curricular da UNISINOS.');
           }
         }
       } else {
         const disciplinas = parseTextoManual(textoCompleto);
         setDisciplinasPreview(disciplinas);
+        if (disciplinas.length === 0) {
+          setErroPdf('Nenhuma disciplina encontrada. O formato esperado é: SEQ | CÓDIGO (5 dígitos) | NOME | CRED | HORAS');
+        }
       }
 
     } catch (error) {
