@@ -455,9 +455,7 @@ export default function SistemaNotas({ onOpenAdmin }) {
   const handleImportarDisciplinas = async (disciplinasImport) => {
     try {
       for (const disciplina of disciplinasImport) { 
-        // Remover campos que podem não existir na tabela do Supabase
-        const { codigo, preRequisitos, coRequisitos, ...disciplinaBase } = disciplina;
-        await adicionarDisciplina(disciplinaBase); 
+        await adicionarDisciplina(disciplina); 
       }
     } catch (error) {
       console.error('Erro ao importar disciplinas:', error);
