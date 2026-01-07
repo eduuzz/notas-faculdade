@@ -136,7 +136,7 @@ ${textoParaAnalisar.substring(0, 20000)}`
       'telefone', 'e-mail', 'observações', 'quadro de atividades',
       'atividades complementares', 'grupos', 'paridade', 'limite máximo',
       'horas extraclasse', 'horas de estágio', 'ch teórica', 'ch de prática',
-      'projetos aplicados da trilha', 'optativas da trilha'
+      'projetos aplicados da trilha', 'optativas da trilha', 'cod.'
     ];
 
     // Nomes genéricos que não são disciplinas reais
@@ -162,7 +162,7 @@ ${textoParaAnalisar.substring(0, 20000)}`
     
     for (const linha of linhas) {
       const trimmed = linha.trim();
-      if (trimmed.length < 8) continue;
+      if (trimmed.length < 5) continue;
       
       const linhaLower = trimmed.toLowerCase();
       
@@ -196,7 +196,77 @@ ${textoParaAnalisar.substring(0, 20000)}`
         continue;
       }
 
-      // PADRÃO UNISINOS: [SEQ] CÓDIGO NOME [OBS] CRED HORAS ...
+      // PADRÃO 1: Linha começa com código de 5 dígitos (formato página 2 das trilhas)
+      // Exemplo: "61627 Projeto Aplicado I - Trilha Empreendedorismo 4 60"
+      // Exemplo: "50759 Modelagem de Negócios Inovadores 4 60"
+      const matchInicioCodigo = trimmed.match(/^(\d{5})\s+(.+)/);
+      if (matchInicioCodigo) {
+        const codigo = matchInicioCodigo[1];
+        if (codigosAdicionados.has(codigo)) continue;
+        
+        const resto = matchInicioCodigo[2].trim();
+        const tokens = resto.split(/\s+/);
+        
+        // Encontrar números no final
+        let indiceFimNome = tokens.length;
+        let numerosFinais = [];
+        
+        for (let i = tokens.length - 1; i >= 0; i--) {
+          if (/^\d+$/.test(tokens[i])) {
+            numerosFinais.unshift(parseInt(tokens[i]));
+            indiceFimNome = i;
+          } else if (numerosFinais.length > 0) {
+            break;
+          }
+        }
+        
+        let nome = tokens.slice(0, indiceFimNome).join(' ').trim();
+        nome = nome.replace(/\s+(ou|OU|e|,)\s*$/i, '').replace(/\s+/g, ' ').trim();
+        
+        // Extrair créditos e carga
+        let creditos = 4;
+        let cargaHoraria = 60;
+        
+        if (numerosFinais.length >= 1) {
+          for (const num of numerosFinais) {
+            if (num >= 1 && num <= 8 && creditos === 4) {
+              creditos = num;
+            } else if (num >= 15 && num <= 200 && cargaHoraria === 60) {
+              cargaHoraria = num;
+              break;
+            }
+          }
+        }
+        
+        if (nome.length >= 3 && nome.length <= 200 && !/^\d+$/.test(nome)) {
+          const nomeLower = nome.toLowerCase();
+          if (!nomesAdicionados.has(nomeLower) && !nomesGenericos.some(g => nomeLower.includes(g))) {
+            let tipo = secaoAtual;
+            let periodo = semestreAtual;
+            
+            if (ehTrilha(nome) && secaoAtual === 'obrigatoria') {
+              tipo = 'trilha';
+              periodo = 11;
+            }
+            
+            disciplinas.push({
+              codigo,
+              nome,
+              creditos,
+              cargaHoraria,
+              periodo,
+              tipo,
+              fonte: 'manual'
+            });
+            
+            codigosAdicionados.add(codigo);
+            nomesAdicionados.add(nomeLower);
+          }
+        }
+        continue;
+      }
+
+      // PADRÃO 2: [SEQ] CÓDIGO NOME [OBS] CRED HORAS ... (formato página 1)
       const codigoMatch = trimmed.match(/\b(\d{5})\b/);
       
       if (codigoMatch) {
