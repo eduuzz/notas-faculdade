@@ -66,15 +66,25 @@ export default function AdminPanel({ onClose }) {
       // Calcular data de expiração baseada no período
       let dataExpiracao = null;
       if (pedido.periodo) {
-        const agora = new Date();
-        if (pedido.periodo === 'mensal') {
-          agora.setMonth(agora.getMonth() + 1);
-        } else if (pedido.periodo === 'semestral') {
-          agora.setMonth(agora.getMonth() + 6);
-        } else if (pedido.periodo === 'anual') {
-          agora.setFullYear(agora.getFullYear() + 1);
+        // Se usuário já existe e tem plano não expirado, adicionar ao tempo restante
+        let dataBase = new Date();
+        
+        if (jaAutorizado && jaAutorizado.plano_expira_em) {
+          const expiraAtual = new Date(jaAutorizado.plano_expira_em);
+          // Se ainda não expirou, usar a data de expiração atual como base
+          if (expiraAtual > dataBase) {
+            dataBase = expiraAtual;
+          }
         }
-        dataExpiracao = agora.toISOString();
+        
+        if (pedido.periodo === 'mensal') {
+          dataBase.setMonth(dataBase.getMonth() + 1);
+        } else if (pedido.periodo === 'semestral') {
+          dataBase.setMonth(dataBase.getMonth() + 6);
+        } else if (pedido.periodo === 'anual') {
+          dataBase.setFullYear(dataBase.getFullYear() + 1);
+        }
+        dataExpiracao = dataBase.toISOString();
       }
       
       if (!jaAutorizado) {
@@ -109,7 +119,11 @@ export default function AdminPanel({ onClose }) {
         .eq('id', pedido.id);
       if (updateError) setErro('Erro ao aprovar');
       else {
-        setSucesso(`Pedido de ${pedido.nome} aprovado! Plano: ${(pedido.plano || 'pro').toUpperCase()}`);
+        // Formatar data de expiração para exibição
+        const dataFormatada = dataExpiracao 
+          ? new Date(dataExpiracao).toLocaleDateString('pt-BR')
+          : 'sem expiração';
+        setSucesso(`✅ Pedido de ${pedido.nome} aprovado! Plano: ${(pedido.plano || 'pro').toUpperCase()} até ${dataFormatada}`);
         carregarDados();
       }
     } catch (err) {

@@ -166,6 +166,9 @@ export default function SistemaNotas({ onOpenAdmin }) {
   // Modal de upgrade de plano
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   
+  // Modal de aviso de expiração
+  const [showExpiracaoModal, setShowExpiracaoModal] = useState(false);
+  
   // Modal do simulador de notas
   const [showSimulador, setShowSimulador] = useState(false);
   const [simuladorDisciplina, setSimuladorDisciplina] = useState(null);
@@ -181,6 +184,25 @@ export default function SistemaNotas({ onOpenAdmin }) {
       }
     }
   }, [user, userCurso, loading]);
+
+  // Mostrar pop-up de aviso de expiração (quando faltam 30 dias ou menos)
+  useEffect(() => {
+    if (!loading && user && diasRestantes !== null && diasRestantes <= 30 && diasRestantes > 0 && !planoExpirado) {
+      // Verificar se já mostrou hoje
+      const ultimoAviso = localStorage.getItem(`expiracaoAviso_${user.id}`);
+      const hoje = new Date().toDateString();
+      
+      if (ultimoAviso !== hoje) {
+        // Mostrar após 2 segundos para não ser muito intrusivo
+        const timer = setTimeout(() => {
+          setShowExpiracaoModal(true);
+          localStorage.setItem(`expiracaoAviso_${user.id}`, hoje);
+        }, 2000);
+        
+        return () => clearTimeout(timer);
+      }
+    }
+  }, [user, diasRestantes, planoExpirado, loading]);
 
   const handleSaveCurso = async () => {
     if (!cursoInput.trim()) return;
@@ -2096,11 +2118,91 @@ export default function SistemaNotas({ onOpenAdmin }) {
         {/* Modal Upgrade de Plano */}
         {showUpgradeModal && (
           <UpgradeModal 
-            planoAtual={userPlano} 
+            planoAtual={planoAtual} 
             userEmail={user?.email}
             userName={userName}
             onClose={() => setShowUpgradeModal(false)} 
           />
+        )}
+
+        {/* Modal Aviso de Expiração */}
+        {showExpiracaoModal && (
+          <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={(e) => e.target === e.currentTarget && setShowExpiracaoModal(false)}>
+            <div className="bg-gradient-to-br from-slate-800 to-slate-900 border border-amber-500/30 rounded-3xl p-8 max-w-md w-full shadow-2xl animate-in fade-in zoom-in duration-300">
+              {/* Ícone animado */}
+              <div className="flex justify-center mb-6">
+                <div className="relative">
+                  <div className="w-20 h-20 rounded-full bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center shadow-lg shadow-amber-500/40 animate-pulse">
+                    <Clock size={40} className="text-white" />
+                  </div>
+                  <div className="absolute -top-1 -right-1 w-8 h-8 rounded-full bg-red-500 flex items-center justify-center text-white text-sm font-bold shadow-lg">
+                    {diasRestantes}
+                  </div>
+                </div>
+              </div>
+
+              {/* Título */}
+              <h2 className="text-2xl font-bold text-white text-center mb-2">
+                {diasRestantes === 1 ? 'Último dia!' : `${diasRestantes} dias restantes!`}
+              </h2>
+              
+              <p className="text-slate-400 text-center mb-6">
+                Seu período {planoAtual === 'gratuito' ? 'gratuito' : `do plano ${planoAtual}`} está chegando ao fim. 
+                {diasRestantes <= 7 ? ' Assine agora para não perder acesso!' : ' Aproveite para fazer upgrade e continuar usando todas as funcionalidades.'}
+              </p>
+
+              {/* Barra de progresso */}
+              <div className="mb-6">
+                <div className="flex justify-between text-xs text-slate-500 mb-1">
+                  <span>Tempo restante</span>
+                  <span>{diasRestantes} de 30 dias</span>
+                </div>
+                <div className="h-2 bg-slate-700 rounded-full overflow-hidden">
+                  <div 
+                    className={`h-full rounded-full transition-all ${
+                      diasRestantes <= 7 ? 'bg-gradient-to-r from-red-500 to-orange-500' : 'bg-gradient-to-r from-amber-500 to-yellow-500'
+                    }`}
+                    style={{ width: `${Math.max((diasRestantes / 30) * 100, 5)}%` }}
+                  />
+                </div>
+              </div>
+
+              {/* Benefícios do upgrade */}
+              <div className="bg-white/5 rounded-xl p-4 mb-6">
+                <p className="text-sm text-slate-400 mb-2">Com o upgrade você terá:</p>
+                <ul className="space-y-1 text-sm">
+                  <li className="flex items-center gap-2 text-emerald-400">
+                    <CheckCircle size={14} /> Disciplinas ilimitadas
+                  </li>
+                  <li className="flex items-center gap-2 text-emerald-400">
+                    <CheckCircle size={14} /> Exportar PDF
+                  </li>
+                  <li className="flex items-center gap-2 text-emerald-400">
+                    <CheckCircle size={14} /> Dashboard completo
+                  </li>
+                </ul>
+              </div>
+
+              {/* Botões */}
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setShowExpiracaoModal(false)}
+                  className="flex-1 py-3 rounded-xl bg-white/5 border border-white/10 text-slate-400 font-medium hover:bg-white/10 transition-colors"
+                >
+                  Depois
+                </button>
+                <button
+                  onClick={() => {
+                    setShowExpiracaoModal(false);
+                    setShowUpgradeModal(true);
+                  }}
+                  className="flex-1 py-3 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 text-white font-semibold hover:from-amber-400 hover:to-orange-400 transition-all shadow-lg shadow-amber-500/25"
+                >
+                  Ver Planos
+                </button>
+              </div>
+            </div>
+          </div>
         )}
 
         {/* Modal Simulador de Notas (Premium) */}
