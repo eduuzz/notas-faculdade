@@ -1,11 +1,12 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import { Plus, Trash2, BookOpen, Award, TrendingUp, AlertCircle, CheckCircle, GraduationCap, Edit2, X, Clock, PlayCircle, ChevronDown, ChevronUp, Search, Save, Cloud, CloudOff, RefreshCw, LogOut, User, Wifi, WifiOff, Download, Upload as UploadIcon, RotateCcw, Sun, Moon, Monitor, List, LayoutGrid, Shield, ChevronRight, Sparkles, Settings, Crown, Zap, Star, Lock, FileText, Calculator, Target, Database } from 'lucide-react';
+import { Plus, Trash2, BookOpen, Award, TrendingUp, AlertCircle, CheckCircle, GraduationCap, Edit2, X, Clock, PlayCircle, ChevronDown, ChevronUp, Search, Save, Cloud, CloudOff, RefreshCw, LogOut, User, Wifi, WifiOff, Download, Upload as UploadIcon, RotateCcw, Sun, Moon, Monitor, List, LayoutGrid, Shield, ChevronRight, Sparkles, Settings, Crown, Zap, Star, Lock, FileText, Calculator, Target, Database, Calendar } from 'lucide-react';
 import { useNotas } from './useNotas';
 import { useAuth } from './AuthContext';
 import { usePermissoes } from './usePermissoes';
 import ImportModal from './ImportModal';
 import UpgradeModal from './UpgradeModal';
+import PlanejadorMatricula from './PlanejadorMatricula';
 
 // Configuração de status com cores estilo Apple
 const STATUS = {
@@ -171,6 +172,9 @@ export default function SistemaNotas({ onOpenAdmin }) {
   
   // Modal de confirmação de logout
   const [showLogoutModal, setShowLogoutModal] = useState(false);
+  
+  // Modal do planejador de matrícula
+  const [showPlanejador, setShowPlanejador] = useState(false);
   
   // Modal do simulador de notas
   const [showSimulador, setShowSimulador] = useState(false);
@@ -1191,6 +1195,14 @@ export default function SistemaNotas({ onOpenAdmin }) {
                   <Download size={18} />
                   <span className="hidden sm:inline">PDF</span>
                   {!temPermissao('exportarPdf') && <Lock size={12} className="absolute -top-1 -right-1 text-amber-400" />}
+                </GradientButton>
+                <GradientButton 
+                  variant="secondary" 
+                  onClick={() => setShowPlanejador(true)}
+                  className="border-cyan-500/30 hover:bg-cyan-500/10"
+                >
+                  <Calendar size={18} className="text-cyan-400" />
+                  <span className="hidden sm:inline text-cyan-300">Planejar</span>
                 </GradientButton>
                 <GradientButton variant="amber" onClick={() => !planoExpirado && setShowImportModal(true)} disabled={planoExpirado}><UploadIcon size={18} /><span className="hidden sm:inline">Importar</span></GradientButton>
                 <GradientButton 
@@ -2249,6 +2261,14 @@ export default function SistemaNotas({ onOpenAdmin }) {
               </div>
             </div>
           </div>
+        )}
+
+        {/* Planejador de Matrícula */}
+        {showPlanejador && (
+          <PlanejadorMatricula 
+            disciplinas={disciplinas}
+            onClose={() => setShowPlanejador(false)}
+          />
         )}
 
         {/* Modal Simulador de Notas (Premium) */}
