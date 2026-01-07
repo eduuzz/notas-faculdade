@@ -39,69 +39,90 @@ export default function ImportModal({ onClose, onImport, disciplinasExistentes =
       'horas práticas',
       'horas de estágio',
       'pré-requisitos',
-      'correquisitos'
+      'correquisitos',
+      'ciência da computação'
     ];
 
-    // Estratégia 1: Encontrar todos os códigos de 5 dígitos e seus nomes
-    // O PDF tem formato: código nome créditos cargaHoraria
+    // Estratégia 1: Buscar padrão completo do PDF UNISINOS
+    // Formato: SEMESTRE CÓDIGO NOME CRÉDITOS CARGA_HORÁRIA [outros números]
+    // Ex: "1 60963 Raciocínio Lógico 4 60 30"
+    // Ex: "2 60966 Algoritmos e Programação: Estruturas Lineares 8 120 30 60964"
     
-    // Primeiro, encontrar todos os códigos de 5 dígitos
-    const todosOsCodigos = text.match(/\b\d{5}\b/g) || [];
-    const codigosUnicos = [...new Set(todosOsCodigos)];
+    // Regex para capturar: semestre (1-8), código (5 dígitos), nome, créditos, carga horária
+    const padraoCompleto = /\b([1-8])\s+(\d{5})\s+([A-Za-zÀ-ÿ][A-Za-zÀ-ÿ\s:,\-\.\(\)]+?)\s+(\d{1,2})\s+(\d{2,3})\b/g;
     
-    // Para cada código, tentar encontrar o nome da disciplina
-    for (const codigo of codigosUnicos) {
-      // Criar regex para encontrar o código seguido do nome
-      // Padrão: código + texto até encontrar números ou fim
-      const regexNome = new RegExp(codigo + '\\s+([A-Za-zÀ-ÿ][A-Za-zÀ-ÿ\\s:,\\-\\.\\(\\)]+?)(?:\\s+\\d|$)', 'g');
-      const matchNome = regexNome.exec(text);
+    let match;
+    while ((match = padraoCompleto.exec(text)) !== null) {
+      const semestre = parseInt(match[1]);
+      const codigo = match[2];
+      let nome = match[3].trim();
+      const creditos = parseInt(match[4]);
+      const cargaHoraria = parseInt(match[5]);
+
+      // Limpar o nome
+      nome = nome
+        .replace(/\s+/g, ' ')
+        .replace(/\s*(ou|e|,)\s*$/i, '')
+        .trim();
+
+      // Validações
+      if (nome.length < 3 || nome.length > 120) continue;
+      if (/^\d+$/.test(nome)) continue;
       
-      if (matchNome && matchNome[1]) {
-        let nome = matchNome[1].trim();
-        
+      const nomeLower = nome.toLowerCase();
+      if (palavrasIgnorar.some(p => nomeLower.includes(p))) continue;
+      
+      if (disciplinasAdicionadas.has(codigo)) continue;
+
+      disciplinas.push({
+        nome,
+        creditos: creditos >= 1 && creditos <= 12 ? creditos : 4,
+        cargaHoraria: cargaHoraria >= 15 && cargaHoraria <= 200 ? cargaHoraria : 60,
+        periodo: semestre,
+        fonte: 'pdf'
+      });
+      disciplinasAdicionadas.add(codigo);
+    }
+
+    // Estratégia 2: Se não encontrou muitas, tentar sem o semestre no início
+    // Alguns PDFs podem ter formato: CÓDIGO NOME CRÉDITOS CARGA_HORÁRIA
+    if (disciplinas.length < 10) {
+      const padraoSemSemestre = /\b(\d{5})\s+([A-Za-zÀ-ÿ][A-Za-zÀ-ÿ\s:,\-\.\(\)]+?)\s+(\d{1,2})\s+(\d{2,3})\b/g;
+      
+      while ((match = padraoSemSemestre.exec(text)) !== null) {
+        const codigo = match[1];
+        let nome = match[2].trim();
+        const creditos = parseInt(match[3]);
+        const cargaHoraria = parseInt(match[4]);
+
         // Limpar o nome
         nome = nome
-          .replace(/\s+/g, ' ')  // Normalizar espaços
-          .replace(/\s*(ou|e|,)\s*$/i, '')  // Remover "ou", "e", "," do final
-          .replace(/\s+\d+.*$/, '')  // Remover números do final
+          .replace(/\s+/g, ' ')
+          .replace(/\s*(ou|e|,)\s*$/i, '')
           .trim();
-        
+
         // Validações
         if (nome.length < 3 || nome.length > 120) continue;
         if (/^\d+$/.test(nome)) continue;
-        if (/^[A-Z]{2,5}$/.test(nome)) continue; // Siglas isoladas
         
         const nomeLower = nome.toLowerCase();
         if (palavrasIgnorar.some(p => nomeLower.includes(p))) continue;
         
-        // Evitar duplicatas
         if (disciplinasAdicionadas.has(codigo)) continue;
-        
-        // Tentar extrair créditos e carga horária próximos ao código
-        const contextRegex = new RegExp(codigo + '\\s+' + nome.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\s+(\\d)\\s+(\\d{2,3})', 'i');
-        const contextMatch = contextRegex.exec(text);
-        
-        let creditos = 4;
-        let cargaHoraria = 60;
-        
-        if (contextMatch) {
-          creditos = parseInt(contextMatch[1]) || 4;
-          cargaHoraria = parseInt(contextMatch[2]) || 60;
-        }
-        
+
         disciplinas.push({
           nome,
           creditos: creditos >= 1 && creditos <= 12 ? creditos : 4,
           cargaHoraria: cargaHoraria >= 15 && cargaHoraria <= 200 ? cargaHoraria : 60,
-          periodo: 1,
+          periodo: 1, // Sem info de semestre, vai pro 1
           fonte: 'pdf'
         });
         disciplinasAdicionadas.add(codigo);
       }
     }
 
-    // Estratégia 2: Se não encontrou muitas, tentar linha por linha (para texto colado manualmente)
-    if (disciplinas.length < 10) {
+    // Estratégia 3: Fallback para texto colado linha por linha
+    if (disciplinas.length < 5) {
       const linhas = text.split(/[\n\r]+/).filter(l => l.trim().length > 3);
       
       for (const linha of linhas) {
@@ -111,7 +132,33 @@ export default function ImportModal({ onClose, onImport, disciplinasExistentes =
         const linhaLower = trimmed.toLowerCase();
         if (palavrasIgnorar.some(p => linhaLower.includes(p))) continue;
         
-        // Tentar extrair: pode ter código no início ou não
+        // Tentar extrair com semestre: "1 60963 Nome 4 60"
+        const matchComSemestre = trimmed.match(/^([1-8])\s+(\d{5})?\s*(.+?)\s+(\d{1,2})\s+(\d{2,3})(?:\s|$)/);
+        if (matchComSemestre) {
+          const semestre = parseInt(matchComSemestre[1]);
+          let nome = matchComSemestre[3].trim();
+          const creditos = parseInt(matchComSemestre[4]);
+          const cargaHoraria = parseInt(matchComSemestre[5]);
+          
+          nome = nome.replace(/\s+/g, ' ').trim();
+          
+          if (nome.length >= 3 && nome.length <= 120 && !/^\d+$/.test(nome)) {
+            const nomeLower = nome.toLowerCase();
+            if (!disciplinasAdicionadas.has(nomeLower)) {
+              disciplinas.push({
+                nome,
+                creditos: creditos >= 1 && creditos <= 12 ? creditos : 4,
+                cargaHoraria: cargaHoraria >= 15 && cargaHoraria <= 200 ? cargaHoraria : 60,
+                periodo: semestre,
+                fonte: 'texto'
+              });
+              disciplinasAdicionadas.add(nomeLower);
+            }
+          }
+          continue;
+        }
+        
+        // Tentar extrair sem semestre
         let nome = trimmed;
         let creditos = 4;
         let cargaHoraria = 60;
@@ -119,7 +166,7 @@ export default function ImportModal({ onClose, onImport, disciplinasExistentes =
         // Remover código do início se houver
         nome = nome.replace(/^\d{5}\s+/, '');
         
-        // Remover números do final (créditos, carga horária, etc)
+        // Remover números do final
         const matchNumeros = nome.match(/^(.+?)\s+(\d{1,2})\s+(\d{2,3})(?:\s+\d+)*\s*$/);
         if (matchNumeros) {
           nome = matchNumeros[1];
@@ -131,10 +178,8 @@ export default function ImportModal({ onClose, onImport, disciplinasExistentes =
         
         nome = nome.trim();
         
-        // Validações
         if (nome.length < 3 || nome.length > 120) continue;
         if (/^\d+$/.test(nome)) continue;
-        if (/^[A-Z]{2,5}$/.test(nome)) continue;
         
         const nomeLower = nome.toLowerCase();
         if (disciplinasAdicionadas.has(nomeLower)) continue;
@@ -150,7 +195,8 @@ export default function ImportModal({ onClose, onImport, disciplinasExistentes =
       }
     }
 
-    return disciplinas;
+    // Ordenar por semestre
+    return disciplinas.sort((a, b) => a.periodo - b.periodo || a.nome.localeCompare(b.nome));
   }, []);
 
   // Processar arquivo PDF
