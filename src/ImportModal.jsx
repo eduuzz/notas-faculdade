@@ -13,59 +13,126 @@ export default function ImportModal({ onClose, onImport, disciplinasExistentes =
 
   // Parser para texto colado ou extraído do PDF
   const parseTexto = useCallback((text) => {
-    const linhas = text.split('\n').filter(l => l.trim());
     const disciplinas = [];
     const disciplinasAdicionadas = new Set();
 
-    for (const linha of linhas) {
-      const trimmed = linha.trim();
-      if (!trimmed || trimmed.length < 3) continue;
-      if (trimmed.includes('Atividades Complementares') || trimmed.includes('ATIVIDADES ACADÊMICAS')) continue;
+    // Lista de palavras/frases para ignorar
+    const ignorar = [
+      'atividades complementares',
+      'atividades acadêmicas',
+      'quadro de atividades',
+      'pré-requisitos',
+      'correquisitos',
+      'cred.',
+      'horas',
+      'aula',
+      'obs.',
+      'seq.',
+      'universidade',
+      'unisinos',
+      'coordenação',
+      'duração',
+      'reconhecimento',
+      'portaria',
+      'telefone',
+      'e-mail',
+      'observações',
+      'trilha',
+      'optativa'
+    ];
 
-      // Tentar extrair informações do texto
-      // Formato esperado: "Nome" ou "Código Nome Créditos CargaHorária"
-      const partes = trimmed.split(/\s{2,}|\t/);
-      let nome = partes[0];
-      let creditos = 4;
-      let cargaHoraria = 60;
+    // Primeiro, tentar encontrar padrões de código + nome (5 dígitos seguidos de texto)
+    // Padrão: código de 5 dígitos, nome da disciplina, créditos, carga horária
+    const padraoCompleto = /\b(\d{5})\s+([A-Za-zÀ-ÿ][A-Za-zÀ-ÿ\s:,\-()]+?)(?:\s+(\d)\s+(\d{2,3})|\s+(\d)\s|$)/g;
+    
+    let match;
+    while ((match = padraoCompleto.exec(text)) !== null) {
+      const codigo = match[1];
+      let nome = match[2].trim();
+      const creditos = parseInt(match[3] || match[5] || '4');
+      const cargaHoraria = parseInt(match[4] || '60');
 
-      // Remover código do início se houver (5 dígitos)
-      const codigoMatch = nome.match(/^(\d{5})\s*/);
-      if (codigoMatch) {
-        nome = nome.replace(codigoMatch[0], '').trim();
-      }
-
-      // Tentar extrair créditos e carga horária dos números na linha
-      const numeros = trimmed.match(/\d+/g);
-      if (numeros && numeros.length >= 2) {
-        const nums = numeros.map(n => parseInt(n));
-        // Procurar por padrão típico: créditos (1-12) e carga horária (15-200)
-        for (let i = 0; i < nums.length - 1; i++) {
-          if (nums[i] >= 1 && nums[i] <= 12 && nums[i + 1] >= 15 && nums[i + 1] <= 200) {
-            creditos = nums[i];
-            cargaHoraria = nums[i + 1];
-            break;
-          }
-        }
-      }
-
-      // Limpar nome
+      // Limpar o nome
       nome = nome
-        .replace(/^\d+\s*/, '') // Remove código do início
-        .replace(/\d+\s*$/, '') // Remove números do final
-        .replace(/\s+\d+\s+\d+.*$/, '') // Remove "4 60 30" etc do final
+        .replace(/\s+/g, ' ')
+        .replace(/\s*(ou|e|,)\s*$/i, '')
+        .replace(/\d+$/, '')
         .trim();
 
-      // Validar e adicionar
-      if (nome && nome.length > 2 && !nome.match(/^\d+$/) && !disciplinasAdicionadas.has(nome.toLowerCase())) {
-        disciplinas.push({
-          nome,
-          creditos,
-          cargaHoraria,
-          periodo: 1,
-          fonte: 'texto'
-        });
-        disciplinasAdicionadas.add(nome.toLowerCase());
+      // Validar
+      if (nome.length < 3) continue;
+      if (nome.length > 100) continue;
+      if (/^\d+$/.test(nome)) continue;
+      
+      const nomeLower = nome.toLowerCase();
+      if (ignorar.some(i => nomeLower.includes(i))) continue;
+      
+      const chave = `${codigo}-${nomeLower}`;
+      if (disciplinasAdicionadas.has(chave)) continue;
+
+      disciplinas.push({
+        nome,
+        creditos: creditos >= 1 && creditos <= 12 ? creditos : 4,
+        cargaHoraria: cargaHoraria >= 15 && cargaHoraria <= 200 ? cargaHoraria : 60,
+        periodo: 1,
+        fonte: 'pdf'
+      });
+      disciplinasAdicionadas.add(chave);
+    }
+
+    // Se não encontrou muitas disciplinas pelo padrão completo, tentar linha por linha
+    if (disciplinas.length < 5) {
+      const linhas = text.split(/[\n\r]+/).filter(l => l.trim());
+      
+      for (const linha of linhas) {
+        const trimmed = linha.trim();
+        if (trimmed.length < 5) continue;
+        
+        const linheLower = trimmed.toLowerCase();
+        if (ignorar.some(i => linheLower.includes(i))) continue;
+
+        // Tentar extrair código e nome
+        const matchLinha = trimmed.match(/^(\d{5})?\s*([A-Za-zÀ-ÿ][A-Za-zÀ-ÿ\s:,\-()]+)/);
+        if (matchLinha) {
+          let nome = matchLinha[2].trim();
+          
+          // Extrair créditos e carga horária
+          const numeros = trimmed.match(/\b(\d{1,2})\b/g);
+          let creditos = 4;
+          let cargaHoraria = 60;
+          
+          if (numeros && numeros.length >= 2) {
+            const nums = numeros.map(n => parseInt(n));
+            for (let i = 0; i < nums.length - 1; i++) {
+              if (nums[i] >= 1 && nums[i] <= 12 && nums[i + 1] >= 15 && nums[i + 1] <= 200) {
+                creditos = nums[i];
+                cargaHoraria = nums[i + 1];
+                break;
+              }
+            }
+          }
+
+          // Limpar nome
+          nome = nome
+            .replace(/\s+\d+\s*.*$/, '')
+            .replace(/\s+/g, ' ')
+            .trim();
+
+          if (nome.length < 3 || nome.length > 100) continue;
+          if (/^\d+$/.test(nome)) continue;
+          
+          const nomeLower = nome.toLowerCase();
+          if (disciplinasAdicionadas.has(nomeLower)) continue;
+
+          disciplinas.push({
+            nome,
+            creditos,
+            cargaHoraria,
+            periodo: 1,
+            fonte: 'texto'
+          });
+          disciplinasAdicionadas.add(nomeLower);
+        }
       }
     }
 
