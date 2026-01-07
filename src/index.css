@@ -2,51 +2,6 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Scrollbar personalizada - estilo dark */
-* {
-  scrollbar-width: thin;
-  scrollbar-color: rgba(255, 255, 255, 0.15) rgba(0, 0, 0, 0.2);
-}
-
-/* Para navegadores WebKit (Chrome, Safari, Edge) */
-::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
-}
-
-::-webkit-scrollbar-track {
-  background: rgba(0, 0, 0, 0.2);
-  border-radius: 10px;
-}
-
-::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.15);
-  border-radius: 10px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.25);
-}
-
-::-webkit-scrollbar-thumb:active {
-  background: rgba(255, 255, 255, 0.35);
-}
-
-/* Scrollbar mais fina para modais e dropdowns */
-.thin-scrollbar::-webkit-scrollbar {
-  width: 4px;
-}
-
-/* Esconder scrollbar mas manter funcionalidade */
-.hide-scrollbar {
-  -ms-overflow-style: none;
-  scrollbar-width: none;
-}
-
-.hide-scrollbar::-webkit-scrollbar {
-  display: none;
-}
-
 /* Selection color */
 ::selection {
   background: rgba(124, 58, 237, 0.3);
