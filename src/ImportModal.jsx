@@ -1,67 +1,134 @@
 import React, { useState, useCallback, useRef } from 'react';
-import { X, Upload, FileText, AlertCircle, CheckCircle, ChevronDown, ChevronUp, Info, File, Loader2, Eye, EyeOff } from 'lucide-react';
+import { X, Upload, FileText, AlertCircle, CheckCircle, ChevronDown, ChevronUp, Info, File, Loader2, Eye, EyeOff, Sparkles, Zap } from 'lucide-react';
 
 export default function ImportModal({ onClose, onImport, disciplinasExistentes = [] }) {
-  const [modo, setModo] = useState('texto'); // 'pdf', 'texto' - começar em texto que é mais confiável
+  const [modo, setModo] = useState('texto'); // 'pdf', 'texto'
   const [texto, setTexto] = useState('');
   const [disciplinasPreview, setDisciplinasPreview] = useState([]);
   const [expandido, setExpandido] = useState(false);
   const [processandoPdf, setProcessandoPdf] = useState(false);
+  const [processandoIA, setProcessandoIA] = useState(false);
   const [arquivoPdf, setArquivoPdf] = useState(null);
   const [erroPdf, setErroPdf] = useState(null);
   const [mostrarTextoExtraido, setMostrarTextoExtraido] = useState(false);
   const [textoExtraidoPdf, setTextoExtraidoPdf] = useState('');
   const fileInputRef = useRef(null);
 
-  // Parser para texto colado - formato esperado:
-  // Linha por linha: "Nome da Disciplina" ou "Nome da Disciplina 4 60" ou "1 60963 Nome 4 60"
-  const parseTexto = useCallback((text) => {
+  // Análise inteligente com Claude API
+  const analisarComIA = useCallback(async (textoParaAnalisar) => {
+    setProcessandoIA(true);
+    setErroPdf(null);
+
+    try {
+      const response = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-20250514',
+          max_tokens: 4000,
+          messages: [
+            {
+              role: 'user',
+              content: `Analise o texto abaixo extraído de um PDF de grade curricular universitária e extraia TODAS as disciplinas.
+
+Para cada disciplina, extraia:
+- nome: nome completo da disciplina
+- creditos: número de créditos (geralmente 1-8)
+- cargaHoraria: carga horária em horas (geralmente 15-120)
+- periodo: semestre/período da disciplina (1-8, ou 0 se for optativa)
+
+Retorne APENAS um JSON válido no formato:
+{
+  "disciplinas": [
+    {"nome": "Nome da Disciplina", "creditos": 4, "cargaHoraria": 60, "periodo": 1},
+    ...
+  ]
+}
+
+IMPORTANTE:
+- Extraia TODAS as disciplinas que encontrar
+- Se não encontrar créditos, use 4 como padrão
+- Se não encontrar carga horária, use 60 como padrão
+- Se não encontrar o período/semestre, use 1 como padrão
+- Ignore cabeçalhos, rodapés e textos que não são disciplinas
+- Retorne APENAS o JSON, sem explicações
+
+Texto do PDF:
+${textoParaAnalisar.substring(0, 15000)}`
+            }
+          ]
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('Erro na API');
+      }
+
+      const data = await response.json();
+      const conteudo = data.content[0].text;
+
+      // Tentar extrair JSON da resposta
+      const jsonMatch = conteudo.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        const resultado = JSON.parse(jsonMatch[0]);
+        if (resultado.disciplinas && Array.isArray(resultado.disciplinas)) {
+          const disciplinasProcessadas = resultado.disciplinas.map(d => ({
+            nome: d.nome,
+            creditos: d.creditos || 4,
+            cargaHoraria: d.cargaHoraria || 60,
+            periodo: d.periodo || 1,
+            fonte: 'ia'
+          }));
+          
+          // Remover duplicatas
+          const nomesUnicos = new Set();
+          const disciplinasUnicas = disciplinasProcessadas.filter(d => {
+            const nomeLower = d.nome.toLowerCase();
+            if (nomesUnicos.has(nomeLower)) return false;
+            nomesUnicos.add(nomeLower);
+            return true;
+          });
+
+          setDisciplinasPreview(disciplinasUnicas.sort((a, b) => 
+            a.periodo - b.periodo || a.nome.localeCompare(b.nome)
+          ));
+          return true;
+        }
+      }
+      throw new Error('Formato inválido');
+    } catch (error) {
+      console.error('Erro na análise IA:', error);
+      setErroPdf('Erro na análise inteligente. Tente o modo manual ou cole o texto na aba "Colar Texto".');
+      return false;
+    } finally {
+      setProcessandoIA(false);
+    }
+  }, []);
+
+  // Parser manual para texto colado
+  const parseTextoManual = useCallback((text) => {
     const disciplinas = [];
     const disciplinasAdicionadas = new Set();
 
-    // Lista de palavras/frases para ignorar
     const palavrasIgnorar = [
-      'atividades complementares',
-      'quadro de atividades',
-      'universidade',
-      'unisinos',
-      'coordenação',
-      'duração',
-      'reconhecimento',
-      'portaria',
-      'telefone',
-      'e-mail',
-      'observações',
-      'matriz curricular',
-      'habilitação',
-      'bacharelado',
-      'curso de',
-      'seq.',
-      'cred.',
-      'horas-aula',
-      'horas práticas',
-      'horas de estágio',
-      'pré-requisitos',
-      'correquisitos',
-      'ciência da computação',
-      'grade curricular',
-      'total de',
-      'créditos totais'
+      'atividades complementares', 'quadro de atividades', 'universidade',
+      'unisinos', 'coordenação', 'duração', 'reconhecimento', 'portaria',
+      'telefone', 'e-mail', 'observações', 'matriz curricular', 'habilitação',
+      'bacharelado', 'curso de', 'seq.', 'cred.', 'horas-aula', 'horas práticas',
+      'horas de estágio', 'pré-requisitos', 'correquisitos', 'ciência da computação',
+      'grade curricular', 'total de', 'créditos totais'
     ];
 
     const linhas = text.split(/[\n\r]+/).filter(l => l.trim().length > 2);
     
     for (const linha of linhas) {
       let trimmed = linha.trim();
-      
-      // Ignorar linhas com palavras-chave
       const linhaLower = trimmed.toLowerCase();
+      
       if (palavrasIgnorar.some(p => linhaLower.includes(p))) continue;
-      
-      // Ignorar linhas que são só números
       if (/^[\d\s,\.]+$/.test(trimmed)) continue;
-      
-      // Ignorar linhas muito curtas
       if (trimmed.length < 4) continue;
 
       let nome = '';
@@ -69,84 +136,63 @@ export default function ImportModal({ onClose, onImport, disciplinasExistentes =
       let cargaHoraria = 60;
       let periodo = 1;
 
-      // Padrão 1: SEMESTRE CÓDIGO NOME CRÉDITOS CARGA (ex: "1 60963 Raciocínio Lógico 4 60")
+      // Padrão: SEMESTRE CÓDIGO NOME CRÉDITOS CARGA
       const padraoCompleto = trimmed.match(/^([1-8])\s+(\d{5})\s+(.+?)\s+(\d{1,2})\s+(\d{2,3})(?:\s|$)/);
       if (padraoCompleto) {
         periodo = parseInt(padraoCompleto[1]);
         nome = padraoCompleto[3].trim();
         creditos = parseInt(padraoCompleto[4]);
         cargaHoraria = parseInt(padraoCompleto[5]);
-      } 
-      // Padrão 2: CÓDIGO NOME CRÉDITOS CARGA (ex: "60963 Raciocínio Lógico 4 60")
-      else {
+      } else {
+        // Padrão: CÓDIGO NOME CRÉDITOS CARGA
         const padraoCodigo = trimmed.match(/^(\d{5})\s+(.+?)\s+(\d{1,2})\s+(\d{2,3})(?:\s|$)/);
         if (padraoCodigo) {
           nome = padraoCodigo[2].trim();
           creditos = parseInt(padraoCodigo[3]);
           cargaHoraria = parseInt(padraoCodigo[4]);
-        }
-        // Padrão 3: NOME CRÉDITOS CARGA (ex: "Raciocínio Lógico 4 60")
-        else {
+        } else {
+          // Padrão: NOME CRÉDITOS CARGA
           const padraoSimples = trimmed.match(/^(.+?)\s+(\d{1,2})\s+(\d{2,3})(?:\s|$)/);
           if (padraoSimples) {
             nome = padraoSimples[1].trim();
             creditos = parseInt(padraoSimples[2]);
             cargaHoraria = parseInt(padraoSimples[3]);
-          }
-          // Padrão 4: Só o nome (ex: "Raciocínio Lógico")
-          else {
-            // Remover números do início e fim
-            nome = trimmed
-              .replace(/^\d+\s+/, '') // Remove números do início
-              .replace(/\s+\d+(\s+\d+)*\s*$/, '') // Remove números do final
-              .trim();
+          } else {
+            nome = trimmed.replace(/^\d+\s+/, '').replace(/\s+\d+(\s+\d+)*\s*$/, '').trim();
           }
         }
       }
 
-      // Limpar o nome
-      nome = nome
-        .replace(/\s+/g, ' ')
-        .replace(/\s*(ou|e|,)\s*$/i, '')
-        .replace(/^\d+\s*/, '')
-        .trim();
+      nome = nome.replace(/\s+/g, ' ').replace(/\s*(ou|e|,)\s*$/i, '').replace(/^\d+\s*/, '').trim();
 
-      // Validações
       if (nome.length < 3 || nome.length > 150) continue;
       if (/^\d+$/.test(nome)) continue;
-      if (/^[A-Z]{1,5}$/.test(nome)) continue; // Siglas isoladas
+      if (/^[A-Z]{1,5}$/.test(nome)) continue;
       
       const nomeLower = nome.toLowerCase();
       if (palavrasIgnorar.some(p => nomeLower.includes(p))) continue;
       if (disciplinasAdicionadas.has(nomeLower)) continue;
 
-      // Validar créditos e carga horária
       if (creditos < 1 || creditos > 12) creditos = 4;
       if (cargaHoraria < 15 || cargaHoraria > 200) cargaHoraria = 60;
 
-      disciplinas.push({
-        nome,
-        creditos,
-        cargaHoraria,
-        periodo,
-        fonte: 'texto'
-      });
+      disciplinas.push({ nome, creditos, cargaHoraria, periodo, fonte: 'texto' });
       disciplinasAdicionadas.add(nomeLower);
     }
 
-    // Ordenar por período e nome
     return disciplinas.sort((a, b) => a.periodo - b.periodo || a.nome.localeCompare(b.nome));
   }, []);
 
   // Processar arquivo PDF
-  const processarPdf = useCallback(async (file) => {
+  const processarPdf = useCallback(async (file, usarIA = true) => {
     setProcessandoPdf(true);
     setErroPdf(null);
     setArquivoPdf(file);
     setTextoExtraidoPdf('');
+    setDisciplinasPreview([]);
 
     try {
-      // Carregar pdf.js via script tag se não estiver carregado
+      // Carregar pdf.js
       if (!window.pdfjsLib) {
         await new Promise((resolve, reject) => {
           const script = document.createElement('script');
@@ -168,7 +214,6 @@ export default function ImportModal({ onClose, onImport, disciplinasExistentes =
       for (let i = 1; i <= pdf.numPages; i++) {
         const page = await pdf.getPage(i);
         const textContent = await page.getTextContent();
-        // Tentar manter a estrutura de linhas
         let ultimoY = null;
         let linhaAtual = '';
         
@@ -188,48 +233,57 @@ export default function ImportModal({ onClose, onImport, disciplinasExistentes =
 
       setTextoExtraidoPdf(textoCompleto);
       setTexto(textoCompleto);
-      const disciplinas = parseTexto(textoCompleto);
-      setDisciplinasPreview(disciplinas);
+      setProcessandoPdf(false);
 
-      if (disciplinas.length === 0) {
-        setErroPdf('Nenhuma disciplina reconhecida automaticamente. Clique em "Ver texto extraído" para copiar e ajustar manualmente na aba "Colar Texto".');
-      } else if (disciplinas.length < 20) {
-        setErroPdf(`Apenas ${disciplinas.length} disciplinas encontradas. Se faltam disciplinas, clique em "Ver texto extraído" para verificar.`);
+      // Usar IA para análise
+      if (usarIA) {
+        const sucesso = await analisarComIA(textoCompleto);
+        if (!sucesso) {
+          // Fallback para parser manual
+          const disciplinas = parseTextoManual(textoCompleto);
+          setDisciplinasPreview(disciplinas);
+          if (disciplinas.length === 0) {
+            setErroPdf('Nenhuma disciplina encontrada. Tente ver o texto extraído e colar manualmente.');
+          }
+        }
+      } else {
+        const disciplinas = parseTextoManual(textoCompleto);
+        setDisciplinasPreview(disciplinas);
       }
+
     } catch (error) {
       console.error('Erro ao processar PDF:', error);
-      setErroPdf('Erro ao ler o PDF. Tente copiar o texto do PDF manualmente e colar na aba "Colar Texto".');
-    } finally {
+      setErroPdf('Erro ao ler o PDF. Tente copiar o texto manualmente.');
       setProcessandoPdf(false);
     }
-  }, [parseTexto]);
+  }, [analisarComIA, parseTextoManual]);
 
-  // Handler para upload de arquivo
   const handleFileUpload = (event) => {
     const file = event.target.files[0];
     if (file) {
       if (file.type === 'application/pdf') {
-        processarPdf(file);
+        processarPdf(file, true);
       } else {
         setErroPdf('Por favor, selecione um arquivo PDF.');
       }
     }
   };
 
-  // Analisar texto
-  const analisarTexto = useCallback(() => {
-    const disciplinas = parseTexto(texto);
-    setDisciplinasPreview(disciplinas);
-  }, [texto, parseTexto]);
+  const analisarTexto = useCallback(async (usarIA = false) => {
+    if (usarIA) {
+      await analisarComIA(texto);
+    } else {
+      const disciplinas = parseTextoManual(texto);
+      setDisciplinasPreview(disciplinas);
+    }
+  }, [texto, analisarComIA, parseTextoManual]);
 
-  // Verificar duplicatas
   const verificarDuplicata = (nome) => {
     return disciplinasExistentes.some(d => 
       d.nome.toLowerCase().trim() === nome.toLowerCase().trim()
     );
   };
 
-  // Confirmar importação
   const confirmarImportacao = () => {
     const disciplinasParaImportar = disciplinasPreview
       .filter(d => !verificarDuplicata(d.nome))
@@ -256,13 +310,14 @@ export default function ImportModal({ onClose, onImport, disciplinasExistentes =
   const disciplinasNovas = disciplinasPreview.filter(d => !verificarDuplicata(d.nome));
   const disciplinasDuplicadas = disciplinasPreview.filter(d => verificarDuplicata(d.nome));
   
-  // Agrupar por período para mostrar no preview
   const disciplinasPorPeriodo = disciplinasPreview.reduce((acc, d) => {
     const p = d.periodo || 1;
     if (!acc[p]) acc[p] = [];
     acc[p].push(d);
     return acc;
   }, {});
+
+  const isProcessando = processandoPdf || processandoIA;
 
   return (
     <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
@@ -275,7 +330,7 @@ export default function ImportModal({ onClose, onImport, disciplinasExistentes =
             </div>
             <div>
               <h2 className="text-xl font-bold text-white">Importar Cadeiras</h2>
-              <p className="text-slate-400 text-sm">Cole o texto ou faça upload do PDF</p>
+              <p className="text-slate-400 text-sm">Análise inteligente com IA</p>
             </div>
           </div>
           <button onClick={onClose} className="p-2 rounded-xl hover:bg-white/10 transition-all">
@@ -315,55 +370,62 @@ export default function ImportModal({ onClose, onImport, disciplinasExistentes =
             <div className="space-y-4">
               <div>
                 <label className="text-sm text-slate-400 block mb-2">
-                  Cole a lista de disciplinas (uma por linha)
+                  Cole a lista de disciplinas
                 </label>
                 <textarea
                   value={texto}
                   onChange={(e) => setTexto(e.target.value)}
                   rows={8}
                   className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white text-sm focus:outline-none focus:border-amber-500/50 resize-none font-mono"
-                  placeholder={`Cole aqui a lista de disciplinas...
+                  placeholder={`Cole aqui o texto do PDF ou lista de disciplinas...
 
-Formatos aceitos:
-• Nome da Disciplina
-• Nome da Disciplina 4 60
-• 60963 Nome da Disciplina 4 60
-• 1 60963 Nome da Disciplina 4 60
-
-Exemplo:
-Raciocínio Lógico 4 60
-Algoritmos e Programação 8 120
-Cálculo I 4 60`}
+A IA vai analisar e extrair automaticamente:
+• Nome da disciplina
+• Créditos
+• Carga horária
+• Semestre`}
                 />
               </div>
 
-              <div className="bg-blue-500/10 border border-blue-500/30 rounded-xl p-3 flex items-start gap-2">
-                <Info size={16} className="text-blue-400 mt-0.5 flex-shrink-0" />
-                <p className="text-blue-300 text-xs">
-                  <strong>Dica:</strong> Abra o PDF no navegador, selecione todo o texto (Ctrl+A), copie (Ctrl+C) e cole aqui. 
-                  Cada linha será uma disciplina. Números no final serão interpretados como créditos e carga horária.
-                </p>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => analisarTexto(true)}
+                  disabled={!texto.trim() || isProcessando}
+                  className="flex-1 py-3 rounded-xl bg-gradient-to-r from-violet-500 to-purple-600 text-white font-medium hover:scale-[1.02] transition-all disabled:opacity-50 disabled:hover:scale-100 flex items-center justify-center gap-2"
+                >
+                  {processandoIA ? (
+                    <><Loader2 size={18} className="animate-spin" /> Analisando...</>
+                  ) : (
+                    <><Sparkles size={18} /> Análise com IA</>
+                  )}
+                </button>
+                <button
+                  onClick={() => analisarTexto(false)}
+                  disabled={!texto.trim() || isProcessando}
+                  className="px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-slate-400 font-medium hover:bg-white/10 transition-all disabled:opacity-50"
+                  title="Análise manual sem IA"
+                >
+                  <Zap size={18} />
+                </button>
               </div>
 
-              <button
-                onClick={analisarTexto}
-                disabled={!texto.trim()}
-                className="w-full py-3 rounded-xl bg-gradient-to-r from-amber-500 to-orange-600 text-white font-medium hover:scale-[1.02] transition-all disabled:opacity-50 disabled:hover:scale-100"
-              >
-                Analisar Texto
-              </button>
+              <div className="bg-violet-500/10 border border-violet-500/30 rounded-xl p-3 flex items-start gap-2">
+                <Sparkles size={16} className="text-violet-400 mt-0.5 flex-shrink-0" />
+                <p className="text-violet-300 text-xs">
+                  <strong>IA ativada:</strong> O Claude analisa o texto e extrai as disciplinas com nome, créditos, carga horária e semestre automaticamente.
+                </p>
+              </div>
             </div>
           )}
 
           {modo === 'pdf' && (
             <div className="space-y-4">
-              {/* Área de upload */}
               <div
-                onClick={() => fileInputRef.current?.click()}
+                onClick={() => !isProcessando && fileInputRef.current?.click()}
                 className={`border-2 border-dashed rounded-2xl p-8 text-center cursor-pointer transition-all ${
-                  processandoPdf 
-                    ? 'border-amber-500/50 bg-amber-500/10' 
-                    : arquivoPdf && !erroPdf
+                  isProcessando 
+                    ? 'border-violet-500/50 bg-violet-500/10 cursor-wait' 
+                    : arquivoPdf && disciplinasPreview.length > 0
                       ? 'border-emerald-500/50 bg-emerald-500/10' 
                       : 'border-white/20 hover:border-amber-500/50 hover:bg-amber-500/5'
                 }`}
@@ -379,10 +441,15 @@ Cálculo I 4 60`}
                 {processandoPdf ? (
                   <div className="flex flex-col items-center gap-3">
                     <Loader2 size={40} className="text-amber-400 animate-spin" />
-                    <p className="text-amber-300 font-medium">Processando PDF...</p>
-                    <p className="text-slate-500 text-sm">Extraindo texto do documento</p>
+                    <p className="text-amber-300 font-medium">Extraindo texto do PDF...</p>
                   </div>
-                ) : arquivoPdf ? (
+                ) : processandoIA ? (
+                  <div className="flex flex-col items-center gap-3">
+                    <Sparkles size={40} className="text-violet-400 animate-pulse" />
+                    <p className="text-violet-300 font-medium">IA analisando disciplinas...</p>
+                    <p className="text-slate-500 text-sm">Isso pode levar alguns segundos</p>
+                  </div>
+                ) : arquivoPdf && disciplinasPreview.length > 0 ? (
                   <div className="flex flex-col items-center gap-3">
                     <CheckCircle size={40} className="text-emerald-400" />
                     <p className="text-emerald-300 font-medium">{arquivoPdf.name}</p>
@@ -392,7 +459,7 @@ Cálculo I 4 60`}
                   <div className="flex flex-col items-center gap-3">
                     <Upload size={40} className="text-slate-500" />
                     <p className="text-white font-medium">Clique para selecionar o PDF</p>
-                    <p className="text-slate-500 text-sm">ou arraste o arquivo aqui</p>
+                    <p className="text-slate-500 text-sm">A IA vai analisar automaticamente</p>
                   </div>
                 )}
               </div>
@@ -400,13 +467,10 @@ Cálculo I 4 60`}
               {erroPdf && (
                 <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-4 flex items-start gap-3">
                   <AlertCircle size={20} className="text-amber-400 mt-0.5 flex-shrink-0" />
-                  <div className="flex-1">
-                    <p className="text-amber-300 text-sm">{erroPdf}</p>
-                  </div>
+                  <p className="text-amber-300 text-sm">{erroPdf}</p>
                 </div>
               )}
 
-              {/* Botão para ver texto extraído */}
               {textoExtraidoPdf && (
                 <div className="space-y-2">
                   <button
@@ -414,7 +478,7 @@ Cálculo I 4 60`}
                     className="flex items-center gap-2 text-sm text-slate-400 hover:text-white transition-all"
                   >
                     {mostrarTextoExtraido ? <EyeOff size={16} /> : <Eye size={16} />}
-                    {mostrarTextoExtraido ? 'Ocultar texto extraído' : 'Ver texto extraído do PDF'}
+                    {mostrarTextoExtraido ? 'Ocultar texto extraído' : 'Ver texto extraído'}
                   </button>
                   
                   {mostrarTextoExtraido && (
@@ -425,26 +489,25 @@ Cálculo I 4 60`}
                         rows={6}
                         className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white text-xs focus:outline-none resize-none font-mono"
                       />
-                      <button
-                        onClick={() => {
-                          navigator.clipboard.writeText(textoExtraidoPdf);
-                        }}
-                        className="text-xs text-cyan-400 hover:text-cyan-300"
-                      >
-                        📋 Copiar texto
-                      </button>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => navigator.clipboard.writeText(textoExtraidoPdf)}
+                          className="text-xs text-cyan-400 hover:text-cyan-300"
+                        >
+                          📋 Copiar texto
+                        </button>
+                        <button
+                          onClick={() => analisarComIA(textoExtraidoPdf)}
+                          disabled={processandoIA}
+                          className="text-xs text-violet-400 hover:text-violet-300 flex items-center gap-1"
+                        >
+                          <Sparkles size={12} /> Reanalisar com IA
+                        </button>
+                      </div>
                     </div>
                   )}
                 </div>
               )}
-
-              <div className="bg-blue-500/10 border border-blue-500/30 rounded-xl p-3 flex items-start gap-2">
-                <Info size={16} className="text-blue-400 mt-0.5 flex-shrink-0" />
-                <p className="text-blue-300 text-xs">
-                  <strong>Nota:</strong> A extração automática de PDF pode não ser 100% precisa. 
-                  Se faltar disciplinas, recomendamos usar a aba "Colar Texto" copiando o conteúdo do PDF manualmente.
-                </p>
-              </div>
             </div>
           )}
 
@@ -452,8 +515,13 @@ Cálculo I 4 60`}
           {disciplinasPreview.length > 0 && (
             <div className="mt-6 space-y-4">
               <div className="flex items-center justify-between">
-                <h3 className="text-lg font-semibold text-white">
+                <h3 className="text-lg font-semibold text-white flex items-center gap-2">
                   {disciplinasPreview.length} cadeiras encontradas
+                  {disciplinasPreview[0]?.fonte === 'ia' && (
+                    <span className="text-xs px-2 py-0.5 rounded-full bg-violet-500/20 text-violet-300 border border-violet-500/30">
+                      <Sparkles size={10} className="inline mr-1" />via IA
+                    </span>
+                  )}
                 </h3>
                 <button
                   onClick={() => setExpandido(!expandido)}
@@ -464,7 +532,6 @@ Cálculo I 4 60`}
                 </button>
               </div>
 
-              {/* Stats */}
               <div className="grid grid-cols-2 gap-3">
                 <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-xl p-3 text-center">
                   <p className="text-2xl font-bold text-emerald-400">{disciplinasNovas.length}</p>
@@ -476,16 +543,14 @@ Cálculo I 4 60`}
                 </div>
               </div>
               
-              {/* Info de semestres */}
               <div className="flex flex-wrap gap-2">
                 {Object.keys(disciplinasPorPeriodo).sort((a, b) => a - b).map(p => (
                   <span key={p} className="text-xs px-2 py-1 rounded-lg bg-violet-500/20 text-violet-300 border border-violet-500/30">
-                    {p}º sem: {disciplinasPorPeriodo[p].length}
+                    {p === '0' ? 'Optativas' : `${p}º sem`}: {disciplinasPorPeriodo[p].length}
                   </span>
                 ))}
               </div>
 
-              {/* Lista */}
               {expandido && (
                 <div className="max-h-48 overflow-y-auto space-y-2 pr-2">
                   {disciplinasPreview.map((d, i) => {
@@ -510,7 +575,7 @@ Cálculo I 4 60`}
                               )}
                             </div>
                             <div className="flex items-center gap-3 mt-1 text-xs text-slate-500">
-                              <span>{d.periodo}º sem</span>
+                              <span>{d.periodo === 0 ? 'Optativa' : `${d.periodo}º sem`}</span>
                               <span>{d.creditos} cr</span>
                               <span>{d.cargaHoraria}h</span>
                             </div>
@@ -535,7 +600,7 @@ Cálculo I 4 60`}
           </button>
           <button
             onClick={confirmarImportacao}
-            disabled={disciplinasNovas.length === 0}
+            disabled={disciplinasNovas.length === 0 || isProcessando}
             className="flex-1 py-3 rounded-xl bg-gradient-to-r from-amber-500 to-orange-600 text-white font-medium hover:scale-[1.02] transition-all disabled:opacity-50 disabled:hover:scale-100"
           >
             Importar {disciplinasNovas.length} Cadeiras
