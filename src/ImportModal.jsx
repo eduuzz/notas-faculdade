@@ -200,22 +200,35 @@ export default function ImportModal({ onClose, onImport, disciplinasExistentes =
   const confirmarImportacao = () => {
     const disciplinasParaImportar = disciplinasPreview
       .filter(d => !verificarDuplicata(d))
-      .map(d => ({
-        codigo: d.codigo || null,
-        nome: d.nome,
-        periodo: d.periodo || 1,
-        creditos: d.creditos || 4,
-        cargaHoraria: d.cargaHoraria || 60,
-        preRequisitos: d.preRequisitos || [],
-        coRequisitos: d.coRequisitos || [],
-        notaMinima: 6.0,
-        status: 'NAO_INICIADA',
-        ga: null,
-        gb: null,
-        notaFinal: null,
-        semestreCursado: null,
-        observacao: ''
-      }));
+      .map(d => {
+        // Criar objeto base com campos obrigatórios
+        const disciplina = {
+          nome: d.nome,
+          periodo: d.periodo || 1,
+          creditos: d.creditos || 4,
+          cargaHoraria: d.cargaHoraria || 60,
+          notaMinima: 6.0,
+          status: 'NAO_INICIADA',
+          ga: null,
+          gb: null,
+          notaFinal: null,
+          semestreCursado: null,
+          observacao: ''
+        };
+        
+        // Adicionar campos opcionais apenas se existirem
+        if (d.codigo) {
+          disciplina.codigo = d.codigo;
+        }
+        if (d.preRequisitos && d.preRequisitos.length > 0) {
+          disciplina.preRequisitos = d.preRequisitos;
+        }
+        if (d.coRequisitos && d.coRequisitos.length > 0) {
+          disciplina.coRequisitos = d.coRequisitos;
+        }
+        
+        return disciplina;
+      });
 
     if (disciplinasParaImportar.length > 0) {
       onImport(disciplinasParaImportar);
@@ -403,13 +416,6 @@ Exemplo:
                         >
                           📋 Copiar texto
                         </button>
-                        <button
-                          onClick={() => analisarComIA(textoExtraidoPdf)}
-                          disabled={processandoIA}
-                          className="text-xs text-violet-400 hover:text-violet-300 flex items-center gap-1"
-                        >
-                          <Sparkles size={12} /> Reanalisar com IA
-                        </button>
                       </div>
                     </div>
                   )}
@@ -424,11 +430,6 @@ Exemplo:
               <div className="flex items-center justify-between">
                 <h3 className="text-lg font-semibold text-white flex items-center gap-2">
                   {disciplinasPreview.length} cadeiras encontradas
-                  {disciplinasPreview[0]?.fonte === 'ia' && (
-                    <span className="text-xs px-2 py-0.5 rounded-full bg-violet-500/20 text-violet-300 border border-violet-500/30">
-                      <Sparkles size={10} className="inline mr-1" />via IA
-                    </span>
-                  )}
                 </h3>
                 <button
                   onClick={() => setExpandido(!expandido)}

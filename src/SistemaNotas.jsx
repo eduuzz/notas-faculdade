@@ -453,7 +453,15 @@ export default function SistemaNotas({ onOpenAdmin }) {
   };
 
   const handleImportarDisciplinas = async (disciplinasImport) => {
-    for (const disciplina of disciplinasImport) { await adicionarDisciplina(disciplina); }
+    try {
+      for (const disciplina of disciplinasImport) { 
+        // Remover campos que podem não existir na tabela do Supabase
+        const { codigo, preRequisitos, coRequisitos, ...disciplinaBase } = disciplina;
+        await adicionarDisciplina(disciplinaBase); 
+      }
+    } catch (error) {
+      console.error('Erro ao importar disciplinas:', error);
+    }
     setShowImportModal(false);
   };
 
