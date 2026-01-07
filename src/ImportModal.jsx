@@ -195,12 +195,22 @@ export default function ImportModal({ onClose, onImport, disciplinasExistentes =
     setArquivoPdf(file);
 
     try {
-      // Carregar pdf.js dinamicamente
-      const pdfjsLib = await import('https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.mjs');
-      pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.mjs';
+      // Carregar pdf.js via script tag se não estiver carregado
+      if (!window.pdfjsLib) {
+        await new Promise((resolve, reject) => {
+          const script = document.createElement('script');
+          script.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
+          script.onload = () => {
+            window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+            resolve();
+          };
+          script.onerror = () => reject(new Error('Falha ao carregar pdf.js'));
+          document.head.appendChild(script);
+        });
+      }
 
       const arrayBuffer = await file.arrayBuffer();
-      const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+      const pdf = await window.pdfjsLib.getDocument({ data: arrayBuffer }).promise;
       
       let textoCompleto = '';
       
@@ -216,11 +226,11 @@ export default function ImportModal({ onClose, onImport, disciplinasExistentes =
       setDisciplinasPreview(disciplinas);
 
       if (disciplinas.length === 0) {
-        setErroPdf('Nenhuma disciplina reconhecida. Tente colar o texto manualmente.');
+        setErroPdf('Nenhuma disciplina reconhecida. Use a aba "Currículo" para importar o currículo completo da UNISINOS.');
       }
     } catch (error) {
       console.error('Erro ao processar PDF:', error);
-      setErroPdf('Erro ao ler o PDF. Tente colar o texto manualmente na aba "Colar Texto".');
+      setErroPdf('Erro ao ler o PDF. Use a aba "Currículo" para importar as cadeiras da UNISINOS CC.');
     } finally {
       setProcessandoPdf(false);
     }
@@ -402,11 +412,21 @@ export default function ImportModal({ onClose, onImport, disciplinasExistentes =
               </div>
 
               {erroPdf && (
-                <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-4 flex items-start gap-3">
-                  <AlertCircle size={20} className="text-red-400 mt-0.5" />
-                  <div>
-                    <p className="text-red-300 font-medium">Erro ao processar</p>
-                    <p className="text-red-200/70 text-sm">{erroPdf}</p>
+                <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-4">
+                  <div className="flex items-start gap-3">
+                    <AlertCircle size={20} className="text-amber-400 mt-0.5 flex-shrink-0" />
+                    <div>
+                      <p className="text-amber-300 font-medium">Biblioteca não instalada</p>
+                      <p className="text-amber-200/70 text-sm mt-1">
+                        Para usar o upload de PDF, execute no terminal:
+                      </p>
+                      <code className="block mt-2 px-3 py-2 rounded-lg bg-black/30 text-amber-300 text-xs font-mono">
+                        npm install pdfjs-dist
+                      </code>
+                      <p className="text-amber-200/70 text-sm mt-3">
+                        Ou use a aba <strong>"Colar Texto"</strong> para copiar e colar o conteúdo do PDF.
+                      </p>
+                    </div>
                   </div>
                 </div>
               )}
