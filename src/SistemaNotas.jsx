@@ -172,6 +172,12 @@ export default function SistemaNotas({ onOpenAdmin }) {
   // Modal de confirmação de logout
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   
+  // Modal de resetar todas as cadeiras
+  const [showResetModal, setShowResetModal] = useState(false);
+  const [resetConfirmText, setResetConfirmText] = useState('');
+  const [resetCode, setResetCode] = useState('');
+  const [resettingAll, setResettingAll] = useState(false);
+  
   // Estados do Planejador de Matrícula
   const [gradePlanejamento, setGradePlanejamento] = useState({});
   const [mostrarSabado, setMostrarSabado] = useState(true);
@@ -461,6 +467,42 @@ export default function SistemaNotas({ onOpenAdmin }) {
   const resetarDisciplina = async (id) => {
     await atualizarDisciplina(id, { status: 'NAO_INICIADA', ga: null, gb: null, notaFinal: null, semestreCursado: null });
     setShowDeleteMenu(null);
+  };
+
+  // Gerar código aleatório para confirmação de reset
+  const gerarCodigoReset = useCallback(() => {
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    let code = '';
+    for (let i = 0; i < 6; i++) {
+      code += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return code;
+  }, []);
+
+  // Abrir modal de reset
+  const abrirModalReset = useCallback(() => {
+    setResetCode(gerarCodigoReset());
+    setResetConfirmText('');
+    setShowResetModal(true);
+  }, [gerarCodigoReset]);
+
+  // Resetar todas as cadeiras
+  const resetarTodasCadeiras = async () => {
+    if (resetConfirmText !== resetCode) return;
+    
+    setResettingAll(true);
+    try {
+      // Remover todas as disciplinas uma por uma
+      for (const disc of disciplinas) {
+        await removerDisciplina(disc.id);
+      }
+      setShowResetModal(false);
+      setResetConfirmText('');
+    } catch (error) {
+      console.error('Erro ao resetar cadeiras:', error);
+    } finally {
+      setResettingAll(false);
+    }
   };
 
   const startEditNotas = (disc) => {
@@ -2570,6 +2612,28 @@ export default function SistemaNotas({ onOpenAdmin }) {
                 </div>
               </div>
 
+              {/* Zona de Perigo */}
+              <div className="mb-6 p-4 rounded-xl bg-red-500/10 border border-red-500/30">
+                <div className="flex items-center gap-3 mb-3">
+                  <AlertCircle size={20} className="text-red-400" />
+                  <h4 className="font-medium text-red-400">Zona de Perigo</h4>
+                </div>
+                <p className="text-slate-400 text-sm mb-3">
+                  Ações irreversíveis. Tenha cuidado!
+                </p>
+                <button
+                  onClick={() => {
+                    setShowSettingsModal(false);
+                    abrirModalReset();
+                  }}
+                  disabled={disciplinas.length === 0}
+                  className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg bg-red-500/20 text-red-400 hover:bg-red-500/30 text-sm font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <Trash2 size={16} />
+                  Excluir Todas as Cadeiras ({disciplinas.length})
+                </button>
+              </div>
+
               {/* Botões */}
               <div className="flex gap-3">
                 <button
@@ -2724,6 +2788,102 @@ export default function SistemaNotas({ onOpenAdmin }) {
                 >
                   <LogOut size={18} />
                   Sair
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Modal Resetar Todas as Cadeiras */}
+        {showResetModal && (
+          <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={(e) => e.target === e.currentTarget && !resettingAll && setShowResetModal(false)}>
+            <div className="bg-gradient-to-br from-slate-800 to-slate-900 border border-red-500/30 rounded-3xl p-8 max-w-md w-full shadow-2xl">
+              {/* Ícone */}
+              <div className="flex justify-center mb-6">
+                <div className="w-20 h-20 rounded-full bg-red-500/20 flex items-center justify-center animate-pulse">
+                  <AlertCircle size={40} className="text-red-400" />
+                </div>
+              </div>
+
+              {/* Título */}
+              <h2 className="text-xl font-bold text-white text-center mb-2">
+                Excluir todas as cadeiras?
+              </h2>
+              
+              <p className="text-slate-400 text-center mb-4">
+                Esta ação é <span className="text-red-400 font-semibold">irreversível</span>. 
+                Todas as <span className="text-white font-semibold">{disciplinas.length} cadeiras</span> serão 
+                permanentemente excluídas, incluindo notas e histórico.
+              </p>
+
+              {/* Aviso */}
+              <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-4 mb-6">
+                <div className="flex items-start gap-3">
+                  <Trash2 size={20} className="text-red-400 mt-0.5 flex-shrink-0" />
+                  <div className="text-sm">
+                    <p className="text-red-300 font-medium mb-1">Atenção!</p>
+                    <p className="text-red-200/70">
+                      Você perderá todas as disciplinas cadastradas, notas lançadas, 
+                      status de aprovação e planejamento de matrícula.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Campo de confirmação */}
+              <div className="mb-6">
+                <label className="text-sm text-slate-400 block mb-2">
+                  Para confirmar, digite <span className="font-mono bg-red-500/20 text-red-400 px-2 py-0.5 rounded">{resetCode}</span> abaixo:
+                </label>
+                <input
+                  type="text"
+                  value={resetConfirmText}
+                  onChange={(e) => setResetConfirmText(e.target.value.toUpperCase())}
+                  placeholder="Digite o código de confirmação"
+                  className="w-full px-4 py-3 rounded-xl bg-white/5 border border-red-500/30 text-white font-mono text-center text-lg tracking-widest focus:outline-none focus:border-red-500 transition-colors uppercase"
+                  maxLength={6}
+                  disabled={resettingAll}
+                />
+                {resetConfirmText && resetConfirmText !== resetCode && (
+                  <p className="text-red-400 text-xs mt-2 text-center">
+                    Código incorreto. Digite exatamente: {resetCode}
+                  </p>
+                )}
+                {resetConfirmText === resetCode && (
+                  <p className="text-emerald-400 text-xs mt-2 text-center flex items-center justify-center gap-1">
+                    <CheckCircle size={12} /> Código confirmado
+                  </p>
+                )}
+              </div>
+
+              {/* Botões */}
+              <div className="flex gap-3">
+                <button
+                  onClick={() => {
+                    setShowResetModal(false);
+                    setResetConfirmText('');
+                  }}
+                  disabled={resettingAll}
+                  className="flex-1 py-3 rounded-xl bg-white/5 border border-white/10 text-slate-300 font-medium hover:bg-white/10 transition-colors disabled:opacity-50"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={resetarTodasCadeiras}
+                  disabled={resetConfirmText !== resetCode || resettingAll}
+                  className="flex-1 py-3 rounded-xl bg-gradient-to-r from-red-600 to-red-700 text-white font-semibold hover:from-red-500 hover:to-red-600 transition-all shadow-lg shadow-red-500/25 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:from-red-600 disabled:hover:to-red-700"
+                >
+                  {resettingAll ? (
+                    <>
+                      <RefreshCw size={18} className="animate-spin" />
+                      Excluindo...
+                    </>
+                  ) : (
+                    <>
+                      <Trash2 size={18} />
+                      Excluir Tudo
+                    </>
+                  )}
                 </button>
               </div>
             </div>
