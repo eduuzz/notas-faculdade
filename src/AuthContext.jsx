@@ -160,15 +160,38 @@ export const AuthProvider = ({ children }) => {
 
         if ((event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') && session?.user) {
           // Novo login ou refresh - verificar autorização
-          const autorizado = await verificarAutorizacao(session.user.email);
+          let autorizado = await verificarAutorizacao(session.user.email);
+          
+          // Se não está autorizado, criar automaticamente com plano gratuito
+          if (!autorizado) {
+            const dataExpiracao = new Date();
+            dataExpiracao.setMonth(dataExpiracao.getMonth() + 6); // 6 meses grátis
+            
+            const { error: insertError } = await supabase
+              .from('usuarios_autorizados')
+              .insert([{
+                email: session.user.email.toLowerCase(),
+                ativo: true,
+                nome: null,
+                curso: null,
+                plano: 'gratuito',
+                plano_expira_em: dataExpiracao.toISOString()
+              }]);
+            
+            if (!insertError) {
+              autorizado = await verificarAutorizacao(session.user.email);
+            }
+          }
+          
           if (mounted) {
             if (autorizado) {
               setUser(session.user);
               setAuthError(null);
             } else {
+              // Só faz logout se realmente não conseguiu criar/verificar
               await supabase.auth.signOut();
               setUser(null);
-              setAuthError('Email não autorizado. Realize o pagamento primeiro.');
+              setAuthError('Erro ao criar conta. Tente novamente.');
             }
           }
         }
@@ -186,29 +209,79 @@ export const AuthProvider = ({ children }) => {
     if (!supabase) return { data: null, error: { message: 'Supabase não configurado' } };
     setAuthError(null);
     
-    // Verificar autorização ANTES de tentar login
-    const autorizado = await verificarAutorizacao(email);
-    if (!autorizado) {
-      setAuthError('Email não autorizado. Realize o pagamento primeiro.');
-      return { data: null, error: { message: 'Email não autorizado.' } };
+    // Tentar login primeiro
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    
+    if (error) {
+      setAuthError(error.message);
+      return { data, error };
     }
     
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) setAuthError(error.message);
+    // Login bem sucedido - verificar se está na tabela usuarios_autorizados
+    const autorizado = await verificarAutorizacao(email);
+    
+    // Se não está autorizado, criar automaticamente com plano gratuito
+    if (!autorizado) {
+      const dataExpiracao = new Date();
+      dataExpiracao.setMonth(dataExpiracao.getMonth() + 6); // 6 meses grátis
+      
+      const { error: insertError } = await supabase
+        .from('usuarios_autorizados')
+        .insert([{
+          email: email.toLowerCase(),
+          ativo: true,
+          nome: null,
+          curso: null,
+          plano: 'gratuito',
+          plano_expira_em: dataExpiracao.toISOString()
+        }]);
+      
+      if (!insertError) {
+        // Re-verificar autorização para pegar os dados
+        await verificarAutorizacao(email);
+      }
+    }
+    
     return { data, error };
   };
 
   const signUpWithEmail = async (email, password) => {
     if (!supabase) return { data: null, error: { message: 'Supabase não configurado' } };
     setAuthError(null);
-    const autorizado = await verificarAutorizacao(email);
-    if (!autorizado) {
-      setAuthError('Email não autorizado. Realize o pagamento primeiro.');
-      return { data: null, error: { message: 'Email não autorizado.' } };
-    }
+    
+    // Verificar se já existe na lista de autorizados
+    const jaAutorizado = await verificarAutorizacao(email);
+    
+    // Criar conta no Supabase Auth
     const { data, error } = await supabase.auth.signUp({ email, password });
-    if (error) setAuthError(error.message);
-    return { data, error };
+    if (error) {
+      setAuthError(error.message);
+      return { data: null, error };
+    }
+    
+    // Se não está autorizado, criar automaticamente com plano gratuito (6 meses)
+    if (!jaAutorizado) {
+      const dataExpiracao = new Date();
+      dataExpiracao.setMonth(dataExpiracao.getMonth() + 6); // 6 meses grátis
+      
+      const { error: insertError } = await supabase
+        .from('usuarios_autorizados')
+        .insert([{
+          email: email.toLowerCase(),
+          ativo: true,
+          nome: null,
+          curso: null,
+          plano: 'gratuito',
+          plano_expira_em: dataExpiracao.toISOString()
+        }]);
+      
+      if (insertError) {
+        console.error('Erro ao criar usuário gratuito:', insertError);
+        // Se falhar, ainda deixa criar a conta (admin pode ajustar depois)
+      }
+    }
+    
+    return { data, error: null };
   };
 
   const signInWithGoogle = async () => {

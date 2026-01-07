@@ -237,12 +237,13 @@ export default function AdminPanel({ onClose }) {
         plano_expira_em: editExpiracao ? new Date(editExpiracao).toISOString() : null
       };
 
-      console.log('Salvando plano:', { id: modalPlano.id, ...updateData });
+      console.log('Salvando plano:', { email: modalPlano.email, ...updateData });
 
+      // Usando email ao invés de id para garantir que encontre o registro
       const { data, error } = await supabase
         .from('usuarios_autorizados')
         .update(updateData)
-        .eq('id', modalPlano.id)
+        .eq('email', modalPlano.email.toLowerCase())
         .select();
 
       console.log('Resposta:', { data, error });
@@ -251,19 +252,16 @@ export default function AdminPanel({ onClose }) {
         console.error('Erro Supabase:', error);
         setErro('Erro ao salvar plano: ' + error.message);
       } else if (!data || data.length === 0) {
-        setErro('Nenhum registro atualizado. Verifique se as colunas existem no banco.');
+        setErro('Nenhum registro atualizado. Verifique se o usuário existe.');
       } else {
         // Atualiza o usuário localmente para refletir a mudança imediatamente
         setUsuarios(prev => prev.map(u => 
-          u.id === modalPlano.id 
+          u.email.toLowerCase() === modalPlano.email.toLowerCase()
             ? { ...u, plano: editPlano, plano_expira_em: editExpiracao ? new Date(editExpiracao).toISOString() : null }
             : u
         ));
         setSucesso(`Plano de ${modalPlano.email} atualizado para ${editPlano.toUpperCase()}!`);
         setModalPlano(null);
-        
-        // Recarrega do banco também para garantir sincronia
-        setTimeout(() => carregarDados(), 500);
       }
     } catch (err) {
       console.error('Erro catch:', err);
@@ -641,14 +639,16 @@ export default function AdminPanel({ onClose }) {
                         <span className={`px-2 py-0.5 rounded-full text-xs font-medium flex items-center gap-1 ${
                           usuario.plano === 'admin' ? 'bg-red-500/20 text-red-300' :
                           usuario.plano === 'premium' ? 'bg-amber-500/20 text-amber-300' :
+                          usuario.plano === 'gratuito' ? 'bg-emerald-500/20 text-emerald-300' :
                           usuario.plano === 'basico' ? 'bg-slate-500/20 text-slate-300' :
                           'bg-violet-500/20 text-violet-300'
                         }`}>
                           {usuario.plano === 'admin' ? <Shield size={10} /> :
                            usuario.plano === 'premium' ? <Crown size={10} /> :
+                           usuario.plano === 'gratuito' ? <Zap size={10} /> :
                            usuario.plano === 'basico' ? <Zap size={10} /> :
                            <Star size={10} />}
-                          {(usuario.plano || 'pro').toUpperCase()}
+                          {(usuario.plano || 'gratuito').toUpperCase()}
                         </span>
                       </div>
                       <div className="flex items-center gap-2">
@@ -804,7 +804,7 @@ export default function AdminPanel({ onClose }) {
               <label className="block text-slate-400 text-sm mb-2">Plano</label>
               <div className="grid grid-cols-2 gap-2">
                 {[
-                  { id: 'basico', label: 'Básico', icon: Zap, cor: 'slate' },
+                  { id: 'gratuito', label: 'Gratuito', icon: Zap, cor: 'emerald' },
                   { id: 'pro', label: 'Pro', icon: Star, cor: 'violet' },
                   { id: 'premium', label: 'Premium', icon: Crown, cor: 'amber' },
                   { id: 'admin', label: 'Admin', icon: Shield, cor: 'red' },
@@ -814,7 +814,7 @@ export default function AdminPanel({ onClose }) {
                     onClick={() => setEditPlano(plano.id)}
                     className={`flex items-center gap-2 p-3 rounded-xl border-2 transition-all ${
                       editPlano === plano.id 
-                        ? plano.cor === 'slate' ? 'border-slate-400 bg-slate-500/20' :
+                        ? plano.cor === 'emerald' ? 'border-emerald-400 bg-emerald-500/20' :
                           plano.cor === 'violet' ? 'border-violet-400 bg-violet-500/20' :
                           plano.cor === 'amber' ? 'border-amber-400 bg-amber-500/20' :
                           'border-red-400 bg-red-500/20'
@@ -822,7 +822,7 @@ export default function AdminPanel({ onClose }) {
                     }`}
                   >
                     <plano.icon size={18} className={
-                      plano.cor === 'slate' ? 'text-slate-400' :
+                      plano.cor === 'emerald' ? 'text-emerald-400' :
                       plano.cor === 'violet' ? 'text-violet-400' :
                       plano.cor === 'amber' ? 'text-amber-400' :
                       'text-red-400'

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Check, Crown, Star, Zap, Copy, CheckCircle, Upload, ArrowRight, Sparkles } from 'lucide-react';
+import { X, Check, Crown, Star, Zap, Copy, CheckCircle, Upload, ArrowRight, Sparkles, Gift } from 'lucide-react';
 import { supabase } from './supabaseClient';
 
 const CONFIG = {
@@ -9,17 +9,6 @@ const CONFIG = {
 };
 
 const PLANOS = {
-  basico: {
-    id: 'basico',
-    nome: 'Básico',
-    icon: Zap,
-    gradient: 'from-slate-500 to-slate-600',
-    shadow: 'shadow-slate-500/20',
-    border: 'border-slate-500/30',
-    bg: 'bg-slate-500/10',
-    precos: { mensal: 4.90, semestral: 19.90, anual: 34.90 },
-    funcionalidades: ['Até 20 disciplinas', 'Dashboard básico', 'Sincronização em nuvem']
-  },
   pro: {
     id: 'pro',
     nome: 'Pro',
@@ -28,7 +17,7 @@ const PLANOS = {
     shadow: 'shadow-violet-500/30',
     border: 'border-violet-500/50',
     bg: 'bg-violet-500/10',
-    precos: { mensal: 9.90, semestral: 39.90, anual: 69.90 },
+    precos: { mensal: 4.90, semestral: 19.90, anual: 34.90 },
     funcionalidades: ['Disciplinas ilimitadas', 'Dashboard completo', 'Exportar PDF', 'Previsão de formatura']
   },
   premium: {
@@ -39,8 +28,8 @@ const PLANOS = {
     shadow: 'shadow-amber-500/30',
     border: 'border-amber-500/30',
     bg: 'bg-amber-500/10',
-    precos: { mensal: 14.90, semestral: 59.90, anual: 99.90 },
-    funcionalidades: ['Tudo do Pro', 'Simulador de notas', 'Múltiplos cursos', 'Metas e alertas', 'Backup/Exportar dados', 'Suporte prioritário']
+    precos: { mensal: 9.90, semestral: 39.90, anual: 69.90 },
+    funcionalidades: ['Tudo do Pro', 'Simulador de notas', 'Múltiplos cursos', 'PDF com gráficos', 'Backup/Exportar dados', 'Suporte prioritário']
   }
 };
 
@@ -54,9 +43,9 @@ export default function UpgradeModal({ planoAtual, userEmail, userName, onClose 
 
   // Filtrar planos disponíveis para upgrade
   const planosDisponiveis = Object.values(PLANOS).filter(p => {
-    if (planoAtual === 'basico') return p.id !== 'basico';
-    if (planoAtual === 'pro') return p.id === 'premium';
-    return false;
+    if (planoAtual === 'gratuito' || planoAtual === 'basico') return true; // Pode escolher Pro ou Premium
+    if (planoAtual === 'pro') return p.id === 'premium'; // Só Premium
+    return false; // Admin/Premium não precisa de upgrade
   });
 
   const copiarChavePix = () => {

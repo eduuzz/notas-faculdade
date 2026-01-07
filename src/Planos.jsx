@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Check, X, ArrowLeft, Zap, Crown, Star, Sparkles, Copy, CheckCircle, Upload, User, Mail, AlertCircle } from 'lucide-react';
+import { Check, X, ArrowLeft, Zap, Crown, Star, Sparkles, Copy, CheckCircle, Upload, User, Mail, AlertCircle, Gift } from 'lucide-react';
 import { supabase } from './supabaseClient';
 
 // Configurações
@@ -11,33 +11,6 @@ const CONFIG = {
 
 // Dados dos planos
 const PLANOS = {
-  basico: {
-    id: 'basico',
-    nome: 'Básico',
-    icon: Zap,
-    cor: 'slate',
-    gradient: 'from-slate-500 to-slate-600',
-    shadow: 'shadow-slate-500/20',
-    border: 'border-slate-500/30',
-    bg: 'bg-slate-500/10',
-    precos: {
-      mensal: 4.90,
-      semestral: 19.90,
-      anual: 34.90
-    },
-    funcionalidades: [
-      { nome: 'Até 20 disciplinas', disponivel: true },
-      { nome: 'Dashboard básico', disponivel: true },
-      { nome: 'Sincronização em nuvem', disponivel: true },
-      { nome: 'Suporte por email (72h)', disponivel: true },
-      { nome: 'Exportar PDF', disponivel: false },
-      { nome: 'Previsão de formatura', disponivel: false },
-      { nome: 'Simulador de notas', disponivel: false },
-      { nome: 'Múltiplos cursos', disponivel: false },
-      { nome: 'Metas e alertas', disponivel: false },
-      { nome: 'Backup/Exportar dados', disponivel: false },
-    ]
-  },
   pro: {
     id: 'pro',
     nome: 'Pro',
@@ -50,9 +23,9 @@ const PLANOS = {
     border: 'border-violet-500/50',
     bg: 'bg-violet-500/10',
     precos: {
-      mensal: 9.90,
-      semestral: 39.90,
-      anual: 69.90
+      mensal: 4.90,
+      semestral: 19.90,
+      anual: 34.90
     },
     funcionalidades: [
       { nome: 'Disciplinas ilimitadas', disponivel: true },
@@ -63,7 +36,7 @@ const PLANOS = {
       { nome: 'Previsão de formatura', disponivel: true },
       { nome: 'Simulador de notas', disponivel: false },
       { nome: 'Múltiplos cursos', disponivel: false },
-      { nome: 'Metas e alertas', disponivel: false },
+      { nome: 'PDF com gráficos', disponivel: false },
       { nome: 'Backup/Exportar dados', disponivel: false },
     ]
   },
@@ -77,9 +50,9 @@ const PLANOS = {
     border: 'border-amber-500/30',
     bg: 'bg-amber-500/10',
     precos: {
-      mensal: 14.90,
-      semestral: 59.90,
-      anual: 99.90
+      mensal: 9.90,
+      semestral: 39.90,
+      anual: 69.90
     },
     funcionalidades: [
       { nome: 'Disciplinas ilimitadas', disponivel: true },

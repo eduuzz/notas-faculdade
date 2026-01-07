@@ -78,7 +78,7 @@ export default function Login() {
         }
         const { error } = await signUpWithEmail(formData.email, formData.password);
         if (error) setError(error.message);
-        else setSuccess('Verifique seu email para confirmar o cadastro!');
+        else setSuccess('Conta criada com sucesso! Você tem 6 meses grátis. Faça login para começar!');
       }
     } catch (err) {
       console.error('Erro de login:', err);

@@ -119,7 +119,7 @@ const BotaoComUpgrade = ({ temPermissao, planoNecessario, onUpgrade, onClick, ch
 
 export default function SistemaNotas({ onOpenAdmin }) {
   const { user, userName, userCurso, userPlano, userPlanoExpiraEm, isNewUser, updateUserCurso, updateUserProfile, signOut } = useAuth();
-  const { permissoes, podeAdicionarDisciplina, getLimiteDisciplinas, temPermissao } = usePermissoes();
+  const { permissoes, podeAdicionarDisciplina, getLimiteDisciplinas, temPermissao, planoAtual, planoExpirado, diasRestantes, podeEditar } = usePermissoes();
   const {
     disciplinas,
     setDisciplinas,
@@ -986,6 +986,54 @@ export default function SistemaNotas({ onOpenAdmin }) {
       </div>
 
       <div className="relative z-10 max-w-6xl mx-auto px-4 sm:px-6 py-8">
+        {/* Banner de Expiração */}
+        {planoExpirado && (
+          <div className="mb-6 p-4 rounded-2xl bg-gradient-to-r from-red-500/20 to-orange-500/20 border border-red-500/30">
+            <div className="flex items-center justify-between flex-wrap gap-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-red-500/20 flex items-center justify-center">
+                  <AlertCircle className="text-red-400" size={22} />
+                </div>
+                <div>
+                  <h3 className="text-red-300 font-semibold">Seu período gratuito expirou!</h3>
+                  <p className="text-red-200/70 text-sm">Suas disciplinas estão seguras, mas você não pode mais editar. Assine para continuar.</p>
+                </div>
+              </div>
+              <button 
+                onClick={() => setShowUpgradeModal(true)}
+                className="px-5 py-2.5 bg-gradient-to-r from-red-500 to-orange-500 rounded-xl text-white font-medium hover:from-red-400 hover:to-orange-400 transition-all shadow-lg shadow-red-500/25"
+              >
+                Assinar Agora
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Banner de Aviso de Expiração (menos de 30 dias) */}
+        {!planoExpirado && diasRestantes !== null && diasRestantes <= 30 && diasRestantes > 0 && (
+          <div className="mb-6 p-4 rounded-2xl bg-gradient-to-r from-amber-500/20 to-yellow-500/20 border border-amber-500/30">
+            <div className="flex items-center justify-between flex-wrap gap-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-amber-500/20 flex items-center justify-center">
+                  <Clock className="text-amber-400" size={22} />
+                </div>
+                <div>
+                  <h3 className="text-amber-300 font-semibold">
+                    {diasRestantes === 1 ? 'Último dia!' : `${diasRestantes} dias restantes`}
+                  </h3>
+                  <p className="text-amber-200/70 text-sm">Seu período gratuito está acabando. Assine para não perder acesso.</p>
+                </div>
+              </div>
+              <button 
+                onClick={() => setShowUpgradeModal(true)}
+                className="px-5 py-2.5 bg-gradient-to-r from-amber-500 to-yellow-500 rounded-xl text-black font-medium hover:from-amber-400 hover:to-yellow-400 transition-all shadow-lg shadow-amber-500/25"
+              >
+                Ver Planos
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* Header */}
         <header className="mb-10">
           <div className="flex items-center justify-between flex-wrap gap-4">
@@ -1119,26 +1167,33 @@ export default function SistemaNotas({ onOpenAdmin }) {
                   <span className="hidden sm:inline">PDF</span>
                   {!temPermissao('exportarPdf') && <Lock size={12} className="absolute -top-1 -right-1 text-amber-400" />}
                 </GradientButton>
-                <GradientButton variant="amber" onClick={() => setShowImportModal(true)}><UploadIcon size={18} /><span className="hidden sm:inline">Importar</span></GradientButton>
+                <GradientButton variant="amber" onClick={() => !planoExpirado && setShowImportModal(true)} disabled={planoExpirado}><UploadIcon size={18} /><span className="hidden sm:inline">Importar</span></GradientButton>
                 <GradientButton 
                   variant="purple" 
-                  onClick={() => podeAdicionarDisciplina(disciplinas.length) ? setShowAddMultiplas(true) : setShowUpgradeModal(true)}
+                  onClick={() => !planoExpirado && podeAdicionarDisciplina(disciplinas.length) ? setShowAddMultiplas(true) : setShowUpgradeModal(true)}
+                  disabled={planoExpirado}
                 >
                   <Plus size={18} /><span className="hidden sm:inline">Várias</span>
                 </GradientButton>
                 <GradientButton 
-                  onClick={() => podeAdicionarDisciplina(disciplinas.length) ? setShowAddDisciplina(true) : setShowUpgradeModal(true)}
+                  onClick={() => !planoExpirado && podeAdicionarDisciplina(disciplinas.length) ? setShowAddDisciplina(true) : setShowUpgradeModal(true)}
+                  disabled={planoExpirado}
                 >
                   <Plus size={18} /><span className="hidden sm:inline">Nova</span>
                 </GradientButton>
               </div>
-              {/* Indicador de limite para plano básico */}
+              {/* Indicador de limite para plano básico/gratuito */}
               {getLimiteDisciplinas() !== Infinity && (
                 <div className="text-xs text-slate-500">
                   {disciplinas.length}/{getLimiteDisciplinas()} disciplinas
                   {disciplinas.length >= getLimiteDisciplinas() && (
                     <span className="text-amber-400 ml-2">• Limite atingido</span>
                   )}
+                </div>
+              )}
+              {planoExpirado && (
+                <div className="text-xs text-red-400">
+                  ⚠️ Modo somente leitura - Assine para editar
                 </div>
               )}
             </div>
@@ -2177,10 +2232,14 @@ export default function SistemaNotas({ onOpenAdmin }) {
 
         {/* FAB Mobile */}
         <button 
-          onClick={() => podeAdicionarDisciplina(disciplinas.length) ? setShowAddDisciplina(true) : setShowUpgradeModal(true)} 
-          className="fixed bottom-6 right-6 w-14 h-14 rounded-full bg-gradient-to-br from-violet-600 to-indigo-600 flex items-center justify-center shadow-2xl shadow-violet-500/40 hover:scale-110 transition-transform duration-300 sm:hidden"
+          onClick={() => !planoExpirado && podeAdicionarDisciplina(disciplinas.length) ? setShowAddDisciplina(true) : setShowUpgradeModal(true)} 
+          className={`fixed bottom-6 right-6 w-14 h-14 rounded-full flex items-center justify-center shadow-2xl hover:scale-110 transition-transform duration-300 sm:hidden ${
+            planoExpirado 
+              ? 'bg-gradient-to-br from-red-600 to-orange-600 shadow-red-500/40' 
+              : 'bg-gradient-to-br from-violet-600 to-indigo-600 shadow-violet-500/40'
+          }`}
         >
-          {podeAdicionarDisciplina(disciplinas.length) ? <Plus size={24} /> : <Lock size={24} />}
+          {planoExpirado || !podeAdicionarDisciplina(disciplinas.length) ? <Lock size={24} /> : <Plus size={24} />}
         </button>
       </div>
     </div>
