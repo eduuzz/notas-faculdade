@@ -27,36 +27,62 @@ export default function ImportModal({ onClose, onImport, disciplinasExistentes =
         },
         body: JSON.stringify({
           model: 'claude-sonnet-4-20250514',
-          max_tokens: 4000,
+          max_tokens: 8000,
           messages: [
             {
               role: 'user',
-              content: `Analise o texto abaixo extraído de um PDF de grade curricular universitária e extraia TODAS as disciplinas.
+              content: `Analise este texto de grade curricular universitária e extraia as disciplinas.
 
-Para cada disciplina, extraia:
-- nome: nome completo da disciplina
-- creditos: número de créditos (geralmente 1-8)
-- cargaHoraria: carga horária em horas (geralmente 15-120)
-- periodo: semestre/período da disciplina (1-8, ou 0 se for optativa)
+ESTRUTURA DO PDF:
+- "Seq." = Semestre (1-8 para obrigatórias, 9+ ou "Trilha X" para optativas/trilhas)
+- "N." = Código da disciplina (número de 5 dígitos, ex: 60963)
+- "Atividades Acadêmicas" = Nome da disciplina
+- "Cred." = Créditos
+- "Horas-Aula" = Carga horária principal (usar este valor)
+- "Horas Práticas" = ignorar para carga horária
+- "Horas de Estágio" = ignorar
+- "Pré-requisitos" = códigos das disciplinas necessárias antes
+- "Correquisitos" = códigos das disciplinas que devem ser cursadas junto
+- "Obs." = ignorar
 
-Retorne APENAS um JSON válido no formato:
+REGRAS IMPORTANTES:
+1. Extrair APENAS disciplinas reais (que tem código de 5 dígitos)
+2. O período/semestre vem da coluna "Seq." (1-8 = semestre regular, outros = optativas/trilhas)
+3. Trilhas como "Trilha Empreendedorismo", "Trilha Mestrado", etc. devem ter periodo = 9
+4. Disciplinas optativas sem semestre definido devem ter periodo = 0
+5. Vincular o código (N.) a cada disciplina - é OBRIGATÓRIO
+6. Extrair pré-requisitos e correquisitos como arrays de códigos
+7. NÃO duplicar disciplinas (mesmo código = mesma disciplina)
+8. Ignorar cabeçalhos, totais, observações e textos que não são disciplinas
+
+Retorne APENAS um JSON válido:
 {
   "disciplinas": [
-    {"nome": "Nome da Disciplina", "creditos": 4, "cargaHoraria": 60, "periodo": 1},
-    ...
+    {
+      "codigo": "60963",
+      "nome": "Raciocínio Lógico",
+      "creditos": 4,
+      "cargaHoraria": 60,
+      "periodo": 1,
+      "preRequisitos": [],
+      "coRequisitos": []
+    },
+    {
+      "codigo": "60966",
+      "nome": "Algoritmos e Programação: Estruturas Lineares",
+      "creditos": 8,
+      "cargaHoraria": 120,
+      "periodo": 2,
+      "preRequisitos": ["60964"],
+      "coRequisitos": []
+    }
   ]
 }
 
-IMPORTANTE:
-- Extraia TODAS as disciplinas que encontrar
-- Se não encontrar créditos, use 4 como padrão
-- Se não encontrar carga horária, use 60 como padrão
-- Se não encontrar o período/semestre, use 1 como padrão
-- Ignore cabeçalhos, rodapés e textos que não são disciplinas
-- Retorne APENAS o JSON, sem explicações
+IMPORTANTE: Retorne SOMENTE o JSON, sem explicações ou texto adicional.
 
 Texto do PDF:
-${textoParaAnalisar.substring(0, 15000)}`
+${textoParaAnalisar.substring(0, 25000)}`
             }
           ]
         })
@@ -74,24 +100,27 @@ ${textoParaAnalisar.substring(0, 15000)}`
       if (jsonMatch) {
         const resultado = JSON.parse(jsonMatch[0]);
         if (resultado.disciplinas && Array.isArray(resultado.disciplinas)) {
-          const disciplinasProcessadas = resultado.disciplinas.map(d => ({
-            nome: d.nome,
-            creditos: d.creditos || 4,
-            cargaHoraria: d.cargaHoraria || 60,
-            periodo: d.periodo || 1,
-            fonte: 'ia'
-          }));
-          
-          // Remover duplicatas
-          const nomesUnicos = new Set();
-          const disciplinasUnicas = disciplinasProcessadas.filter(d => {
-            const nomeLower = d.nome.toLowerCase();
-            if (nomesUnicos.has(nomeLower)) return false;
-            nomesUnicos.add(nomeLower);
-            return true;
-          });
+          // Processar e remover duplicatas por código
+          const codigosVistos = new Set();
+          const disciplinasProcessadas = resultado.disciplinas
+            .filter(d => {
+              // Deve ter código válido
+              if (!d.codigo || codigosVistos.has(d.codigo)) return false;
+              codigosVistos.add(d.codigo);
+              return true;
+            })
+            .map(d => ({
+              codigo: d.codigo,
+              nome: d.nome,
+              creditos: d.creditos || 4,
+              cargaHoraria: d.cargaHoraria || 60,
+              periodo: d.periodo || 1,
+              preRequisitos: d.preRequisitos || [],
+              coRequisitos: d.coRequisitos || [],
+              fonte: 'ia'
+            }));
 
-          setDisciplinasPreview(disciplinasUnicas.sort((a, b) => 
+          setDisciplinasPreview(disciplinasProcessadas.sort((a, b) => 
             a.periodo - b.periodo || a.nome.localeCompare(b.nome)
           ));
           return true;
@@ -278,20 +307,25 @@ ${textoParaAnalisar.substring(0, 15000)}`
     }
   }, [texto, analisarComIA, parseTextoManual]);
 
-  const verificarDuplicata = (nome) => {
-    return disciplinasExistentes.some(d => 
-      d.nome.toLowerCase().trim() === nome.toLowerCase().trim()
+  const verificarDuplicata = (d) => {
+    // Verificar por código (se existir) ou por nome
+    return disciplinasExistentes.some(existente => 
+      (d.codigo && existente.codigo === d.codigo) ||
+      existente.nome.toLowerCase().trim() === d.nome.toLowerCase().trim()
     );
   };
 
   const confirmarImportacao = () => {
     const disciplinasParaImportar = disciplinasPreview
-      .filter(d => !verificarDuplicata(d.nome))
+      .filter(d => !verificarDuplicata(d))
       .map(d => ({
+        codigo: d.codigo || null,
         nome: d.nome,
         periodo: d.periodo || 1,
         creditos: d.creditos || 4,
         cargaHoraria: d.cargaHoraria || 60,
+        preRequisitos: d.preRequisitos || [],
+        coRequisitos: d.coRequisitos || [],
         notaMinima: 6.0,
         status: 'NAO_INICIADA',
         ga: null,
@@ -307,8 +341,8 @@ ${textoParaAnalisar.substring(0, 15000)}`
     }
   };
 
-  const disciplinasNovas = disciplinasPreview.filter(d => !verificarDuplicata(d.nome));
-  const disciplinasDuplicadas = disciplinasPreview.filter(d => verificarDuplicata(d.nome));
+  const disciplinasNovas = disciplinasPreview.filter(d => !verificarDuplicata(d));
+  const disciplinasDuplicadas = disciplinasPreview.filter(d => verificarDuplicata(d));
   
   const disciplinasPorPeriodo = disciplinasPreview.reduce((acc, d) => {
     const p = d.periodo || 1;
@@ -546,7 +580,7 @@ A IA vai analisar e extrair automaticamente:
               <div className="flex flex-wrap gap-2">
                 {Object.keys(disciplinasPorPeriodo).sort((a, b) => a - b).map(p => (
                   <span key={p} className="text-xs px-2 py-1 rounded-lg bg-violet-500/20 text-violet-300 border border-violet-500/30">
-                    {p === '0' ? 'Optativas' : `${p}º sem`}: {disciplinasPorPeriodo[p].length}
+                    {p === '0' ? 'Optativas' : p === '9' ? 'Trilhas' : `${p}º sem`}: {disciplinasPorPeriodo[p].length}
                   </span>
                 ))}
               </div>
@@ -554,7 +588,7 @@ A IA vai analisar e extrair automaticamente:
               {expandido && (
                 <div className="max-h-48 overflow-y-auto space-y-2 pr-2">
                   {disciplinasPreview.map((d, i) => {
-                    const isDuplicada = verificarDuplicata(d.nome);
+                    const isDuplicada = verificarDuplicata(d);
                     return (
                       <div
                         key={i}
@@ -565,9 +599,14 @@ A IA vai analisar e extrair automaticamente:
                         }`}
                       >
                         <div className="flex items-start justify-between">
-                          <div className="flex-1">
+                          <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2 flex-wrap">
-                              <p className="text-white font-medium text-sm">{d.nome}</p>
+                              {d.codigo && (
+                                <span className="text-xs font-mono px-1.5 py-0.5 rounded bg-slate-700 text-slate-300">
+                                  {d.codigo}
+                                </span>
+                              )}
+                              <p className="text-white font-medium text-sm truncate">{d.nome}</p>
                               {isDuplicada && (
                                 <span className="text-xs px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-400">
                                   Já existe
@@ -575,9 +614,14 @@ A IA vai analisar e extrair automaticamente:
                               )}
                             </div>
                             <div className="flex items-center gap-3 mt-1 text-xs text-slate-500">
-                              <span>{d.periodo === 0 ? 'Optativa' : `${d.periodo}º sem`}</span>
+                              <span>{d.periodo === 0 ? 'Optativa' : d.periodo >= 9 ? 'Trilha' : `${d.periodo}º sem`}</span>
                               <span>{d.creditos} cr</span>
                               <span>{d.cargaHoraria}h</span>
+                              {d.preRequisitos && d.preRequisitos.length > 0 && (
+                                <span className="text-amber-400" title={`Pré-req: ${d.preRequisitos.join(', ')}`}>
+                                  📋 {d.preRequisitos.length} pré-req
+                                </span>
+                              )}
                             </div>
                           </div>
                         </div>
