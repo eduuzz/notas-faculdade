@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { Plus, Trash2, BookOpen, Award, TrendingUp, AlertCircle, CheckCircle, GraduationCap, Edit2, X, Clock, PlayCircle, ChevronDown, ChevronUp, Search, Save, Cloud, CloudOff, RefreshCw, LogOut, User, Wifi, WifiOff, Download, Upload as UploadIcon, RotateCcw, Sun, Moon, Monitor, List, LayoutGrid, Shield, ChevronRight, Sparkles, Settings, Crown, Zap, Star, Lock, FileText, Calculator, Target, Database, Calendar } from 'lucide-react';
 import { useNotas } from './useNotas';
@@ -6,7 +6,6 @@ import { useAuth } from './AuthContext';
 import { usePermissoes } from './usePermissoes';
 import ImportModal from './ImportModal';
 import UpgradeModal from './UpgradeModal';
-import PlanejadorMatricula from './PlanejadorMatricula';
 
 // Configuração de status com cores estilo Apple
 const STATUS = {
@@ -135,7 +134,7 @@ export default function SistemaNotas({ onOpenAdmin }) {
 
   const [activeTab, setActiveTab] = useState('grade');
   const [showAddDisciplina, setShowAddDisciplina] = useState(false);
-  const [showAddMultiplas, setShowAddMultiplas] = useState(false);
+  const [modoAdicionar, setModoAdicionar] = useState('uma'); // 'uma' ou 'varias'
   const [showImportModal, setShowImportModal] = useState(false);
   const [editingDisciplina, setEditingDisciplina] = useState(null);
   const [expandedPeriodos, setExpandedPeriodos] = useState({1: true, 2: true, 3: true, 4: true, 5: true, 6: true, 7: true, 8: true});
@@ -173,14 +172,125 @@ export default function SistemaNotas({ onOpenAdmin }) {
   // Modal de confirmação de logout
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   
-  // Modal do planejador de matrícula
-  const [showPlanejador, setShowPlanejador] = useState(false);
+  // Estados do Planejador de Matrícula
+  const [gradePlanejamento, setGradePlanejamento] = useState({});
+  const [mostrarSabado, setMostrarSabado] = useState(true);
+  const [creditosLimite, setCreditosLimite] = useState({ min: 12, max: 24 });
+  const [salvandoPlanejamento, setSalvandoPlanejamento] = useState(false);
   
   // Modal do simulador de notas
   const [showSimulador, setShowSimulador] = useState(false);
   const [simuladorDisciplina, setSimuladorDisciplina] = useState(null);
   const [simuladorGA, setSimuladorGA] = useState('');
   const [simuladorGB, setSimuladorGB] = useState('');
+
+  // Configuração dos horários do planejador
+  const HORARIOS_PLANEJADOR = [
+    { id: 'manha', label: '09:00 - 12:00', inicio: '09:00', fim: '12:00' },
+    { id: 'noite1', label: '19:30 - 20:45', inicio: '19:30', fim: '20:45' },
+    { id: 'noite2', label: '21:00 - 22:15', inicio: '21:00', fim: '22:15' },
+  ];
+
+  const DIAS_SEMANA = [
+    { id: 'seg', label: 'Segunda', abrev: 'Seg' },
+    { id: 'ter', label: 'Terça', abrev: 'Ter' },
+    { id: 'qua', label: 'Quarta', abrev: 'Qua' },
+    { id: 'qui', label: 'Quinta', abrev: 'Qui' },
+    { id: 'sex', label: 'Sexta', abrev: 'Sex' },
+    { id: 'sab', label: 'Sábado', abrev: 'Sáb' },
+  ];
+
+  const CORES_DISCIPLINAS = [
+    'bg-violet-500/30 border-violet-500/50 text-violet-200',
+    'bg-blue-500/30 border-blue-500/50 text-blue-200',
+    'bg-emerald-500/30 border-emerald-500/50 text-emerald-200',
+    'bg-amber-500/30 border-amber-500/50 text-amber-200',
+    'bg-pink-500/30 border-pink-500/50 text-pink-200',
+    'bg-cyan-500/30 border-cyan-500/50 text-cyan-200',
+  ];
+
+  // Carregar planejamento salvo do localStorage
+  useEffect(() => {
+    if (user) {
+      const saved = localStorage.getItem(`planejamento_${user.id}`);
+      if (saved) {
+        try {
+          const parsed = JSON.parse(saved);
+          setGradePlanejamento(parsed.grade || {});
+          setCreditosLimite(parsed.limites || { min: 12, max: 24 });
+          setMostrarSabado(parsed.mostrarSabado !== false);
+        } catch (e) {
+          console.error('Erro ao carregar planejamento:', e);
+        }
+      }
+    }
+  }, [user]);
+
+  // Salvar planejamento automaticamente
+  const salvarPlanejamento = useCallback(() => {
+    if (!user) return;
+    setSalvandoPlanejamento(true);
+    const data = {
+      grade: gradePlanejamento,
+      limites: creditosLimite,
+      mostrarSabado,
+      updatedAt: new Date().toISOString()
+    };
+    localStorage.setItem(`planejamento_${user.id}`, JSON.stringify(data));
+    setTimeout(() => setSalvandoPlanejamento(false), 500);
+  }, [user, gradePlanejamento, creditosLimite, mostrarSabado]);
+
+  // Salvar quando mudar a grade
+  useEffect(() => {
+    if (user && Object.keys(gradePlanejamento).length > 0) {
+      salvarPlanejamento();
+    }
+  }, [gradePlanejamento, salvarPlanejamento, user]);
+
+  // Funções do planejador
+  const [coresDisciplinas, setCoresDisciplinas] = useState({});
+  const [disciplinaSelecionadaPlanejador, setDisciplinaSelecionadaPlanejador] = useState(null);
+
+  const getCorDisciplina = (disciplinaId) => {
+    if (!coresDisciplinas[disciplinaId]) {
+      const indice = Object.keys(coresDisciplinas).length % CORES_DISCIPLINAS.length;
+      setCoresDisciplinas(prev => ({ ...prev, [disciplinaId]: CORES_DISCIPLINAS[indice] }));
+      return CORES_DISCIPLINAS[indice];
+    }
+    return coresDisciplinas[disciplinaId];
+  };
+
+  const adicionarNaGradePlanejamento = (dia, horario, disciplina) => {
+    const chave = `${dia}-${horario}`;
+    const cor = getCorDisciplina(disciplina.id);
+    setGradePlanejamento(prev => ({
+      ...prev,
+      [chave]: {
+        disciplinaId: disciplina.id,
+        nome: disciplina.nome,
+        creditos: disciplina.creditos || 4,
+        cor
+      }
+    }));
+    setDisciplinaSelecionadaPlanejador(null);
+  };
+
+  const removerDaGradePlanejamento = (dia, horario) => {
+    const chave = `${dia}-${horario}`;
+    setGradePlanejamento(prev => {
+      const novo = { ...prev };
+      delete novo[chave];
+      return novo;
+    });
+  };
+
+  const limparGradePlanejamento = () => {
+    setGradePlanejamento({});
+    setCoresDisciplinas({});
+    if (user) {
+      localStorage.removeItem(`planejamento_${user.id}`);
+    }
+  };
 
   // Mostrar modal de boas-vindas APENAS na primeira vez (usando localStorage)
   useEffect(() => {
@@ -1126,33 +1236,25 @@ export default function SistemaNotas({ onOpenAdmin }) {
           <div className="inline-flex p-1.5 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-xl">
             {[
               { id: 'grade', label: '📚 Grade', icon: BookOpen, requerPermissao: null },
-              { id: 'planejar', label: '📅 Planejar', icon: Calendar, requerPermissao: null, especial: true },
+              { id: 'planejar', label: '📅 Planejar', icon: Calendar, requerPermissao: null },
               { id: 'emCurso', label: '⏱️ Em Curso', icon: Clock, requerPermissao: null },
               { id: 'dashboard', label: '📊 Dashboard', icon: TrendingUp, requerPermissao: null },
               { id: 'formatura', label: '🎓 Formatura', icon: GraduationCap, requerPermissao: 'previsaoFormatura' },
             ].map(tab => {
               const bloqueado = tab.requerPermissao && !temPermissao(tab.requerPermissao);
               
-              // Se for a aba especial "planejar", abre o modal ao invés de trocar aba
-              if (tab.especial) {
-                return (
-                  <button 
-                    key={tab.id} 
-                    onClick={() => setShowPlanejador(true)} 
-                    className="relative px-4 sm:px-6 py-3 rounded-xl text-sm font-medium transition-all duration-300 whitespace-nowrap text-cyan-400 hover:text-cyan-300 hover:bg-cyan-500/10"
-                  >
-                    <span className="hidden sm:inline">{tab.label}</span>
-                    <tab.icon size={18} className="sm:hidden" />
-                  </button>
-                );
-              }
-              
               return (
                 <button 
                   key={tab.id} 
                   onClick={() => bloqueado ? setShowUpgradeModal(true) : setActiveTab(tab.id)} 
                   className={`relative px-4 sm:px-6 py-3 rounded-xl text-sm font-medium transition-all duration-300 whitespace-nowrap ${
-                    activeTab === tab.id ? 'bg-white/10 text-white shadow-lg' : 'text-slate-400 hover:text-white'
+                    activeTab === tab.id 
+                      ? tab.id === 'planejar' 
+                        ? 'bg-cyan-500/20 text-cyan-300 shadow-lg' 
+                        : 'bg-white/10 text-white shadow-lg' 
+                      : tab.id === 'planejar'
+                        ? 'text-cyan-400 hover:text-cyan-300 hover:bg-cyan-500/10'
+                        : 'text-slate-400 hover:text-white'
                   } ${bloqueado ? 'opacity-60' : ''}`}
                 >
                   <span className="hidden sm:inline">{tab.label}</span>
@@ -1214,17 +1316,10 @@ export default function SistemaNotas({ onOpenAdmin }) {
                 </GradientButton>
                 <GradientButton variant="amber" onClick={() => !planoExpirado && setShowImportModal(true)} disabled={planoExpirado}><UploadIcon size={18} /><span className="hidden sm:inline">Importar</span></GradientButton>
                 <GradientButton 
-                  variant="purple" 
-                  onClick={() => !planoExpirado && podeAdicionarDisciplina(disciplinas.length) ? setShowAddMultiplas(true) : setShowUpgradeModal(true)}
-                  disabled={planoExpirado}
-                >
-                  <Plus size={18} /><span className="hidden sm:inline">Várias</span>
-                </GradientButton>
-                <GradientButton 
                   onClick={() => !planoExpirado && podeAdicionarDisciplina(disciplinas.length) ? setShowAddDisciplina(true) : setShowUpgradeModal(true)}
                   disabled={planoExpirado}
                 >
-                  <Plus size={18} /><span className="hidden sm:inline">Nova</span>
+                  <Plus size={18} /><span className="hidden sm:inline">Adicionar Cadeira</span>
                 </GradientButton>
               </div>
               {/* Indicador de limite para plano básico/gratuito */}
@@ -1389,6 +1484,294 @@ export default function SistemaNotas({ onOpenAdmin }) {
             </div>
           </div>
         )}
+
+        {/* Tab Planejar */}
+        {activeTab === 'planejar' && (() => {
+          const disciplinasPendentes = disciplinas.filter(d => d.status === 'NAO_INICIADA');
+          const disciplinasPorPeriodoPlan = {};
+          disciplinasPendentes.forEach(d => {
+            const periodo = d.periodo || 1;
+            if (!disciplinasPorPeriodoPlan[periodo]) disciplinasPorPeriodoPlan[periodo] = [];
+            disciplinasPorPeriodoPlan[periodo].push(d);
+          });
+
+          const disciplinasNaGrade = new Map();
+          Object.values(gradePlanejamento).forEach(item => {
+            if (item?.disciplinaId && !disciplinasNaGrade.has(item.disciplinaId)) {
+              disciplinasNaGrade.set(item.disciplinaId, item);
+            }
+          });
+
+          const creditosSelecionados = Array.from(disciplinasNaGrade.values()).reduce((acc, item) => acc + (item.creditos || 4), 0);
+          const diasMostrar = mostrarSabado ? DIAS_SEMANA : DIAS_SEMANA.slice(0, 5);
+
+          return (
+            <div className="space-y-6">
+              {/* Header */}
+              <div className="flex items-center justify-between flex-wrap gap-4">
+                <div>
+                  <h2 className="text-xl font-semibold text-white">Planejador de Matrícula</h2>
+                  <p className="text-slate-400 text-sm">Monte sua grade do próximo semestre</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  {salvandoPlanejamento && (
+                    <span className="text-xs text-emerald-400 flex items-center gap-1">
+                      <Save size={14} className="animate-pulse" /> Salvando...
+                    </span>
+                  )}
+                  <button
+                    onClick={limparGradePlanejamento}
+                    className="px-3 py-2 rounded-xl bg-red-500/20 text-red-400 text-sm hover:bg-red-500/30 transition-all"
+                  >
+                    Limpar Grade
+                  </button>
+                </div>
+              </div>
+
+              {/* Stats */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <GlassCard className="p-4" hover={false}>
+                  <p className="text-slate-400 text-sm">Mínimo</p>
+                  <p className="text-2xl font-bold text-white">{creditosLimite.min}</p>
+                  <p className="text-slate-500 text-xs">créditos</p>
+                </GlassCard>
+                <GlassCard className="p-4" hover={false}>
+                  <p className="text-slate-400 text-sm">Máximo</p>
+                  <p className="text-2xl font-bold text-white">{creditosLimite.max}</p>
+                  <p className="text-slate-500 text-xs">créditos</p>
+                </GlassCard>
+                <div className={`rounded-2xl p-4 border ${
+                  creditosSelecionados >= creditosLimite.min && creditosSelecionados <= creditosLimite.max
+                    ? 'bg-emerald-500/10 border-emerald-500/30'
+                    : creditosSelecionados > creditosLimite.max
+                      ? 'bg-red-500/10 border-red-500/30'
+                      : 'bg-amber-500/10 border-amber-500/30'
+                }`}>
+                  <p className="text-slate-400 text-sm">Selecionados</p>
+                  <p className={`text-2xl font-bold ${
+                    creditosSelecionados >= creditosLimite.min && creditosSelecionados <= creditosLimite.max
+                      ? 'text-emerald-400'
+                      : creditosSelecionados > creditosLimite.max
+                        ? 'text-red-400'
+                        : 'text-amber-400'
+                  }`}>{creditosSelecionados}</p>
+                  <p className="text-slate-500 text-xs">créditos</p>
+                </div>
+                <GlassCard className="p-4" hover={false}>
+                  <p className="text-slate-400 text-sm">Cadeiras</p>
+                  <p className="text-2xl font-bold text-cyan-400">{disciplinasNaGrade.size}</p>
+                  <p className="text-slate-500 text-xs">na grade</p>
+                </GlassCard>
+              </div>
+
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                {/* Grade de Horários */}
+                <div className="lg:col-span-2">
+                  <GlassCard className="overflow-hidden" hover={false}>
+                    <div className="flex items-center justify-between p-4 border-b border-white/10">
+                      <h3 className="text-lg font-semibold text-white flex items-center gap-2">
+                        <Clock size={20} className="text-cyan-400" />
+                        Quadro de Horários
+                      </h3>
+                      <label className="flex items-center gap-2 text-sm text-slate-400 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={mostrarSabado}
+                          onChange={(e) => setMostrarSabado(e.target.checked)}
+                          className="w-4 h-4 rounded bg-white/10 border-white/20 text-cyan-500 focus:ring-cyan-500"
+                        />
+                        Sábado
+                      </label>
+                    </div>
+
+                    <div className="overflow-x-auto">
+                      <table className="w-full">
+                        <thead>
+                          <tr className="border-b border-white/10">
+                            <th className="p-3 text-left text-slate-400 text-sm font-medium w-24">Horário</th>
+                            {diasMostrar.map(dia => (
+                              <th key={dia.id} className="p-3 text-center text-slate-300 text-sm font-medium min-w-[120px]">
+                                <span className="hidden sm:inline">{dia.label}</span>
+                                <span className="sm:hidden">{dia.abrev}</span>
+                              </th>
+                            ))}
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {HORARIOS_PLANEJADOR.map(horario => (
+                            <tr key={horario.id} className="border-b border-white/5">
+                              <td className="p-3 text-slate-400 text-sm whitespace-nowrap">
+                                <div className="font-medium">{horario.inicio}</div>
+                                <div className="text-slate-500 text-xs">{horario.fim}</div>
+                              </td>
+                              {diasMostrar.map(dia => {
+                                const chave = `${dia.id}-${horario.id}`;
+                                const item = gradePlanejamento[chave];
+                                
+                                return (
+                                  <td key={dia.id} className="p-2">
+                                    {item ? (
+                                      <div className={`relative p-2 rounded-lg border ${item.cor} min-h-[60px] group`}>
+                                        <p className="text-xs font-medium line-clamp-2">{item.nome}</p>
+                                        <p className="text-xs opacity-60">{item.creditos}cr</p>
+                                        <button
+                                          onClick={() => removerDaGradePlanejamento(dia.id, horario.id)}
+                                          className="absolute -top-2 -right-2 w-5 h-5 rounded-full bg-red-500 text-white opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
+                                        >
+                                          <X size={12} />
+                                        </button>
+                                      </div>
+                                    ) : (
+                                      <button
+                                        onClick={() => setDisciplinaSelecionadaPlanejador({ dia: dia.id, horario: horario.id })}
+                                        className={`w-full min-h-[60px] rounded-lg border-2 border-dashed transition-all flex items-center justify-center ${
+                                          disciplinaSelecionadaPlanejador?.dia === dia.id && disciplinaSelecionadaPlanejador?.horario === horario.id
+                                            ? 'border-cyan-500 bg-cyan-500/20'
+                                            : 'border-white/10 hover:border-cyan-500/50 hover:bg-cyan-500/10'
+                                        }`}
+                                      >
+                                        <Plus size={20} className="text-slate-600" />
+                                      </button>
+                                    )}
+                                  </td>
+                                );
+                              })}
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </GlassCard>
+
+                  {/* Cadeiras na Grade */}
+                  {disciplinasNaGrade.size > 0 && (
+                    <div className="mt-4">
+                      <p className="text-sm text-slate-400 mb-2">Cadeiras adicionadas:</p>
+                      <div className="flex flex-wrap gap-2">
+                        {Array.from(disciplinasNaGrade.values()).map(item => (
+                          <span key={item.disciplinaId} className={`px-3 py-1.5 rounded-lg border ${item.cor} text-sm`}>
+                            {item.nome} ({item.creditos}cr)
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Lista de Cadeiras Pendentes */}
+                <div className="space-y-4">
+                  <GlassCard className="overflow-hidden" hover={false}>
+                    <div className="p-4 border-b border-white/10">
+                      <h3 className="text-lg font-semibold text-white flex items-center gap-2">
+                        <BookOpen size={20} className="text-blue-400" />
+                        Cadeiras Pendentes
+                      </h3>
+                    </div>
+
+                    <div className="max-h-[400px] overflow-y-auto">
+                      {Object.entries(disciplinasPorPeriodoPlan).sort(([a], [b]) => a - b).map(([periodo, discs]) => (
+                        <div key={periodo}>
+                          <div className="px-4 py-2 bg-white/5 text-sm text-slate-400 font-medium sticky top-0">
+                            {periodo}º Semestre
+                          </div>
+                          {discs.map(disc => {
+                            const jaNaGrade = disciplinasNaGrade.has(disc.id);
+                            return (
+                              <div
+                                key={disc.id}
+                                className={`flex items-center justify-between p-3 border-b border-white/5 hover:bg-white/5 transition-all ${
+                                  jaNaGrade ? 'opacity-50' : ''
+                                }`}
+                              >
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-sm text-white truncate">{disc.nome}</p>
+                                  <p className="text-xs text-slate-500">{disc.creditos || 4} créditos</p>
+                                </div>
+                                {jaNaGrade ? (
+                                  <span className="text-xs text-emerald-400 flex items-center gap-1">
+                                    <CheckCircle size={14} /> Na grade
+                                  </span>
+                                ) : (
+                                  <button
+                                    onClick={() => {
+                                      if (disciplinaSelecionadaPlanejador) {
+                                        adicionarNaGradePlanejamento(disciplinaSelecionadaPlanejador.dia, disciplinaSelecionadaPlanejador.horario, disc);
+                                      }
+                                    }}
+                                    disabled={!disciplinaSelecionadaPlanejador}
+                                    className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                                      disciplinaSelecionadaPlanejador
+                                        ? 'bg-cyan-500/20 text-cyan-300 hover:bg-cyan-500/30'
+                                        : 'bg-white/5 text-slate-500 cursor-not-allowed'
+                                    }`}
+                                  >
+                                    {disciplinaSelecionadaPlanejador ? 'Adicionar' : 'Selecione horário'}
+                                  </button>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      ))}
+
+                      {disciplinasPendentes.length === 0 && (
+                        <div className="p-8 text-center">
+                          <GraduationCap size={40} className="mx-auto text-slate-600 mb-3" />
+                          <p className="text-slate-400">Nenhuma cadeira pendente</p>
+                          <p className="text-slate-500 text-sm">Todas foram concluídas!</p>
+                        </div>
+                      )}
+                    </div>
+                  </GlassCard>
+
+                  {/* Configurações de Créditos */}
+                  <GlassCard className="p-4" hover={false}>
+                    <h4 className="text-sm font-medium text-slate-400 mb-3">Limites de Créditos</h4>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="text-xs text-slate-500">Mínimo</label>
+                        <input
+                          type="number"
+                          value={creditosLimite.min}
+                          onChange={(e) => setCreditosLimite(prev => ({ ...prev, min: parseInt(e.target.value) || 0 }))}
+                          className="w-full mt-1 px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm focus:outline-none focus:border-cyan-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-xs text-slate-500">Máximo</label>
+                        <input
+                          type="number"
+                          value={creditosLimite.max}
+                          onChange={(e) => setCreditosLimite(prev => ({ ...prev, max: parseInt(e.target.value) || 0 }))}
+                          className="w-full mt-1 px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm focus:outline-none focus:border-cyan-500"
+                        />
+                      </div>
+                    </div>
+                  </GlassCard>
+
+                  {/* Alerta de seleção */}
+                  {disciplinaSelecionadaPlanejador && (
+                    <div className="bg-cyan-500/20 border border-cyan-500/30 rounded-2xl p-4">
+                      <div className="flex items-center gap-2 text-cyan-300">
+                        <AlertCircle size={18} />
+                        <span className="text-sm font-medium">Horário selecionado</span>
+                      </div>
+                      <p className="text-cyan-200/70 text-xs mt-1">
+                        {DIAS_SEMANA.find(d => d.id === disciplinaSelecionadaPlanejador.dia)?.label} - {HORARIOS_PLANEJADOR.find(h => h.id === disciplinaSelecionadaPlanejador.horario)?.label}
+                      </p>
+                      <button
+                        onClick={() => setDisciplinaSelecionadaPlanejador(null)}
+                        className="mt-2 text-xs text-cyan-400 hover:text-cyan-300"
+                      >
+                        Cancelar seleção
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          );
+        })()}
 
         {/* Tab Em Curso */}
         {activeTab === 'emCurso' && (
@@ -1760,39 +2143,115 @@ export default function SistemaNotas({ onOpenAdmin }) {
         {/* Modais */}
         {showAddDisciplina && (
           <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-            <GlassCard className="w-full max-w-md" hover={false}>
+            <GlassCard className="w-full max-w-lg" hover={false}>
               <div className="p-6">
-                <h3 className="text-xl font-semibold mb-6">Nova Disciplina</h3>
-                <div className="space-y-4">
-                  <div><label className="text-sm text-slate-400 block mb-2">Nome</label><input type="text" value={novaDisciplina.nome} onChange={(e) => setNovaDisciplina({ ...novaDisciplina, nome: e.target.value })} className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white focus:outline-none focus:border-violet-500/50" placeholder="Nome da disciplina" /></div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div><label className="text-sm text-slate-400 block mb-2">Período</label><select value={novaDisciplina.periodo} onChange={(e) => setNovaDisciplina({ ...novaDisciplina, periodo: parseInt(e.target.value) })} className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white focus:outline-none">{periodos.map(p => (<option key={p} value={p} className="bg-slate-800">{p}º Semestre</option>))}</select></div>
-                    <div><label className="text-sm text-slate-400 block mb-2">Créditos</label><input type="number" value={novaDisciplina.creditos} onChange={(e) => setNovaDisciplina({ ...novaDisciplina, creditos: parseInt(e.target.value) })} className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white focus:outline-none" /></div>
-                  </div>
-                  <div><label className="text-sm text-slate-400 block mb-2">Carga Horária</label><input type="number" value={novaDisciplina.cargaHoraria} onChange={(e) => setNovaDisciplina({ ...novaDisciplina, cargaHoraria: parseInt(e.target.value) })} className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white focus:outline-none" /></div>
+                <div className="flex items-center justify-between mb-6">
+                  <h3 className="text-xl font-semibold">Adicionar Cadeira</h3>
+                  <button onClick={() => setShowAddDisciplina(false)} className="p-2 rounded-lg hover:bg-white/10 transition-all">
+                    <X size={20} className="text-slate-400" />
+                  </button>
                 </div>
-                <div className="flex gap-3 mt-6">
-                  <GradientButton variant="secondary" className="flex-1" onClick={() => setShowAddDisciplina(false)}>Cancelar</GradientButton>
-                  <GradientButton className="flex-1" onClick={handleAddDisciplina}>Adicionar</GradientButton>
+                
+                {/* Tabs: Uma ou Várias */}
+                <div className="flex gap-2 mb-6">
+                  <button
+                    onClick={() => setModoAdicionar('uma')}
+                    className={`flex-1 py-2 px-4 rounded-xl text-sm font-medium transition-all ${
+                      modoAdicionar === 'uma' ? 'bg-violet-500/20 text-violet-300 border border-violet-500/30' : 'bg-white/5 text-slate-400 border border-white/10 hover:bg-white/10'
+                    }`}
+                  >
+                    Uma Cadeira
+                  </button>
+                  <button
+                    onClick={() => setModoAdicionar('varias')}
+                    className={`flex-1 py-2 px-4 rounded-xl text-sm font-medium transition-all ${
+                      modoAdicionar === 'varias' ? 'bg-violet-500/20 text-violet-300 border border-violet-500/30' : 'bg-white/5 text-slate-400 border border-white/10 hover:bg-white/10'
+                    }`}
+                  >
+                    Várias Cadeiras
+                  </button>
                 </div>
-              </div>
-            </GlassCard>
-          </div>
-        )}
 
-        {showAddMultiplas && (
-          <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-            <GlassCard className="w-full max-w-md" hover={false}>
-              <div className="p-6">
-                <h3 className="text-xl font-semibold mb-6">Adicionar Várias</h3>
-                <div className="space-y-4">
-                  <div><label className="text-sm text-slate-400 block mb-2">Período</label><select value={periodoMultiplas} onChange={(e) => setPeriodoMultiplas(parseInt(e.target.value))} className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white focus:outline-none">{periodos.map(p => (<option key={p} value={p} className="bg-slate-800">{p}º Semestre</option>))}</select></div>
-                  <div><label className="text-sm text-slate-400 block mb-2">Disciplinas (uma por linha)</label><textarea value={disciplinasMultiplas} onChange={(e) => setDisciplinasMultiplas(e.target.value)} rows={6} className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white focus:outline-none resize-none" placeholder="Cálculo I&#10;Física I&#10;Programação I" /></div>
-                </div>
-                <div className="flex gap-3 mt-6">
-                  <GradientButton variant="secondary" className="flex-1" onClick={() => { setShowAddMultiplas(false); setDisciplinasMultiplas(''); }}>Cancelar</GradientButton>
-                  <GradientButton className="flex-1" onClick={handleAddMultiplas}>Adicionar</GradientButton>
-                </div>
+                {modoAdicionar === 'uma' ? (
+                  <div className="space-y-4">
+                    <div>
+                      <label className="text-sm text-slate-400 block mb-2">Nome da Cadeira</label>
+                      <input 
+                        type="text" 
+                        value={novaDisciplina.nome} 
+                        onChange={(e) => setNovaDisciplina({ ...novaDisciplina, nome: e.target.value })} 
+                        className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white focus:outline-none focus:border-violet-500/50" 
+                        placeholder="Ex: Cálculo I" 
+                      />
+                    </div>
+                    <div className="grid grid-cols-3 gap-4">
+                      <div>
+                        <label className="text-sm text-slate-400 block mb-2">Semestre</label>
+                        <select 
+                          value={novaDisciplina.periodo} 
+                          onChange={(e) => setNovaDisciplina({ ...novaDisciplina, periodo: parseInt(e.target.value) })} 
+                          className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white focus:outline-none"
+                        >
+                          {periodos.map(p => (<option key={p} value={p} className="bg-slate-800">{p}º</option>))}
+                        </select>
+                      </div>
+                      <div>
+                        <label className="text-sm text-slate-400 block mb-2">Créditos</label>
+                        <input 
+                          type="number" 
+                          value={novaDisciplina.creditos} 
+                          onChange={(e) => setNovaDisciplina({ ...novaDisciplina, creditos: parseInt(e.target.value) })} 
+                          className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white focus:outline-none" 
+                        />
+                      </div>
+                      <div>
+                        <label className="text-sm text-slate-400 block mb-2">Carga H.</label>
+                        <input 
+                          type="number" 
+                          value={novaDisciplina.cargaHoraria} 
+                          onChange={(e) => setNovaDisciplina({ ...novaDisciplina, cargaHoraria: parseInt(e.target.value) })} 
+                          className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white focus:outline-none" 
+                        />
+                      </div>
+                    </div>
+                    <div className="flex gap-3 mt-6">
+                      <GradientButton variant="secondary" className="flex-1" onClick={() => setShowAddDisciplina(false)}>Cancelar</GradientButton>
+                      <GradientButton className="flex-1" onClick={handleAddDisciplina}>Adicionar</GradientButton>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    <div>
+                      <label className="text-sm text-slate-400 block mb-2">Semestre</label>
+                      <select 
+                        value={periodoMultiplas} 
+                        onChange={(e) => setPeriodoMultiplas(parseInt(e.target.value))} 
+                        className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white focus:outline-none"
+                      >
+                        {periodos.map(p => (<option key={p} value={p} className="bg-slate-800">{p}º Semestre</option>))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="text-sm text-slate-400 block mb-2">Cadeiras (uma por linha)</label>
+                      <textarea 
+                        value={disciplinasMultiplas} 
+                        onChange={(e) => setDisciplinasMultiplas(e.target.value)} 
+                        rows={6} 
+                        className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white focus:outline-none resize-none" 
+                        placeholder="Cálculo I&#10;Física I&#10;Programação I&#10;Álgebra Linear" 
+                      />
+                    </div>
+                    <p className="text-xs text-slate-500">
+                      💡 Cada linha será uma cadeira nova com 4 créditos e 60h de carga horária
+                    </p>
+                    <div className="flex gap-3 mt-6">
+                      <GradientButton variant="secondary" className="flex-1" onClick={() => { setShowAddDisciplina(false); setDisciplinasMultiplas(''); }}>Cancelar</GradientButton>
+                      <GradientButton className="flex-1" onClick={handleAddMultiplas}>
+                        Adicionar {disciplinasMultiplas.split('\n').filter(l => l.trim()).length || ''} Cadeiras
+                      </GradientButton>
+                    </div>
+                  </div>
+                )}
               </div>
             </GlassCard>
           </div>
@@ -2269,14 +2728,6 @@ export default function SistemaNotas({ onOpenAdmin }) {
               </div>
             </div>
           </div>
-        )}
-
-        {/* Planejador de Matrícula */}
-        {showPlanejador && (
-          <PlanejadorMatricula 
-            disciplinas={disciplinas}
-            onClose={() => setShowPlanejador(false)}
-          />
         )}
 
         {/* Modal Simulador de Notas (Premium) */}
