@@ -1,10 +1,10 @@
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import { Plus, Trash2, BookOpen, Award, TrendingUp, AlertCircle, CheckCircle, GraduationCap, Edit2, X, Clock, PlayCircle, ChevronDown, ChevronUp, Search, Save, Cloud, CloudOff, RefreshCw, LogOut, User, Wifi, WifiOff, Download, Upload as UploadIcon, RotateCcw, Sun, Moon, Monitor, List, LayoutGrid, Shield, ChevronRight, Sparkles, Settings, Crown, Zap, Star, Lock, FileText, Calculator, Target, Database, Calendar, Link2 } from 'lucide-react';
+import { Plus, Trash2, BookOpen, Award, TrendingUp, AlertCircle, CheckCircle, GraduationCap, Edit2, X, Clock, PlayCircle, ChevronDown, ChevronUp, Search, Save, Cloud, CloudOff, RefreshCw, LogOut, User, Wifi, WifiOff, Download, Upload as UploadIcon, RotateCcw, Sun, Moon, Monitor, List, LayoutGrid, Shield, ChevronRight, Sparkles, Settings, Crown, Zap, Star, Lock, FileText, Calculator, Target, Database, Calendar } from 'lucide-react';
 import { useNotas } from './useNotas';
 import { useAuth } from './AuthContext';
 import { usePermissoes } from './usePermissoes';
-import ImportModal, { CURRICULO_UNISINOS } from './ImportModal';
+import ImportModal from './ImportModal';
 import UpgradeModal from './UpgradeModal';
 
 // Configuração de status com cores estilo Apple
@@ -301,70 +301,6 @@ export default function SistemaNotas({ onOpenAdmin }) {
       }
     }
   }, [user, userCurso, loading]);
-
-  // Função helper para verificar pré-requisitos de uma disciplina
-  const verificarPreRequisitos = useCallback((disciplina) => {
-    // Verificar se a disciplina tem código e está no currículo
-    const codigo = disciplina.codigo;
-    const info = codigo ? CURRICULO_UNISINOS[codigo] : null;
-    
-    // Usar pré-requisitos do currículo ou da própria disciplina
-    const preReqs = info?.preRequisitos || disciplina.preRequisitos || [];
-    const coReqs = info?.coRequisitos || disciplina.coRequisitos || [];
-    
-    if (preReqs.length === 0 && coReqs.length === 0) {
-      return { temPreReq: false, cumpridos: [], pendentes: [], coRequisitos: [] };
-    }
-
-    const cumpridos = [];
-    const pendentes = [];
-    const coRequisitosInfo = [];
-
-    // Verificar cada pré-requisito
-    for (const preReq of preReqs) {
-      // Pode ser um código ou texto como "100 créditos"
-      if (preReq.includes('créditos')) {
-        // Verificar créditos
-        const creditosNecessarios = parseInt(preReq);
-        const creditosAprovados = disciplinas
-          .filter(d => d.status === 'APROVADA')
-          .reduce((acc, d) => acc + (d.creditos || 4), 0);
-        
-        if (creditosAprovados >= creditosNecessarios) {
-          cumpridos.push({ codigo: preReq, nome: preReq, aprovada: true });
-        } else {
-          pendentes.push({ codigo: preReq, nome: `${preReq} (você tem ${creditosAprovados})`, aprovada: false });
-        }
-      } else {
-        // É um código de disciplina
-        const discPreReq = disciplinas.find(d => d.codigo === preReq);
-        const infoPreReq = CURRICULO_UNISINOS[preReq];
-        const nome = discPreReq?.nome || infoPreReq?.nome || `Cód. ${preReq}`;
-        
-        if (discPreReq?.status === 'APROVADA') {
-          cumpridos.push({ codigo: preReq, nome, aprovada: true });
-        } else {
-          pendentes.push({ codigo: preReq, nome, aprovada: false });
-        }
-      }
-    }
-
-    // Verificar correquisitos
-    for (const coReq of coReqs) {
-      const discCoReq = disciplinas.find(d => d.codigo === coReq);
-      const infoCoReq = CURRICULO_UNISINOS[coReq];
-      const nome = discCoReq?.nome || infoCoReq?.nome || `Cód. ${coReq}`;
-      coRequisitosInfo.push({ codigo: coReq, nome });
-    }
-
-    return {
-      temPreReq: preReqs.length > 0 || coReqs.length > 0,
-      cumpridos,
-      pendentes,
-      coRequisitos: coRequisitosInfo,
-      todosCumpridos: pendentes.length === 0
-    };
-  }, [disciplinas]);
 
   // Mostrar pop-up de aviso de expiração (quando faltam 30 dias ou menos)
   useEffect(() => {
@@ -1467,29 +1403,9 @@ export default function SistemaNotas({ onOpenAdmin }) {
                               <tbody>
                                 {discs.map(disc => {
                                   const status = STATUS[disc.status];
-                                  const preReqInfo = verificarPreRequisitos(disc);
                                   return (
                                     <tr key={disc.id} className="border-b border-white/5 hover:bg-white/[0.03]">
-                                      <td className="p-3">
-                                        <div className="flex items-center gap-2">
-                                          <span className="font-medium">{disc.nome}</span>
-                                          {preReqInfo.temPreReq && disc.status === 'NAO_INICIADA' && (
-                                            <span 
-                                              className={`p-1 rounded ${
-                                                preReqInfo.todosCumpridos 
-                                                  ? 'text-emerald-400' 
-                                                  : 'text-amber-400'
-                                              }`}
-                                              title={preReqInfo.pendentes.length > 0 
-                                                ? `Pendentes: ${preReqInfo.pendentes.map(p => p.nome).join(', ')}` 
-                                                : 'Pré-requisitos OK'
-                                              }
-                                            >
-                                              <Link2 size={14} />
-                                            </span>
-                                          )}
-                                        </div>
-                                      </td>
+                                      <td className="p-3"><span className="font-medium">{disc.nome}</span></td>
                                       <td className="p-3 text-center text-slate-400 hidden sm:table-cell">{disc.creditos}</td>
                                       <td className="p-3 text-center"><span className={`px-2 py-1 rounded-lg text-xs font-medium ${status.bg} ${status.text} border ${status.border}`}>{status.label}</span></td>
                                       <td className="p-3 text-center font-semibold">{disc.notaFinal ? disc.notaFinal.toFixed(1) : '-'}</td>
@@ -1512,7 +1428,6 @@ export default function SistemaNotas({ onOpenAdmin }) {
                         ) : (
                           discs.map(disc => {
                             const status = STATUS[disc.status];
-                            const preReqInfo = verificarPreRequisitos(disc);
                             return (
                               <GlassCard key={disc.id} className="group">
                                 <div className={`absolute left-0 top-0 bottom-0 w-1 ${status.bar}`} />
@@ -1521,39 +1436,8 @@ export default function SistemaNotas({ onOpenAdmin }) {
                                     <div className="flex items-center gap-3 mb-1.5 flex-wrap">
                                       <h4 className="font-medium text-white group-hover:text-violet-300 transition-colors truncate">{disc.nome}</h4>
                                       <span className={`px-2.5 py-1 rounded-lg text-xs font-semibold ${status.bg} ${status.text} border ${status.border}`}>{status.label}</span>
-                                      {/* Indicador de pré-requisitos */}
-                                      {preReqInfo.temPreReq && disc.status === 'NAO_INICIADA' && (
-                                        <span 
-                                          className={`px-2 py-1 rounded-lg text-xs font-medium flex items-center gap-1 cursor-help ${
-                                            preReqInfo.todosCumpridos 
-                                              ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' 
-                                              : 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
-                                          }`}
-                                          title={preReqInfo.pendentes.length > 0 
-                                            ? `Pré-requisitos pendentes: ${preReqInfo.pendentes.map(p => p.nome).join(', ')}` 
-                                            : 'Todos os pré-requisitos cumpridos'
-                                          }
-                                        >
-                                          <Link2 size={12} />
-                                          {preReqInfo.todosCumpridos ? 'Liberada' : `${preReqInfo.pendentes.length} pré-req.`}
-                                        </span>
-                                      )}
                                     </div>
                                     <p className="text-sm text-slate-500">{disc.creditos} créditos • {disc.cargaHoraria}h{disc.semestreCursado && ` • ${disc.semestreCursado}`}</p>
-                                    {/* Detalhe dos pré-requisitos pendentes */}
-                                    {preReqInfo.pendentes.length > 0 && disc.status === 'NAO_INICIADA' && (
-                                      <div className="mt-2 flex items-center gap-1 flex-wrap">
-                                        <span className="text-xs text-amber-500">Falta:</span>
-                                        {preReqInfo.pendentes.slice(0, 2).map((p, i) => (
-                                          <span key={i} className="text-xs px-2 py-0.5 rounded bg-amber-500/10 text-amber-400 border border-amber-500/20">
-                                            {p.nome.length > 25 ? p.nome.substring(0, 25) + '...' : p.nome}
-                                          </span>
-                                        ))}
-                                        {preReqInfo.pendentes.length > 2 && (
-                                          <span className="text-xs text-amber-500">+{preReqInfo.pendentes.length - 2}</span>
-                                        )}
-                                      </div>
-                                    )}
                                   </div>
                                   <div className="flex items-center gap-4">
                                     {disc.status === 'NAO_INICIADA' ? (
@@ -1792,7 +1676,6 @@ export default function SistemaNotas({ onOpenAdmin }) {
                           </div>
                           {discs.map(disc => {
                             const jaNaGrade = disciplinasNaGrade.has(disc.id);
-                            const preReqInfo = verificarPreRequisitos(disc);
                             return (
                               <div
                                 key={disc.id}
@@ -1801,34 +1684,8 @@ export default function SistemaNotas({ onOpenAdmin }) {
                                 }`}
                               >
                                 <div className="flex-1 min-w-0">
-                                  <div className="flex items-center gap-2">
-                                    <p className="text-sm text-white truncate">{disc.nome}</p>
-                                    {preReqInfo.temPreReq && (
-                                      <span 
-                                        className={`p-0.5 rounded ${
-                                          preReqInfo.todosCumpridos 
-                                            ? 'text-emerald-400' 
-                                            : 'text-amber-400'
-                                        }`}
-                                        title={preReqInfo.pendentes.length > 0 
-                                          ? `⚠️ Pré-requisitos: ${preReqInfo.pendentes.map(p => p.nome).join(', ')}` 
-                                          : '✅ Pré-requisitos OK'
-                                        }
-                                      >
-                                        <Link2 size={12} />
-                                      </span>
-                                    )}
-                                  </div>
+                                  <p className="text-sm text-white truncate">{disc.nome}</p>
                                   <p className="text-xs text-slate-500">{disc.creditos || 4} créditos</p>
-                                  {/* Aviso de pré-requisito pendente */}
-                                  {preReqInfo.pendentes.length > 0 && !jaNaGrade && (
-                                    <p className="text-xs text-amber-400 mt-1 flex items-center gap-1">
-                                      <AlertCircle size={10} />
-                                      Falta: {preReqInfo.pendentes[0].nome.substring(0, 30)}
-                                      {preReqInfo.pendentes[0].nome.length > 30 ? '...' : ''}
-                                      {preReqInfo.pendentes.length > 1 && ` +${preReqInfo.pendentes.length - 1}`}
-                                    </p>
-                                  )}
                                 </div>
                                 {jaNaGrade ? (
                                   <span className="text-xs text-emerald-400 flex items-center gap-1">
@@ -1844,17 +1701,11 @@ export default function SistemaNotas({ onOpenAdmin }) {
                                     disabled={!disciplinaSelecionadaPlanejador}
                                     className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
                                       disciplinaSelecionadaPlanejador
-                                        ? preReqInfo.pendentes.length > 0
-                                          ? 'bg-amber-500/20 text-amber-300 hover:bg-amber-500/30'
-                                          : 'bg-cyan-500/20 text-cyan-300 hover:bg-cyan-500/30'
+                                        ? 'bg-cyan-500/20 text-cyan-300 hover:bg-cyan-500/30'
                                         : 'bg-white/5 text-slate-500 cursor-not-allowed'
                                     }`}
                                   >
-                                    {disciplinaSelecionadaPlanejador 
-                                      ? preReqInfo.pendentes.length > 0 
-                                        ? '⚠️ Adicionar' 
-                                        : 'Adicionar' 
-                                      : 'Selecione horário'}
+                                    {disciplinaSelecionadaPlanejador ? 'Adicionar' : 'Selecione horário'}
                                   </button>
                                 )}
                               </div>
