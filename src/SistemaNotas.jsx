@@ -169,6 +169,9 @@ export default function SistemaNotas({ onOpenAdmin }) {
   // Modal de aviso de expiração
   const [showExpiracaoModal, setShowExpiracaoModal] = useState(false);
   
+  // Modal de confirmação de logout
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
+  
   // Modal do simulador de notas
   const [showSimulador, setShowSimulador] = useState(false);
   const [simuladorDisciplina, setSimuladorDisciplina] = useState(null);
@@ -1089,7 +1092,7 @@ export default function SistemaNotas({ onOpenAdmin }) {
                 </div>
                 <span className="text-sm text-slate-300 font-medium max-w-[120px] truncate">{user?.email}</span>
               </div>
-              <button onClick={signOut} className="p-2.5 sm:p-3 rounded-2xl bg-white/5 border border-white/10 hover:bg-red-500/20 hover:border-red-500/30 transition-all">
+              <button onClick={() => setShowLogoutModal(true)} className="p-2.5 sm:p-3 rounded-2xl bg-white/5 border border-white/10 hover:bg-red-500/20 hover:border-red-500/30 transition-all">
                 <LogOut size={18} className="text-red-400" />
               </button>
             </div>
@@ -2199,6 +2202,49 @@ export default function SistemaNotas({ onOpenAdmin }) {
                   className="flex-1 py-3 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 text-white font-semibold hover:from-amber-400 hover:to-orange-400 transition-all shadow-lg shadow-amber-500/25"
                 >
                   Ver Planos
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Modal Confirmação de Logout */}
+        {showLogoutModal && (
+          <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={(e) => e.target === e.currentTarget && setShowLogoutModal(false)}>
+            <div className="bg-gradient-to-br from-slate-800 to-slate-900 border border-white/10 rounded-3xl p-8 max-w-sm w-full shadow-2xl">
+              {/* Ícone */}
+              <div className="flex justify-center mb-6">
+                <div className="w-16 h-16 rounded-full bg-red-500/20 flex items-center justify-center">
+                  <LogOut size={32} className="text-red-400" />
+                </div>
+              </div>
+
+              {/* Título */}
+              <h2 className="text-xl font-bold text-white text-center mb-2">
+                Sair da conta?
+              </h2>
+              
+              <p className="text-slate-400 text-center mb-6">
+                Tem certeza que deseja sair? Seus dados estão salvos na nuvem.
+              </p>
+
+              {/* Botões */}
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setShowLogoutModal(false)}
+                  className="flex-1 py-3 rounded-xl bg-white/5 border border-white/10 text-slate-300 font-medium hover:bg-white/10 transition-colors"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={() => {
+                    setShowLogoutModal(false);
+                    signOut();
+                  }}
+                  className="flex-1 py-3 rounded-xl bg-gradient-to-r from-red-500 to-red-600 text-white font-semibold hover:from-red-400 hover:to-red-500 transition-all shadow-lg shadow-red-500/25 flex items-center justify-center gap-2"
+                >
+                  <LogOut size={18} />
+                  Sair
                 </button>
               </div>
             </div>
