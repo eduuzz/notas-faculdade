@@ -1126,11 +1126,27 @@ export default function SistemaNotas({ onOpenAdmin }) {
           <div className="inline-flex p-1.5 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-xl">
             {[
               { id: 'grade', label: '📚 Grade', icon: BookOpen, requerPermissao: null },
+              { id: 'planejar', label: '📅 Planejar', icon: Calendar, requerPermissao: null, especial: true },
               { id: 'emCurso', label: '⏱️ Em Curso', icon: Clock, requerPermissao: null },
               { id: 'dashboard', label: '📊 Dashboard', icon: TrendingUp, requerPermissao: null },
               { id: 'formatura', label: '🎓 Formatura', icon: GraduationCap, requerPermissao: 'previsaoFormatura' },
             ].map(tab => {
               const bloqueado = tab.requerPermissao && !temPermissao(tab.requerPermissao);
+              
+              // Se for a aba especial "planejar", abre o modal ao invés de trocar aba
+              if (tab.especial) {
+                return (
+                  <button 
+                    key={tab.id} 
+                    onClick={() => setShowPlanejador(true)} 
+                    className="relative px-4 sm:px-6 py-3 rounded-xl text-sm font-medium transition-all duration-300 whitespace-nowrap text-cyan-400 hover:text-cyan-300 hover:bg-cyan-500/10"
+                  >
+                    <span className="hidden sm:inline">{tab.label}</span>
+                    <tab.icon size={18} className="sm:hidden" />
+                  </button>
+                );
+              }
+              
               return (
                 <button 
                   key={tab.id} 
@@ -1195,14 +1211,6 @@ export default function SistemaNotas({ onOpenAdmin }) {
                   <Download size={18} />
                   <span className="hidden sm:inline">PDF</span>
                   {!temPermissao('exportarPdf') && <Lock size={12} className="absolute -top-1 -right-1 text-amber-400" />}
-                </GradientButton>
-                <GradientButton 
-                  variant="secondary" 
-                  onClick={() => setShowPlanejador(true)}
-                  className="border-cyan-500/30 hover:bg-cyan-500/10"
-                >
-                  <Calendar size={18} className="text-cyan-400" />
-                  <span className="hidden sm:inline text-cyan-300">Planejar</span>
                 </GradientButton>
                 <GradientButton variant="amber" onClick={() => !planoExpirado && setShowImportModal(true)} disabled={planoExpirado}><UploadIcon size={18} /><span className="hidden sm:inline">Importar</span></GradientButton>
                 <GradientButton 
