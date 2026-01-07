@@ -1,142 +1,91 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Scrollbar personalizada - estilo dark theme */
 * {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(124, 58, 237, 0.5) rgba(255, 255, 255, 0.05);
 }
 
-/* Tema Escuro (padrão) */
-:root {
-  color-scheme: dark;
-}
-
-/* Tema Claro */
-html.light {
-  color-scheme: light;
-}
-
-html.light body {
-  background: linear-gradient(to bottom right, #f1f5f9, #e2e8f0, #f1f5f9) !important;
-}
-
-html.light .min-h-screen.bg-gradient-to-br {
-  background: linear-gradient(to bottom right, #f1f5f9, #e2e8f0, #f1f5f9) !important;
-}
-
-html.light .text-white {
-  color: #1e293b !important;
-}
-
-html.light .text-slate-400 {
-  color: #64748b !important;
-}
-
-html.light .text-slate-300 {
-  color: #475569 !important;
-}
-
-html.light .text-slate-500 {
-  color: #64748b !important;
-}
-
-html.light .bg-slate-800\/50,
-html.light .bg-slate-800 {
-  background-color: rgba(255, 255, 255, 0.9) !important;
-  border-color: #cbd5e1 !important;
-}
-
-html.light .bg-slate-700\/50,
-html.light .bg-slate-700\/30,
-html.light .bg-slate-700 {
-  background-color: rgba(241, 245, 249, 0.9) !important;
-}
-
-html.light .border-slate-700,
-html.light .border-slate-600 {
-  border-color: #cbd5e1 !important;
-}
-
-html.light .hover\:bg-slate-700:hover,
-html.light .hover\:bg-slate-600:hover {
-  background-color: #e2e8f0 !important;
-}
-
-html.light .bg-slate-600 {
-  background-color: #cbd5e1 !important;
-}
-
-html.light input,
-html.light select,
-html.light textarea {
-  background-color: #f8fafc !important;
-  border-color: #cbd5e1 !important;
-  color: #1e293b !important;
-}
-
-html.light input::placeholder,
-html.light textarea::placeholder {
-  color: #94a3b8 !important;
-}
-
-html.light .bg-black\/50 {
-  background-color: rgba(0, 0, 0, 0.3) !important;
-}
-
-/* Manter cores de status */
-html.light .text-green-400 { color: #22c55e !important; }
-html.light .text-red-400 { color: #ef4444 !important; }
-html.light .text-blue-400 { color: #3b82f6 !important; }
-html.light .text-yellow-400 { color: #eab308 !important; }
-html.light .text-amber-400 { color: #f59e0b !important; }
-html.light .text-indigo-400 { color: #6366f1 !important; }
-html.light .text-purple-400 { color: #a855f7 !important; }
-
-/* Manter backgrounds coloridos */
-html.light .bg-green-500\/10,
-html.light .bg-green-500\/20,
-html.light .bg-green-500\/30 {
-  background-color: rgba(34, 197, 94, 0.15) !important;
-}
-
-html.light .bg-red-500\/10,
-html.light .bg-red-500\/20,
-html.light .bg-red-500\/30 {
-  background-color: rgba(239, 68, 68, 0.15) !important;
-}
-
-html.light .bg-blue-500\/10,
-html.light .bg-blue-500\/20,
-html.light .bg-blue-500\/30 {
-  background-color: rgba(59, 130, 246, 0.15) !important;
-}
-
-html.light .bg-amber-500\/10,
-html.light .bg-amber-500\/20,
-html.light .bg-amber-500\/30 {
-  background-color: rgba(245, 158, 11, 0.15) !important;
-}
-
-html.light .bg-indigo-600 {
-  background-color: #6366f1 !important;
-}
-
-html.light .bg-indigo-600:hover {
-  background-color: #4f46e5 !important;
-}
-
-/* Scrollbar tema claro */
-html.light ::-webkit-scrollbar {
+/* Para navegadores WebKit (Chrome, Safari, Edge) */
+::-webkit-scrollbar {
   width: 8px;
+  height: 8px;
 }
 
-html.light ::-webkit-scrollbar-track {
-  background: #f1f5f9;
+::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 10px;
 }
 
-html.light ::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
-  border-radius: 4px;
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, rgba(124, 58, 237, 0.6), rgba(99, 102, 241, 0.6));
+  border-radius: 10px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
 }
 
-html.light ::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
+::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, rgba(124, 58, 237, 0.8), rgba(99, 102, 241, 0.8));
+}
+
+::-webkit-scrollbar-thumb:active {
+  background: linear-gradient(180deg, rgba(124, 58, 237, 1), rgba(99, 102, 241, 1));
+}
+
+/* Scrollbar para elementos específicos com fundo escuro */
+.dark-scrollbar::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.2);
+}
+
+/* Scrollbar mais fina para modais e dropdowns */
+.thin-scrollbar::-webkit-scrollbar {
+  width: 4px;
+}
+
+.thin-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(124, 58, 237, 0.4);
+  border-radius: 10px;
+}
+
+.thin-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(124, 58, 237, 0.6);
+}
+
+/* Esconder scrollbar mas manter funcionalidade */
+.hide-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* Animações suaves */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.animate-fadeIn {
+  animation: fadeIn 0.2s ease-out;
+}
+
+/* Selection color */
+::selection {
+  background: rgba(124, 58, 237, 0.3);
+  color: white;
+}
+
+::-moz-selection {
+  background: rgba(124, 58, 237, 0.3);
+  color: white;
 }
