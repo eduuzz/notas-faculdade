@@ -484,11 +484,27 @@ ${textoParaAnalisar.substring(0, 20000)}`
 
       // Acordar o servidor (free tier do Render dorme após inatividade ~50s)
       setStatusPortal('Acordando servidor (pode levar até 1 min)...');
-      try {
-        const wake = await fetch(`${apiUrl}/api/health`, { signal: AbortSignal.timeout(90000) });
-        if (!wake.ok) throw new Error();
-      } catch {
-        throw new Error('Servidor indisponível. Tente novamente em alguns instantes.');
+      let serverReady = false;
+      for (let tentativa = 0; tentativa < 3; tentativa++) {
+        try {
+          const controller = new AbortController();
+          const timer = setTimeout(() => controller.abort(), 30000);
+          const wake = await fetch(`${apiUrl}/api/health`, {
+            signal: controller.signal,
+            mode: 'cors',
+          });
+          clearTimeout(timer);
+          if (wake.ok) { serverReady = true; break; }
+        } catch (e) {
+          console.log(`Wake-up tentativa ${tentativa + 1}/3 falhou:`, e.message);
+          if (tentativa < 2) {
+            setStatusPortal(`Servidor iniciando... tentativa ${tentativa + 2}/3`);
+            await new Promise(r => setTimeout(r, 3000));
+          }
+        }
+      }
+      if (!serverReady) {
+        throw new Error('Servidor indisponível. O servidor gratuito pode levar ~1 min para iniciar. Tente novamente.');
       }
 
       setStatusPortal('Buscando dados do portal (pode levar ~40s)...');
