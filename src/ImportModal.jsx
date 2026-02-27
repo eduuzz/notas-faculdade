@@ -482,13 +482,13 @@ ${textoParaAnalisar.substring(0, 20000)}`
 
       const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
-      // Acordar o servidor (free tier do Render dorme após inatividade)
-      setStatusPortal('Acordando servidor...');
+      // Acordar o servidor (free tier do Render dorme após inatividade ~50s)
+      setStatusPortal('Acordando servidor (pode levar até 1 min)...');
       try {
-        const wake = await fetch(`${apiUrl}/api/health`, { signal: AbortSignal.timeout(60000) });
+        const wake = await fetch(`${apiUrl}/api/health`, { signal: AbortSignal.timeout(90000) });
         if (!wake.ok) throw new Error();
       } catch {
-        throw new Error('Servidor indisponível. Tente novamente em 1 minuto.');
+        throw new Error('Servidor indisponível. Tente novamente em alguns instantes.');
       }
 
       setStatusPortal('Buscando dados do portal (pode levar ~40s)...');
