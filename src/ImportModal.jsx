@@ -633,7 +633,7 @@ ${textoParaAnalisar.substring(0, 20000)}`
         creditos: d.creditos || 4,
         cargaHoraria: d.cargaHoraria || 60,
         notaMinima: 6.0,
-        faltas: 0,
+        faltas: d.fonte === 'portal' ? (d.faltas ?? 0) : 0,
         // Portal: preserva status e notas reais; PDF/texto: inicia como NAO_INICIADA
         status: d.fonte === 'portal' ? (d.status || 'NAO_INICIADA') : 'NAO_INICIADA',
         ga: d.fonte === 'portal' ? (d.ga ?? null) : null,

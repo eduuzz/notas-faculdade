@@ -221,6 +221,8 @@ export class ParserService {
       notaFinal: this.#parseNota(this.#getField(item,
         'NOTA', 'NOTAFINAL', 'NotaFinal', 'notaFinal', 'MEDIA', 'Media',
         'MEDIAFINAL', 'MediaFinal')),
+      faltas: this.#parseInt(this.#getField(item,
+        'FALTAS', 'Faltas', 'NROFALTAS', 'NroFaltas', 'TOTALFALTAS')),
       status: this.#mapStatus(this.#getField(item,
         'STATUS', 'Status', 'SITUACAO', 'Situacao', 'situacao',
         'DESCSITUACAO', 'DescSituacao')),
