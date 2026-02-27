@@ -465,10 +465,13 @@ ${textoParaAnalisar.substring(0, 20000)}`
     }
   };
 
+  const [statusPortal, setStatusPortal] = useState('');
+
   const buscarDoPortal = useCallback(async () => {
     setBuscandoPortal(true);
     setErroPortal(null);
     setDisciplinasPreview([]);
+    setStatusPortal('');
 
     try {
       let token = null;
@@ -478,6 +481,17 @@ ${textoParaAnalisar.substring(0, 20000)}`
       }
 
       const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+
+      // Acordar o servidor (free tier do Render dorme após inatividade)
+      setStatusPortal('Acordando servidor...');
+      try {
+        const wake = await fetch(`${apiUrl}/api/health`, { signal: AbortSignal.timeout(60000) });
+        if (!wake.ok) throw new Error();
+      } catch {
+        throw new Error('Servidor indisponível. Tente novamente em 1 minuto.');
+      }
+
+      setStatusPortal('Buscando dados do portal (pode levar ~40s)...');
       const res = await fetch(`${apiUrl}/api/portal/historico`, {
         method: 'POST',
         headers: {
@@ -485,6 +499,7 @@ ${textoParaAnalisar.substring(0, 20000)}`
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
         body: JSON.stringify({ ra: ra.trim(), senha }),
+        signal: AbortSignal.timeout(120000), // 2 minutos
       });
 
       if (!res.ok) {
@@ -908,7 +923,7 @@ ${textoParaAnalisar.substring(0, 20000)}`
                 className="w-full py-3 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-medium hover:scale-[1.02] transition-all disabled:opacity-50 disabled:hover:scale-100 flex items-center justify-center gap-2"
               >
                 {buscandoPortal ? (
-                  <><Loader2 size={18} className="animate-spin" /> Buscando no portal (~30s)...</>
+                  <><Loader2 size={18} className="animate-spin" /> {statusPortal || 'Buscando no portal...'}</>
                 ) : (
                   <><Globe size={18} /> Buscar do Portal</>
                 )}
