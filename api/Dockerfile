@@ -11,8 +11,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 WORKDIR /app
 
 # Copiar package.json e instalar dependências
-COPY package.json ./
-RUN npm ci --omit=dev
+COPY package.json package-lock.json* ./
+RUN npm install --omit=dev
 
 # Instalar apenas Chromium do Playwright
 RUN npx playwright install chromium
