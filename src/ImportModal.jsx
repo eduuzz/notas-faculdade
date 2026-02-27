@@ -870,12 +870,12 @@ ${textoParaAnalisar.substring(0, 20000)}`
 
               <div className="space-y-3">
                 <div>
-                  <label className="text-xs text-slate-500 block mb-1">Login (RA)</label>
+                  <label className="text-xs text-slate-500 block mb-1">Nome de usuário</label>
                   <input
                     type="text"
                     value={ra}
                     onChange={e => setRa(e.target.value)}
-                    placeholder="Seu login do portal"
+                    placeholder="Ex: sobrenomenome"
                     disabled={buscandoPortal}
                     className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white text-sm focus:outline-none focus:border-cyan-500/50 disabled:opacity-50"
                   />
