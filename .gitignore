@@ -23,3 +23,15 @@ dist-ssr
 *.sln
 *.sw?
 .env
+
+# Arquivos de teste com credenciais
+api/test-*.js
+api/discover-*.js
+
+# Screenshots e reports de debug
+api/screenshot-*.png
+api/api/
+api/test-report.json
+
+# Backup files
+*.save

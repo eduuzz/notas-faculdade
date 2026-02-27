@@ -1,5 +1,6 @@
 import React, { useState, useCallback, useRef } from 'react';
-import { X, Upload, FileText, AlertCircle, CheckCircle, ChevronDown, ChevronUp, Info, File, Loader2, Eye, EyeOff, Sparkles, Zap } from 'lucide-react';
+import { X, Upload, FileText, AlertCircle, CheckCircle, ChevronDown, ChevronUp, Info, File, Loader2, Eye, EyeOff, Sparkles, Zap, Globe } from 'lucide-react';
+import { supabase } from './supabaseClient';
 
 export default function ImportModal({ onClose, onImport, disciplinasExistentes = [] }) {
   const [modo, setModo] = useState('texto');
@@ -12,7 +13,18 @@ export default function ImportModal({ onClose, onImport, disciplinasExistentes =
   const [erroPdf, setErroPdf] = useState(null);
   const [mostrarTextoExtraido, setMostrarTextoExtraido] = useState(false);
   const [textoExtraidoPdf, setTextoExtraidoPdf] = useState('');
+  const [filtroObrigatorias, setFiltroObrigatorias] = useState(true);
+  const [filtroTrilhas, setFiltroTrilhas] = useState(false);
+  const [filtroOptativas, setFiltroOptativas] = useState(false);
   const fileInputRef = useRef(null);
+
+  // Portal automático
+  const [ra, setRa] = useState('');
+  const [senha, setSenha] = useState('');
+  const [mostrarSenhaPortal, setMostrarSenhaPortal] = useState(false);
+  const [buscandoPortal, setBuscandoPortal] = useState(false);
+  const [erroPortal, setErroPortal] = useState(null);
+  const [importando, setImportando] = useState(false);
 
   // Análise inteligente com Claude API
   const analisarComIA = useCallback(async (textoParaAnalisar) => {
@@ -118,6 +130,18 @@ ${textoParaAnalisar.substring(0, 20000)}`
     }
   }, []);
 
+  // Detectar se é disciplina de trilha pelo nome
+  const ehTrilha = useCallback((nome) => {
+    const nomeLower = nome.toLowerCase();
+    return nomeLower.includes('projeto aplicado') ||
+           nomeLower.includes('trilha') ||
+           nomeLower.includes('modelagem de negócios') ||
+           nomeLower.includes('consolidação do modelo') ||
+           nomeLower.includes('design e gestão para inovação') ||
+           nomeLower.includes('soluções criativas') ||
+           nomeLower.includes('atividade no mestrado');
+  }, []);
+
   // Parser manual otimizado para PDFs UNISINOS
   // Formato: SEQ. | N. (código 5 dígitos) | ATIVIDADES ACADÊMICAS | OBS. | CRED. | HORAS-AULA | ...
   const parseTextoManual = useCallback((text) => {
@@ -132,44 +156,126 @@ ${textoParaAnalisar.substring(0, 20000)}`
       'unisinos', 'coordenação', 'reconhecimento', 'portaria', 'duração',
       'telefone', 'e-mail', 'observações', 'quadro de atividades',
       'atividades complementares', 'grupos', 'paridade', 'limite máximo',
-      'horas extraclasse', 'horas de estágio', 'ch teórica', 'ch de prática'
+      'horas extraclasse', 'horas de estágio', 'ch teórica', 'ch de prática',
+      'projetos aplicados da trilha', 'optativas da trilha', 'cod.'
     ];
 
     // Nomes genéricos que não são disciplinas reais
     const nomesGenericos = [
-      'atividades complementares', 'projeto aplicado i', 'projeto aplicado ii',
-      'optativa', 'livre escolha', 'atividade optativa', 'trilha'
+      'atividades complementares', 'livre escolha', 'atividade optativa'
     ];
 
     const linhas = text.split(/[\n\r]+/);
     let semestreAtual = 1;
+    let secaoAtual = 'obrigatoria'; // 'obrigatoria', 'trilha', 'optativa'
     
     for (const linha of linhas) {
       const trimmed = linha.trim();
-      if (trimmed.length < 8) continue;
+      if (trimmed.length < 5) continue;
       
       const linhaLower = trimmed.toLowerCase();
       
       // Pular linhas de cabeçalho/metadados
       if (ignorarLinhas.some(p => linhaLower.startsWith(p) || linhaLower === p)) continue;
       
-      // Detectar seções de trilhas (período 9+)
-      if (linhaLower.includes('trilha empreendedorismo') || 
-          linhaLower.includes('trilha inovação') ||
-          linhaLower.includes('trilha internacionalização') ||
-          linhaLower.includes('trilha mestrado') ||
-          linhaLower.includes('trilhas específicas')) {
-        semestreAtual = 9;
+      // Detectar seções de trilhas
+      if (linhaLower.includes('trilha empreendedorismo')) {
+        secaoAtual = 'trilha';
+        semestreAtual = 11; // Trilha Empreendedorismo
+        continue;
+      }
+      if (linhaLower.includes('trilha inovação social')) {
+        secaoAtual = 'trilha';
+        semestreAtual = 12; // Trilha Inovação Social
+        continue;
+      }
+      if (linhaLower.includes('trilha internacionalização')) {
+        secaoAtual = 'trilha';
+        semestreAtual = 13; // Trilha Internacionalização
+        continue;
+      }
+      if (linhaLower.includes('trilha mestrado')) {
+        secaoAtual = 'trilha';
+        semestreAtual = 14; // Trilha Mestrado
+        continue;
+      }
+      if (linhaLower.includes('trilhas específicas') || linhaLower.includes('trilha específica')) {
+        secaoAtual = 'optativa';
+        semestreAtual = 15; // Optativas do Curso
         continue;
       }
 
-      // PADRÃO UNISINOS: [SEQ] CÓDIGO NOME [OBS] CRED HORAS ...
-      // Exemplos:
-      // "1 40210 Conhecendo o Direito 4 60"
-      // "40210 Conhecendo o Direito 4 60"
-      // "2 10540 Desenvolvimento Pessoal e Profissional: Liderança 3 1 15"
-      
-      // Buscar código de 5 dígitos (coluna N.)
+      // PADRÃO 1: Linha começa com código de 5 dígitos (formato página 2 das trilhas)
+      // Exemplo: "61627 Projeto Aplicado I - Trilha Empreendedorismo 4 60"
+      // Exemplo: "50759 Modelagem de Negócios Inovadores 4 60"
+      const matchInicioCodigo = trimmed.match(/^(\d{5})\s+(.+)/);
+      if (matchInicioCodigo) {
+        const codigo = matchInicioCodigo[1];
+        if (codigosAdicionados.has(codigo)) continue;
+        
+        const resto = matchInicioCodigo[2].trim();
+        const tokens = resto.split(/\s+/);
+        
+        // Encontrar números no final
+        let indiceFimNome = tokens.length;
+        let numerosFinais = [];
+        
+        for (let i = tokens.length - 1; i >= 0; i--) {
+          if (/^\d+$/.test(tokens[i])) {
+            numerosFinais.unshift(parseInt(tokens[i]));
+            indiceFimNome = i;
+          } else if (numerosFinais.length > 0) {
+            break;
+          }
+        }
+        
+        let nome = tokens.slice(0, indiceFimNome).join(' ').trim();
+        nome = nome.replace(/\s+(ou|OU|e|,)\s*$/i, '').replace(/\s+/g, ' ').trim();
+        
+        // Extrair créditos e carga
+        let creditos = 4;
+        let cargaHoraria = 60;
+        
+        if (numerosFinais.length >= 1) {
+          for (const num of numerosFinais) {
+            if (num >= 1 && num <= 8 && creditos === 4) {
+              creditos = num;
+            } else if (num >= 15 && num <= 200 && cargaHoraria === 60) {
+              cargaHoraria = num;
+              break;
+            }
+          }
+        }
+        
+        if (nome.length >= 3 && nome.length <= 200 && !/^\d+$/.test(nome)) {
+          const nomeLower = nome.toLowerCase();
+          if (!nomesAdicionados.has(nomeLower) && !nomesGenericos.some(g => nomeLower.includes(g))) {
+            let tipo = secaoAtual;
+            let periodo = semestreAtual;
+            
+            if (ehTrilha(nome) && secaoAtual === 'obrigatoria') {
+              tipo = 'trilha';
+              periodo = 11;
+            }
+            
+            disciplinas.push({
+              codigo,
+              nome,
+              creditos,
+              cargaHoraria,
+              periodo,
+              tipo,
+              fonte: 'manual'
+            });
+            
+            codigosAdicionados.add(codigo);
+            nomesAdicionados.add(nomeLower);
+          }
+        }
+        continue;
+      }
+
+      // PADRÃO 2: [SEQ] CÓDIGO NOME [OBS] CRED HORAS ... (formato página 1)
       const codigoMatch = trimmed.match(/\b(\d{5})\b/);
       
       if (codigoMatch) {
@@ -181,7 +287,7 @@ ${textoParaAnalisar.substring(0, 20000)}`
         // Extrair semestre (número de 1-2 dígitos ANTES do código)
         const antesCodigo = trimmed.substring(0, codigoMatch.index).trim();
         const semMatch = antesCodigo.match(/^(\d{1,2})$/);
-        if (semMatch) {
+        if (semMatch && secaoAtual === 'obrigatoria') {
           const sem = parseInt(semMatch[1]);
           if (sem >= 1 && sem <= 10) semestreAtual = sem;
         }
@@ -193,7 +299,6 @@ ${textoParaAnalisar.substring(0, 20000)}`
         const tokens = depoisCodigo.split(/\s+/);
         
         // Encontrar onde começam os números (créditos, carga horária)
-        // O nome termina quando encontramos sequência de números no final
         let indiceFimNome = tokens.length;
         let numerosFinais = [];
         
@@ -203,7 +308,7 @@ ${textoParaAnalisar.substring(0, 20000)}`
             numerosFinais.unshift(parseInt(tokens[i]));
             indiceFimNome = i;
           } else if (numerosFinais.length > 0) {
-            break; // Parou de ser número, encontramos o fim dos números
+            break;
           }
         }
         
@@ -217,14 +322,11 @@ ${textoParaAnalisar.substring(0, 20000)}`
           .replace(/\s+/g, ' ')
           .trim();
         
-        // Extrair créditos e carga horária dos números finais
-        // Padrão: [OBS] CRED HORAS-AULA [HORAS-PRATICAS] [HORAS-ESTAGIO] ...
+        // Extrair créditos e carga horária
         let creditos = 4;
         let cargaHoraria = 60;
         
         if (numerosFinais.length >= 2) {
-          // Primeiro número pequeno (1-6) geralmente é crédito
-          // Segundo número (15-200) geralmente é carga horária
           for (const num of numerosFinais) {
             if (num >= 1 && num <= 8 && creditos === 4) {
               creditos = num;
@@ -234,7 +336,6 @@ ${textoParaAnalisar.substring(0, 20000)}`
             }
           }
         } else if (numerosFinais.length === 1) {
-          // Só tem um número - provavelmente crédito ou carga
           const num = numerosFinais[0];
           if (num >= 15 && num <= 200) {
             cargaHoraria = num;
@@ -245,18 +346,29 @@ ${textoParaAnalisar.substring(0, 20000)}`
         
         // Validações do nome
         if (nome.length < 3 || nome.length > 200) continue;
-        if (/^\d+$/.test(nome)) continue; // Nome é só número
+        if (/^\d+$/.test(nome)) continue;
         if (nomesGenericos.some(g => nome.toLowerCase().includes(g))) continue;
         
         const nomeLower = nome.toLowerCase();
         if (nomesAdicionados.has(nomeLower)) continue;
+        
+        // Determinar tipo da disciplina
+        let tipo = secaoAtual;
+        let periodo = semestreAtual;
+        
+        // Se está em seção obrigatória mas nome indica trilha
+        if (secaoAtual === 'obrigatoria' && ehTrilha(nome)) {
+          tipo = 'trilha';
+          periodo = 11; // Genérico para trilhas encontradas fora de seção
+        }
         
         disciplinas.push({
           codigo,
           nome,
           creditos,
           cargaHoraria,
-          periodo: semestreAtual,
+          periodo,
+          tipo, // 'obrigatoria', 'trilha', 'optativa'
           fonte: 'manual'
         });
         
@@ -266,7 +378,7 @@ ${textoParaAnalisar.substring(0, 20000)}`
     }
 
     return disciplinas.sort((a, b) => a.periodo - b.periodo || a.nome.localeCompare(b.nome));
-  }, []);
+  }, [ehTrilha]);
 
   // Processar PDF
   const processarPdf = useCallback(async (file, usarIA = true) => {
@@ -353,6 +465,124 @@ ${textoParaAnalisar.substring(0, 20000)}`
     }
   };
 
+  const buscarDoPortal = useCallback(async () => {
+    setBuscandoPortal(true);
+    setErroPortal(null);
+    setDisciplinasPreview([]);
+
+    try {
+      let token = null;
+      if (supabase) {
+        const { data: { session } } = await supabase.auth.getSession();
+        token = session?.access_token;
+      }
+
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+      const res = await fetch(`${apiUrl}/api/portal/historico`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({ ra: ra.trim(), senha }),
+      });
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error?.message || `Erro ${res.status}`);
+      }
+
+      const { data: disciplinas } = await res.json();
+
+      if (!disciplinas || disciplinas.length === 0) {
+        throw new Error('Nenhuma disciplina encontrada no portal.');
+      }
+
+      // 1. Filtrar metadata, extracurriculares e lixo do portal TOTVS
+      const disciplinasReais = disciplinas.filter(d => {
+        const nome = (d.nome || '').toLowerCase();
+        const codigo = (d.codigo || '');
+        // Resumos e totais HTML
+        if (nome.includes('<i>') || nome.includes('</i>')) return false;
+        if (nome.startsWith('total ch') || codigo.toLowerCase() === 'totchintegralizada') return false;
+        // Cabeçalhos de seção e totais de modalidade
+        if (codigo === '-1' || codigo.toLowerCase() === 'totaismodalidade') return false;
+        // Cabeçalhos "Modalidade: ..."
+        if (nome.startsWith('modalidade:')) return false;
+        // Extracurriculares (CODDISC vazio): Code@Night, estágios, atividades acadêmicas
+        if (!codigo || codigo.trim() === '') return false;
+        // Nome vazio
+        if (!d.nome || d.nome.trim().length === 0) return false;
+        return true;
+      });
+
+      // 2. Deduplicar por nome: o portal retorna tanto o slot da grade (sem nota)
+      //    quanto a entrada cursada (com nota/semestre). Mantemos a melhor.
+      const porNome = {};
+      for (const d of disciplinasReais) {
+        const key = d.nome.toLowerCase().trim();
+        if (!porNome[key]) porNome[key] = [];
+        porNome[key].push(d);
+      }
+
+      const deduplicadas = [];
+      for (const entries of Object.values(porNome)) {
+        const cursadas = entries.filter(e => e.semestreCursado);
+        const templates = entries.filter(e => !e.semestreCursado);
+
+        // Determinar o periodo correto da grade (períodos 1-10 são normais)
+        const templateGrade = templates.find(t => t.periodo > 0 && t.periodo <= 10)
+          || entries.find(e => e.periodo > 0 && e.periodo <= 10);
+        const periodoGrade = templateGrade ? templateGrade.periodo : 0;
+
+        if (cursadas.length > 0) {
+          const aprovadas = cursadas.filter(e => e.status === 'APROVADA');
+
+          // Preferir aprovadas COM nota (real) sobre sem nota (dispensa/equivalência)
+          const comNota = aprovadas.filter(e => e.notaFinal !== null && e.notaFinal !== undefined);
+          const semNota = aprovadas.filter(e => e.notaFinal === null || e.notaFinal === undefined);
+          const melhorAprovada = comNota.length > 0
+            ? comNota.sort((a, b) => (b.semestreCursado || '').localeCompare(a.semestreCursado || ''))[0]
+            : semNota.sort((a, b) => (b.semestreCursado || '').localeCompare(a.semestreCursado || ''))[0];
+
+          const emCurso = cursadas.find(e => e.status === 'EM_CURSO');
+          const melhor = melhorAprovada || emCurso || cursadas[cursadas.length - 1];
+
+          // Usar periodo da grade curricular (1-10), não os especiais (97, 100, 999)
+          if (periodoGrade > 0) {
+            melhor.periodo = periodoGrade;
+          } else if (melhor.periodo >= 90) {
+            melhor.periodo = 0; // período especial sem equivalente na grade
+          }
+          deduplicadas.push(melhor);
+        } else {
+          // Nunca cursada — manter o template da grade
+          const t = templates[0];
+          if (t.periodo >= 90) t.periodo = periodoGrade || 0;
+          deduplicadas.push(t);
+        }
+      }
+
+      // 3. Mapear para formato final — usar tipo da API (baseado no SUBGRUPO do TOTVS)
+      const formatadas = deduplicadas.map(d => ({
+        ...d,
+        periodo: d.periodo > 0 ? d.periodo : 0,
+        // tipo vem da API (parser classifica via SUBGRUPO): 'obrigatoria' ou 'optativa'
+        tipo: d.tipo || (ehTrilha(d.nome) ? 'trilha' : 'obrigatoria'),
+        fonte: 'portal',
+      }));
+
+      setDisciplinasPreview(formatadas.sort((a, b) => a.periodo - b.periodo || a.nome.localeCompare(b.nome)));
+      setFiltroObrigatorias(true);
+      setFiltroTrilhas(true);
+      setFiltroOptativas(true);
+    } catch (err) {
+      setErroPortal(err.message);
+    } finally {
+      setBuscandoPortal(false);
+    }
+  }, [ra, senha, ehTrilha]);
+
   const analisarTexto = useCallback(async (usarIA = false) => {
     if (usarIA) {
       await analisarComIA(texto);
@@ -368,40 +598,73 @@ ${textoParaAnalisar.substring(0, 20000)}`
     );
   };
 
-  const confirmarImportacao = () => {
-    const disciplinasParaImportar = disciplinasPreview
+  // Função para obter nome do período
+  const getNomePeriodo = (periodo) => {
+    if (periodo >= 1 && periodo <= 10) return `${periodo}º Semestre`;
+    if (periodo === 11) return 'Trilha Empreendedorismo';
+    if (periodo === 12) return 'Trilha Inovação Social';
+    if (periodo === 13) return 'Trilha Internacionalização';
+    if (periodo === 14) return 'Trilha Mestrado';
+    if (periodo === 15) return 'Optativas do Curso';
+    return `Período ${periodo}`;
+  };
+
+  // Filtrar disciplinas baseado nos checkboxes
+  const disciplinasFiltradas = disciplinasPreview.filter(d => {
+    if (d.tipo === 'obrigatoria' && filtroObrigatorias) return true;
+    if (d.tipo === 'trilha' && filtroTrilhas) return true;
+    if (d.tipo === 'optativa' && filtroOptativas) return true;
+    return false;
+  });
+
+  // Contagens por tipo
+  const contagens = {
+    obrigatorias: disciplinasPreview.filter(d => d.tipo === 'obrigatoria').length,
+    trilhas: disciplinasPreview.filter(d => d.tipo === 'trilha').length,
+    optativas: disciplinasPreview.filter(d => d.tipo === 'optativa').length
+  };
+
+  const confirmarImportacao = async () => {
+    const disciplinasParaImportar = disciplinasFiltradas
       .filter(d => !verificarDuplicata(d))
       .map(d => ({
         nome: d.nome,
-        periodo: d.periodo || 1,
+        periodo: d.periodo,
         creditos: d.creditos || 4,
         cargaHoraria: d.cargaHoraria || 60,
         notaMinima: 6.0,
-        status: 'NAO_INICIADA',
-        ga: null,
-        gb: null,
-        notaFinal: null,
-        semestreCursado: null,
-        observacao: ''
+        faltas: 0,
+        // Portal: preserva status e notas reais; PDF/texto: inicia como NAO_INICIADA
+        status: d.fonte === 'portal' ? (d.status || 'NAO_INICIADA') : 'NAO_INICIADA',
+        ga: d.fonte === 'portal' ? (d.ga ?? null) : null,
+        gb: d.fonte === 'portal' ? (d.gb ?? null) : null,
+        notaFinal: d.fonte === 'portal' ? (d.notaFinal ?? null) : null,
+        semestreCursado: d.fonte === 'portal' ? (d.semestreCursado ?? null) : null,
+        observacao: '',
       }));
 
     if (disciplinasParaImportar.length > 0) {
-      onImport(disciplinasParaImportar);
+      setImportando(true);
+      try {
+        await onImport(disciplinasParaImportar);
+      } finally {
+        setImportando(false);
+      }
       onClose();
     }
   };
 
-  const disciplinasNovas = disciplinasPreview.filter(d => !verificarDuplicata(d));
-  const disciplinasDuplicadas = disciplinasPreview.filter(d => verificarDuplicata(d));
+  const disciplinasNovas = disciplinasFiltradas.filter(d => !verificarDuplicata(d));
+  const disciplinasDuplicadas = disciplinasFiltradas.filter(d => verificarDuplicata(d));
   
-  const disciplinasPorPeriodo = disciplinasPreview.reduce((acc, d) => {
+  const disciplinasPorPeriodo = disciplinasFiltradas.reduce((acc, d) => {
     const p = d.periodo || 1;
     if (!acc[p]) acc[p] = [];
     acc[p].push(d);
     return acc;
   }, {});
 
-  const isProcessando = processandoPdf || processandoIA;
+  const isProcessando = processandoPdf || processandoIA || buscandoPortal || importando;
 
   return (
     <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
@@ -438,13 +701,24 @@ ${textoParaAnalisar.substring(0, 20000)}`
           <button
             onClick={() => { setModo('pdf'); setDisciplinasPreview([]); setErroPdf(null); }}
             className={`flex-1 py-2.5 px-4 rounded-xl text-sm font-medium transition-all flex items-center justify-center gap-2 ${
-              modo === 'pdf' 
-                ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30' 
+              modo === 'pdf'
+                ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
                 : 'bg-white/5 text-slate-400 border border-white/10 hover:bg-white/10'
             }`}
           >
             <File size={18} />
             Upload PDF
+          </button>
+          <button
+            onClick={() => { setModo('portal'); setDisciplinasPreview([]); setErroPortal(null); }}
+            className={`flex-1 py-2.5 px-4 rounded-xl text-sm font-medium transition-all flex items-center justify-center gap-2 ${
+              modo === 'portal'
+                ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/30'
+                : 'bg-white/5 text-slate-400 border border-white/10 hover:bg-white/10'
+            }`}
+          >
+            <Globe size={18} />
+            Portal Auto
           </button>
         </div>
 
@@ -588,6 +862,74 @@ ${textoParaAnalisar.substring(0, 20000)}`
             </div>
           )}
 
+          {modo === 'portal' && (
+            <div className="space-y-4">
+              <p className="text-slate-400 text-sm">
+                Busca automaticamente todas as cadeiras e notas diretamente do portal UNISINOS.
+              </p>
+
+              <div className="space-y-3">
+                <div>
+                  <label className="text-xs text-slate-500 block mb-1">Login (RA)</label>
+                  <input
+                    type="text"
+                    value={ra}
+                    onChange={e => setRa(e.target.value)}
+                    placeholder="Ex: dalpraeduardo"
+                    disabled={buscandoPortal}
+                    className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white text-sm focus:outline-none focus:border-cyan-500/50 disabled:opacity-50"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs text-slate-500 block mb-1">Senha do portal</label>
+                  <div className="relative">
+                    <input
+                      type={mostrarSenhaPortal ? 'text' : 'password'}
+                      value={senha}
+                      onChange={e => setSenha(e.target.value)}
+                      placeholder="Sua senha do portal.unisinos.br"
+                      disabled={buscandoPortal}
+                      className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white text-sm focus:outline-none focus:border-cyan-500/50 pr-12 disabled:opacity-50"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setMostrarSenhaPortal(!mostrarSenhaPortal)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white"
+                    >
+                      {mostrarSenhaPortal ? <EyeOff size={18} /> : <Eye size={18} />}
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <button
+                onClick={buscarDoPortal}
+                disabled={!ra.trim() || !senha.trim() || buscandoPortal}
+                className="w-full py-3 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-medium hover:scale-[1.02] transition-all disabled:opacity-50 disabled:hover:scale-100 flex items-center justify-center gap-2"
+              >
+                {buscandoPortal ? (
+                  <><Loader2 size={18} className="animate-spin" /> Buscando no portal (~30s)...</>
+                ) : (
+                  <><Globe size={18} /> Buscar do Portal</>
+                )}
+              </button>
+
+              {erroPortal && (
+                <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-3 flex items-start gap-2">
+                  <AlertCircle size={16} className="text-red-400 mt-0.5 flex-shrink-0" />
+                  <p className="text-red-400 text-sm">{erroPortal}</p>
+                </div>
+              )}
+
+              <div className="bg-slate-700/30 border border-white/5 rounded-xl p-3">
+                <p className="text-slate-500 text-xs leading-relaxed">
+                  🔒 Suas credenciais são usadas apenas para acessar o portal e <strong className="text-slate-400">nunca ficam salvas</strong> no servidor.
+                  O processo abre um browser automático e demora ~30 segundos.
+                </p>
+              </div>
+            </div>
+          )}
+
           {/* Preview */}
           {disciplinasPreview.length > 0 && (
             <div className="mt-6 space-y-4">
@@ -597,6 +939,11 @@ ${textoParaAnalisar.substring(0, 20000)}`
                   {disciplinasPreview[0]?.fonte === 'ia' && (
                     <span className="text-xs px-2 py-0.5 rounded-full bg-violet-500/20 text-violet-300 border border-violet-500/30">
                       <Sparkles size={10} className="inline mr-1" />via IA
+                    </span>
+                  )}
+                  {disciplinasPreview[0]?.fonte === 'portal' && (
+                    <span className="text-xs px-2 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">
+                      <Globe size={10} className="inline mr-1" />via Portal
                     </span>
                   )}
                 </h3>
@@ -609,28 +956,93 @@ ${textoParaAnalisar.substring(0, 20000)}`
                 </button>
               </div>
 
+              {/* Filtros por tipo */}
+              <div className="bg-slate-700/30 rounded-xl p-4 space-y-3">
+                <p className="text-sm text-slate-400 font-medium">Selecione o que importar:</p>
+                <div className="flex flex-wrap gap-3">
+                  <label className={`flex items-center gap-2 px-3 py-2 rounded-lg cursor-pointer transition-all ${
+                    filtroObrigatorias 
+                      ? 'bg-emerald-500/20 border border-emerald-500/50' 
+                      : 'bg-white/5 border border-white/10 hover:bg-white/10'
+                  }`}>
+                    <input
+                      type="checkbox"
+                      checked={filtroObrigatorias}
+                      onChange={(e) => setFiltroObrigatorias(e.target.checked)}
+                      className="w-4 h-4 rounded accent-emerald-500"
+                    />
+                    <span className="text-sm text-white">Obrigatórias</span>
+                    <span className="text-xs px-1.5 py-0.5 rounded bg-emerald-500/30 text-emerald-300">
+                      {contagens.obrigatorias}
+                    </span>
+                  </label>
+                  
+                  <label className={`flex items-center gap-2 px-3 py-2 rounded-lg cursor-pointer transition-all ${
+                    filtroTrilhas 
+                      ? 'bg-violet-500/20 border border-violet-500/50' 
+                      : 'bg-white/5 border border-white/10 hover:bg-white/10'
+                  }`}>
+                    <input
+                      type="checkbox"
+                      checked={filtroTrilhas}
+                      onChange={(e) => setFiltroTrilhas(e.target.checked)}
+                      className="w-4 h-4 rounded accent-violet-500"
+                    />
+                    <span className="text-sm text-white">Trilhas</span>
+                    <span className="text-xs px-1.5 py-0.5 rounded bg-violet-500/30 text-violet-300">
+                      {contagens.trilhas}
+                    </span>
+                  </label>
+                  
+                  <label className={`flex items-center gap-2 px-3 py-2 rounded-lg cursor-pointer transition-all ${
+                    filtroOptativas 
+                      ? 'bg-amber-500/20 border border-amber-500/50' 
+                      : 'bg-white/5 border border-white/10 hover:bg-white/10'
+                  }`}>
+                    <input
+                      type="checkbox"
+                      checked={filtroOptativas}
+                      onChange={(e) => setFiltroOptativas(e.target.checked)}
+                      className="w-4 h-4 rounded accent-amber-500"
+                    />
+                    <span className="text-sm text-white">Optativas</span>
+                    <span className="text-xs px-1.5 py-0.5 rounded bg-amber-500/30 text-amber-300">
+                      {contagens.optativas}
+                    </span>
+                  </label>
+                </div>
+              </div>
+
+              {/* Resumo da seleção */}
               <div className="grid grid-cols-2 gap-3">
                 <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-xl p-3 text-center">
                   <p className="text-2xl font-bold text-emerald-400">{disciplinasNovas.length}</p>
-                  <p className="text-xs text-slate-400">Novas</p>
+                  <p className="text-xs text-slate-400">Serão importadas</p>
                 </div>
                 <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-3 text-center">
                   <p className="text-2xl font-bold text-amber-400">{disciplinasDuplicadas.length}</p>
-                  <p className="text-xs text-slate-400">Duplicadas</p>
+                  <p className="text-xs text-slate-400">Já existem</p>
                 </div>
               </div>
               
+              {/* Badges por período */}
               <div className="flex flex-wrap gap-2">
-                {Object.keys(disciplinasPorPeriodo).sort((a, b) => a - b).map(p => (
-                  <span key={p} className="text-xs px-2 py-1 rounded-lg bg-violet-500/20 text-violet-300 border border-violet-500/30">
-                    {p === '0' ? 'Optativas' : p === '9' ? 'Trilhas' : `${p}º sem`}: {disciplinasPorPeriodo[p].length}
+                {Object.keys(disciplinasPorPeriodo).sort((a, b) => Number(a) - Number(b)).map(p => (
+                  <span key={p} className={`text-xs px-2 py-1 rounded-lg border ${
+                    Number(p) <= 10 
+                      ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30'
+                      : Number(p) <= 14
+                        ? 'bg-violet-500/20 text-violet-300 border-violet-500/30'
+                        : 'bg-amber-500/20 text-amber-300 border-amber-500/30'
+                  }`}>
+                    {getNomePeriodo(Number(p))}: {disciplinasPorPeriodo[p].length}
                   </span>
                 ))}
               </div>
 
-              {expandido && (
+              {expandido && disciplinasFiltradas.length > 0 && (
                 <div className="max-h-48 overflow-y-auto space-y-2 pr-2">
-                  {disciplinasPreview.map((d, i) => {
+                  {disciplinasFiltradas.map((d, i) => {
                     const isDuplicada = verificarDuplicata(d);
                     return (
                       <div
@@ -657,7 +1069,15 @@ ${textoParaAnalisar.substring(0, 20000)}`
                               )}
                             </div>
                             <div className="flex items-center gap-3 mt-1 text-xs text-slate-500">
-                              <span>{d.periodo === 0 ? 'Optativa' : d.periodo >= 9 ? 'Trilha' : `${d.periodo}º sem`}</span>
+                              <span className={`px-1.5 py-0.5 rounded ${
+                                d.tipo === 'obrigatoria' 
+                                  ? 'bg-emerald-500/20 text-emerald-400'
+                                  : d.tipo === 'trilha'
+                                    ? 'bg-violet-500/20 text-violet-400'
+                                    : 'bg-amber-500/20 text-amber-400'
+                              }`}>
+                                {getNomePeriodo(d.periodo)}
+                              </span>
                               <span>{d.creditos} cr</span>
                               <span>{d.cargaHoraria}h</span>
                             </div>
@@ -666,6 +1086,12 @@ ${textoParaAnalisar.substring(0, 20000)}`
                       </div>
                     );
                   })}
+                </div>
+              )}
+
+              {disciplinasFiltradas.length === 0 && (
+                <div className="text-center py-4 text-slate-500">
+                  <p>Selecione pelo menos um tipo de disciplina para importar</p>
                 </div>
               )}
             </div>
@@ -683,9 +1109,13 @@ ${textoParaAnalisar.substring(0, 20000)}`
           <button
             onClick={confirmarImportacao}
             disabled={disciplinasNovas.length === 0 || isProcessando}
-            className="flex-1 py-3 rounded-xl bg-gradient-to-r from-amber-500 to-orange-600 text-white font-medium hover:scale-[1.02] transition-all disabled:opacity-50 disabled:hover:scale-100"
+            className="flex-1 py-3 rounded-xl bg-gradient-to-r from-amber-500 to-orange-600 text-white font-medium hover:scale-[1.02] transition-all disabled:opacity-50 disabled:hover:scale-100 flex items-center justify-center gap-2"
           >
-            Importar {disciplinasNovas.length} Cadeiras
+            {importando ? (
+              <><Loader2 size={18} className="animate-spin" /> Salvando...</>
+            ) : (
+              <>Importar {disciplinasNovas.length} Cadeiras</>
+            )}
           </button>
         </div>
       </div>

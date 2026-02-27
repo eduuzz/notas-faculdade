@@ -126,6 +126,7 @@ export default function SistemaNotas({ onOpenAdmin }) {
     adicionarDisciplina,
     atualizarDisciplina,
     removerDisciplina,
+    importarDisciplinas,
     loading,
     syncing,
     isOnline,
@@ -454,11 +455,14 @@ export default function SistemaNotas({ onOpenAdmin }) {
 
   const handleImportarDisciplinas = async (disciplinasImport) => {
     try {
-      for (const disciplina of disciplinasImport) { 
-        await adicionarDisciplina(disciplina); 
+      const result = await importarDisciplinas(disciplinasImport);
+      if (result.error) {
+        console.error('Erro ao importar disciplinas:', result.error);
+        alert(`Erro ao importar: ${result.error}`);
       }
     } catch (error) {
       console.error('Erro ao importar disciplinas:', error);
+      alert(`Erro ao importar: ${error.message}`);
     }
     setShowImportModal(false);
   };

@@ -1,0 +1,21 @@
+{
+  "name": "notas-faculdade-api",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "API para buscar dados do portal UNISINOS (TOTVS RM Educacional)",
+  "main": "src/server.js",
+  "scripts": {
+    "dev": "node --watch src/server.js",
+    "start": "node src/server.js"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.87.1",
+    "axios": "^1.7.9",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "express-rate-limit": "^7.5.0",
+    "helmet": "^8.0.0",
+    "playwright": "^1.49.1"
+  }
+}

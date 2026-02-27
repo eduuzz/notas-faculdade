@@ -235,7 +235,6 @@ export function useNotas() {
     try {
       const disciplinasComUser = listaDisciplinas.map(d => ({
         ...d,
-        id: undefined,
         user_id: user.id,
         created_at: new Date().toISOString()
       }))
@@ -250,7 +249,7 @@ export function useNotas() {
         return { error: error.message }
       }
 
-      setDisciplinasState(data)
+      setDisciplinasState(prev => [...prev, ...data])
       return { data }
     } finally {
       setSyncing(false)
