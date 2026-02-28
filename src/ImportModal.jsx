@@ -482,10 +482,9 @@ ${textoParaAnalisar.substring(0, 20000)}`
 
       const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
-      // Acordar o servidor (free tier do Render dorme após inatividade ~50s)
-      setStatusPortal('Acordando servidor (pode levar até 1 min)...');
-      let serverReady = false;
-      for (let tentativa = 0; tentativa < 3; tentativa++) {
+      // Etapa 1: Acordar o servidor (free tier do Render dorme após inatividade)
+      setStatusPortal('Ligando o servidor...');
+      for (let tentativa = 1; tentativa <= 5; tentativa++) {
         try {
           const controller = new AbortController();
           const timer = setTimeout(() => controller.abort(), 30000);
@@ -494,23 +493,29 @@ ${textoParaAnalisar.substring(0, 20000)}`
             mode: 'cors',
           });
           clearTimeout(timer);
-          if (wake.ok) { serverReady = true; break; }
+          if (wake.ok) break;
         } catch (e) {
-          console.error(`Wake-up tentativa ${tentativa + 1}/3 falhou:`, e.name, e.message);
-          if (tentativa < 2) {
-            setStatusPortal(`Servidor iniciando... tentativa ${tentativa + 2}/3`);
-            await new Promise(r => setTimeout(r, 3000));
+          console.log(`Wake-up tentativa ${tentativa}/5:`, e.message);
+          if (tentativa === 5) {
+            throw new Error('Não foi possível conectar ao servidor. Verifique sua conexão e tente novamente.');
           }
+          const msgs = [
+            'Servidor inicializando...',
+            'Ainda carregando o servidor...',
+            'Quase lá, aguarde mais um pouco...',
+            'O servidor está demorando para responder...',
+          ];
+          setStatusPortal(msgs[tentativa - 1] || msgs[msgs.length - 1]);
+          await new Promise(r => setTimeout(r, 2000));
         }
       }
-      if (!serverReady) {
-        throw new Error(
-          'Servidor indisponível. Verifique o console (F12) para detalhes. ' +
-          'O servidor gratuito pode levar ~1 min para iniciar. Tente novamente.'
-        );
-      }
 
-      setStatusPortal('Buscando dados do portal (pode levar ~40s)...');
+      // Etapa 2: Conectando ao portal TOTVS
+      setStatusPortal('Conectando ao portal UNISINOS...');
+      await new Promise(r => setTimeout(r, 500)); // breve pausa visual
+
+      // Etapa 3: Buscar dados
+      setStatusPortal('Acessando suas notas e disciplinas...');
       const res = await fetch(`${apiUrl}/api/portal/historico`, {
         method: 'POST',
         headers: {
@@ -518,7 +523,7 @@ ${textoParaAnalisar.substring(0, 20000)}`
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
         body: JSON.stringify({ ra: ra.trim(), senha }),
-        signal: AbortSignal.timeout(120000), // 2 minutos
+        signal: AbortSignal.timeout(180000), // 3 minutos
       });
 
       if (!res.ok) {
@@ -936,17 +941,27 @@ ${textoParaAnalisar.substring(0, 20000)}`
                 </div>
               </div>
 
-              <button
-                onClick={buscarDoPortal}
-                disabled={!ra.trim() || !senha.trim() || buscandoPortal}
-                className="w-full py-3 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-medium hover:scale-[1.02] transition-all disabled:opacity-50 disabled:hover:scale-100 flex items-center justify-center gap-2"
-              >
-                {buscandoPortal ? (
-                  <><Loader2 size={18} className="animate-spin" /> {statusPortal || 'Buscando no portal...'}</>
-                ) : (
-                  <><Globe size={18} /> Buscar do Portal</>
-                )}
-              </button>
+              {!buscandoPortal ? (
+                <button
+                  onClick={buscarDoPortal}
+                  disabled={!ra.trim() || !senha.trim()}
+                  className="w-full py-3 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-medium hover:scale-[1.02] transition-all disabled:opacity-50 disabled:hover:scale-100 flex items-center justify-center gap-2"
+                >
+                  <Globe size={18} /> Buscar do Portal
+                </button>
+              ) : (
+                <div className="w-full py-4 rounded-xl bg-white/5 border border-cyan-500/30">
+                  <div className="flex items-center justify-center gap-3 px-4">
+                    <Loader2 size={20} className="animate-spin text-cyan-400 flex-shrink-0" />
+                    <span className="text-cyan-300 text-sm font-medium">{statusPortal || 'Preparando...'}</span>
+                  </div>
+                  <div className="mt-3 mx-4">
+                    <div className="w-full bg-white/10 rounded-full h-1.5 overflow-hidden">
+                      <div className="bg-gradient-to-r from-cyan-500 to-blue-500 h-full rounded-full animate-pulse" style={{ width: '100%' }} />
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {erroPortal && (
                 <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-3 flex items-start gap-2">
@@ -957,8 +972,8 @@ ${textoParaAnalisar.substring(0, 20000)}`
 
               <div className="bg-slate-700/30 border border-white/5 rounded-xl p-3">
                 <p className="text-slate-500 text-xs leading-relaxed">
-                  🔒 Suas credenciais são usadas apenas para acessar o portal e <strong className="text-slate-400">nunca ficam salvas</strong> no servidor.
-                  O processo abre um browser automático e demora ~30 segundos.
+                  Suas credenciais são usadas apenas para acessar o portal e <strong className="text-slate-400">nunca ficam salvas</strong> no servidor.
+                  O processo abre um browser automático e pode levar até 1 minuto.
                 </p>
               </div>
             </div>
