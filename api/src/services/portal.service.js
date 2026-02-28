@@ -90,17 +90,40 @@ async function withPortalSession(ra, senha, navigations) {
   const ch = await getChromium();
   const browser = await ch.launch({
     headless: true,
-    args: ['--no-sandbox', '--disable-setuid-sandbox'],
+    args: [
+      '--no-sandbox',
+      '--disable-setuid-sandbox',
+      '--disable-dev-shm-usage',
+      '--disable-gpu',
+      '--disable-extensions',
+      '--disable-background-networking',
+      '--disable-default-apps',
+      '--disable-sync',
+      '--disable-translate',
+      '--no-first-run',
+      '--single-process',
+      '--disable-software-rasterizer',
+      '--js-flags=--max-old-space-size=256',
+    ],
   });
 
   try {
     const ctx = await browser.newContext({
-      viewport: { width: 1920, height: 1080 },
+      viewport: { width: 1280, height: 720 },
       userAgent:
         'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 ' +
         '(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
     });
     const page = await ctx.newPage();
+
+    // Bloquear recursos pesados (imagens, CSS, fonts) para economizar memória/tempo
+    await page.route('**/*', (route) => {
+      const type = route.request().resourceType();
+      if (['image', 'stylesheet', 'font', 'media'].includes(type)) {
+        return route.abort();
+      }
+      return route.continue();
+    });
 
     // Interceptar todas as respostas da API TOTVS
     const captured = {};
