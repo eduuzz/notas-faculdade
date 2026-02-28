@@ -409,14 +409,15 @@ export default function SistemaNotas({ onOpenAdmin }) {
   }, [modoCompacto]);
 
   const estatisticas = useMemo(() => {
-    const total = disciplinas.length;
-    const aprovadas = disciplinas.filter(d => d.status === 'APROVADA').length;
-    const emCurso = disciplinas.filter(d => d.status === 'EM_CURSO').length;
-    const reprovadas = disciplinas.filter(d => d.status === 'REPROVADA').length;
-    const naoIniciadas = disciplinas.filter(d => d.status === 'NAO_INICIADA').length;
-    const creditosTotal = disciplinas.reduce((acc, d) => acc + (d.creditos || 0), 0);
-    const creditosConcluidos = disciplinas.filter(d => d.status === 'APROVADA').reduce((acc, d) => acc + (d.creditos || 0), 0);
-    const notasAprovadas = disciplinas.filter(d => d.status === 'APROVADA' && d.notaFinal);
+    const obrig = disciplinas.filter(d => d.tipo !== 'optativa');
+    const total = obrig.length;
+    const aprovadas = obrig.filter(d => d.status === 'APROVADA').length;
+    const emCurso = obrig.filter(d => d.status === 'EM_CURSO').length;
+    const reprovadas = obrig.filter(d => d.status === 'REPROVADA').length;
+    const naoIniciadas = obrig.filter(d => d.status === 'NAO_INICIADA').length;
+    const creditosTotal = obrig.reduce((acc, d) => acc + (d.creditos || 0), 0);
+    const creditosConcluidos = obrig.filter(d => d.status === 'APROVADA').reduce((acc, d) => acc + (d.creditos || 0), 0);
+    const notasAprovadas = obrig.filter(d => d.status === 'APROVADA' && d.notaFinal);
     const mediaGeral = notasAprovadas.length > 0 ? notasAprovadas.reduce((acc, d) => acc + d.notaFinal, 0) / notasAprovadas.length : 0;
     const progresso = total > 0 ? (aprovadas / total) * 100 : 0;
     return { total, aprovadas, emCurso, reprovadas, naoIniciadas, creditosTotal, creditosConcluidos, mediaGeral, progresso };
@@ -632,7 +633,7 @@ export default function SistemaNotas({ onOpenAdmin }) {
     // Calcular previsão de formatura
     const creditosPorSemestre = 30; // média
     const creditosFaltando = disciplinas
-      .filter(d => d.status !== 'APROVADA')
+      .filter(d => d.tipo !== 'optativa' && d.status !== 'APROVADA')
       .reduce((sum, d) => sum + (d.creditos || 4), 0);
     const semestresRestantes = Math.ceil(creditosFaltando / creditosPorSemestre);
     const anoAtual = new Date().getFullYear();
@@ -1965,10 +1966,11 @@ export default function SistemaNotas({ onOpenAdmin }) {
 
         {/* Tab Formatura */}
         {activeTab === 'formatura' && (() => {
-          const disciplinasAprovadas = disciplinas.filter(d => d.status === 'APROVADA').length;
-          const disciplinasEmCurso = disciplinas.filter(d => d.status === 'EM_CURSO').length;
-          const disciplinasRestantes = disciplinas.filter(d => d.status === 'NAO_INICIADA').length;
-          const totalDisciplinas = disciplinas.length;
+          const obrigatorias = disciplinas.filter(d => d.tipo !== 'optativa');
+          const disciplinasAprovadas = obrigatorias.filter(d => d.status === 'APROVADA').length;
+          const disciplinasEmCurso = obrigatorias.filter(d => d.status === 'EM_CURSO').length;
+          const disciplinasRestantes = obrigatorias.filter(d => d.status === 'NAO_INICIADA').length;
+          const totalDisciplinas = obrigatorias.length;
           const disciplinasParaConcluir = disciplinasRestantes + disciplinasEmCurso;
           
           const gerarProximoPeriodo = (ano, sem) => {
