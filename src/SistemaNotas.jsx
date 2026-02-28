@@ -139,11 +139,12 @@ export default function SistemaNotas({ onOpenAdmin }) {
   const [showImportModal, setShowImportModal] = useState(false);
   const [editingDisciplina, setEditingDisciplina] = useState(null);
   const [expandedPeriodos, setExpandedPeriodos] = useState({1: true, 2: true, 3: true, 4: true, 5: true, 6: true, 7: true, 8: true});
+  const [abaSemestre, setAbaSemestre] = useState({}); // { periodo: 'obrigatorias' | 'optativas' }
   const [filtroStatus, setFiltroStatus] = useState('TODOS');
   const [modoCompacto, setModoCompacto] = useState(() => localStorage.getItem('modoCompacto') === 'true');
   const [busca, setBusca] = useState('');
   const [novaDisciplina, setNovaDisciplina] = useState({
-    nome: '', periodo: 1, creditos: 4, cargaHoraria: 60, notaMinima: 6.0, status: 'NAO_INICIADA', ga: null, gb: null, notaFinal: null, semestreCursado: null, observacao: ''
+    nome: '', periodo: 1, creditos: 4, cargaHoraria: 60, notaMinima: 6.0, tipo: 'obrigatoria', status: 'NAO_INICIADA', ga: null, gb: null, notaFinal: null, semestreCursado: null, observacao: ''
   });
   const [disciplinasMultiplas, setDisciplinasMultiplas] = useState('');
   const [periodoMultiplas, setPeriodoMultiplas] = useState(1);
@@ -440,14 +441,14 @@ export default function SistemaNotas({ onOpenAdmin }) {
   const handleAddDisciplina = async () => {
     if (!novaDisciplina.nome.trim()) return;
     await adicionarDisciplina({ ...novaDisciplina });
-    setNovaDisciplina({ nome: '', periodo: 1, creditos: 4, cargaHoraria: 60, notaMinima: 6.0, status: 'NAO_INICIADA', ga: null, gb: null, notaFinal: null, semestreCursado: null, observacao: '' });
+    setNovaDisciplina({ nome: '', periodo: 1, creditos: 4, cargaHoraria: 60, notaMinima: 6.0, tipo: 'obrigatoria', status: 'NAO_INICIADA', ga: null, gb: null, notaFinal: null, semestreCursado: null, observacao: '' });
     setShowAddDisciplina(false);
   };
 
   const handleAddMultiplas = async () => {
     const nomes = disciplinasMultiplas.split('\n').filter(n => n.trim());
     for (const nome of nomes) {
-      await adicionarDisciplina({ nome: nome.trim(), periodo: periodoMultiplas, creditos: 4, cargaHoraria: 60, notaMinima: 6.0, status: 'NAO_INICIADA', ga: null, gb: null, notaFinal: null, semestreCursado: null, observacao: '' });
+      await adicionarDisciplina({ nome: nome.trim(), periodo: periodoMultiplas, creditos: 4, cargaHoraria: 60, notaMinima: 6.0, tipo: 'obrigatoria', status: 'NAO_INICIADA', ga: null, gb: null, notaFinal: null, semestreCursado: null, observacao: '' });
     }
     setDisciplinasMultiplas('');
     setShowAddMultiplas(false);
@@ -1406,10 +1407,16 @@ export default function SistemaNotas({ onOpenAdmin }) {
             <div className="space-y-4">
               {periodos.map(periodo => {
                 const discs = disciplinasPorPeriodo[periodo];
-                const aprovadas = discs.filter(d => d.status === 'APROVADA').length;
+                const obrigatorias = discs.filter(d => d.tipo !== 'optativa');
+                const optativas = discs.filter(d => d.tipo === 'optativa');
+                // Progresso conta só obrigatórias
+                const aprovadas = obrigatorias.filter(d => d.status === 'APROVADA').length;
+                const totalObrig = obrigatorias.length;
+                const progresso = totalObrig > 0 ? (aprovadas / totalObrig) * 100 : 0;
                 const total = discs.length;
-                const progresso = total > 0 ? (aprovadas / total) * 100 : 0;
                 if (total === 0 && filtroStatus !== 'TODOS') return null;
+                const abaAtiva = abaSemestre[periodo] || 'obrigatorias';
+                const discsVisiveis = abaAtiva === 'optativas' ? optativas : obrigatorias;
 
                 return (
                   <div key={periodo} className="space-y-3">
@@ -1421,7 +1428,7 @@ export default function SistemaNotas({ onOpenAdmin }) {
                           </div>
                           <div>
                             <h3 className="font-semibold text-lg">{periodo}º Semestre</h3>
-                            <p className="text-sm text-slate-500">{aprovadas} de {total} concluídas</p>
+                            <p className="text-sm text-slate-500">{aprovadas} de {totalObrig} concluídas</p>
                           </div>
                         </div>
                         <div className="flex items-center gap-4">
@@ -1438,8 +1445,27 @@ export default function SistemaNotas({ onOpenAdmin }) {
 
                     {expandedPeriodos[periodo] && (
                       <div className={`space-y-2 ${modoCompacto ? '' : 'pl-4'}`}>
-                        {discs.length === 0 ? (
-                          <p className="text-slate-500 text-sm py-4 text-center">Nenhuma disciplina neste período</p>
+                        {/* Mini-abas Obrigatórias / Optativas */}
+                        {optativas.length > 0 && (
+                          <div className="flex gap-2 mb-2">
+                            <button
+                              onClick={(e) => { e.stopPropagation(); setAbaSemestre(prev => ({ ...prev, [periodo]: 'obrigatorias' })); }}
+                              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${abaAtiva === 'obrigatorias' ? 'bg-violet-500/20 text-violet-300 border border-violet-500/30' : 'bg-white/5 text-slate-400 border border-white/10 hover:bg-white/10'}`}
+                            >
+                              Obrigatórias ({obrigatorias.length})
+                            </button>
+                            <button
+                              onClick={(e) => { e.stopPropagation(); setAbaSemestre(prev => ({ ...prev, [periodo]: 'optativas' })); }}
+                              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${abaAtiva === 'optativas' ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30' : 'bg-white/5 text-slate-400 border border-white/10 hover:bg-white/10'}`}
+                            >
+                              Optativas ({optativas.length})
+                            </button>
+                          </div>
+                        )}
+                        {discsVisiveis.length === 0 ? (
+                          <p className="text-slate-500 text-sm py-4 text-center">
+                            {abaAtiva === 'optativas' ? 'Nenhuma optativa neste período' : 'Nenhuma disciplina neste período'}
+                          </p>
                         ) : modoCompacto ? (
                           <GlassCard className="overflow-hidden" hover={false}>
                             <table className="w-full">
@@ -1453,7 +1479,7 @@ export default function SistemaNotas({ onOpenAdmin }) {
                                 </tr>
                               </thead>
                               <tbody>
-                                {discs.map(disc => {
+                                {discsVisiveis.map(disc => {
                                   const status = STATUS[disc.status];
                                   return (
                                     <tr key={disc.id} className="border-b border-white/5 hover:bg-white/[0.03]">
@@ -1478,7 +1504,7 @@ export default function SistemaNotas({ onOpenAdmin }) {
                             </table>
                           </GlassCard>
                         ) : (
-                          discs.map(disc => {
+                          discsVisiveis.map(disc => {
                             const status = STATUS[disc.status];
                             return (
                               <GlassCard key={disc.id} className="group">
@@ -2236,33 +2262,44 @@ export default function SistemaNotas({ onOpenAdmin }) {
                         placeholder="Ex: Cálculo I" 
                       />
                     </div>
-                    <div className="grid grid-cols-3 gap-4">
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                       <div>
                         <label className="text-sm text-slate-400 block mb-2">Semestre</label>
-                        <select 
-                          value={novaDisciplina.periodo} 
-                          onChange={(e) => setNovaDisciplina({ ...novaDisciplina, periodo: parseInt(e.target.value) })} 
+                        <select
+                          value={novaDisciplina.periodo}
+                          onChange={(e) => setNovaDisciplina({ ...novaDisciplina, periodo: parseInt(e.target.value) })}
                           className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white focus:outline-none"
                         >
                           {periodos.map(p => (<option key={p} value={p} className="bg-slate-800">{p}º</option>))}
                         </select>
                       </div>
                       <div>
+                        <label className="text-sm text-slate-400 block mb-2">Tipo</label>
+                        <select
+                          value={novaDisciplina.tipo}
+                          onChange={(e) => setNovaDisciplina({ ...novaDisciplina, tipo: e.target.value })}
+                          className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white focus:outline-none"
+                        >
+                          <option value="obrigatoria" className="bg-slate-800">Obrigatória</option>
+                          <option value="optativa" className="bg-slate-800">Optativa</option>
+                        </select>
+                      </div>
+                      <div>
                         <label className="text-sm text-slate-400 block mb-2">Créditos</label>
-                        <input 
-                          type="number" 
-                          value={novaDisciplina.creditos} 
-                          onChange={(e) => setNovaDisciplina({ ...novaDisciplina, creditos: parseInt(e.target.value) })} 
-                          className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white focus:outline-none" 
+                        <input
+                          type="number"
+                          value={novaDisciplina.creditos}
+                          onChange={(e) => setNovaDisciplina({ ...novaDisciplina, creditos: parseInt(e.target.value) })}
+                          className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white focus:outline-none"
                         />
                       </div>
                       <div>
                         <label className="text-sm text-slate-400 block mb-2">Carga H.</label>
-                        <input 
-                          type="number" 
-                          value={novaDisciplina.cargaHoraria} 
-                          onChange={(e) => setNovaDisciplina({ ...novaDisciplina, cargaHoraria: parseInt(e.target.value) })} 
-                          className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white focus:outline-none" 
+                        <input
+                          type="number"
+                          value={novaDisciplina.cargaHoraria}
+                          onChange={(e) => setNovaDisciplina({ ...novaDisciplina, cargaHoraria: parseInt(e.target.value) })}
+                          className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white focus:outline-none"
                         />
                       </div>
                     </div>
