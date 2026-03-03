@@ -2,13 +2,6 @@ import { useState, useEffect, useCallback } from 'react'
 import { supabase } from './supabaseClient'
 import { useAuth } from './AuthContext'
 
-// Disciplinas de exemplo para novos usuários
-const DISCIPLINAS_EXEMPLO = [
-  { nome: 'Introdução à Programação', periodo: 1, creditos: 4, cargaHoraria: 60, notaMinima: 6.0, status: 'NAO_INICIADA', ga: null, gb: null, notaFinal: null, faltas: 0, semestreCursado: null, observacao: '' },
-  { nome: 'Cálculo Diferencial', periodo: 1, creditos: 4, cargaHoraria: 60, notaMinima: 6.0, status: 'NAO_INICIADA', ga: null, gb: null, notaFinal: null, faltas: 0, semestreCursado: null, observacao: '' },
-  { nome: 'Estrutura de Dados', periodo: 2, creditos: 4, cargaHoraria: 60, notaMinima: 6.0, status: 'NAO_INICIADA', ga: null, gb: null, notaFinal: null, faltas: 0, semestreCursado: null, observacao: '' },
-  { nome: 'Banco de Dados', periodo: 2, creditos: 4, cargaHoraria: 60, notaMinima: 6.0, status: 'NAO_INICIADA', ga: null, gb: null, notaFinal: null, faltas: 0, semestreCursado: null, observacao: '' },
-];
 
 function humanizeSupabaseError(error) {
   const msg = error?.message || '';
@@ -45,45 +38,6 @@ export function useNotas() {
     }
   }, [])
 
-  // Criar disciplinas de exemplo para novo usuário
-  const criarDisciplinasExemplo = useCallback(async (userId) => {
-    if (!supabase) return [];
-    
-    // Verificar se já existem disciplinas (evita duplicação)
-    const { data: existentes } = await supabase
-      .from('disciplinas')
-      .select('id')
-      .eq('user_id', userId)
-      .limit(1);
-    
-    if (existentes && existentes.length > 0) {
-      return []; // Já tem disciplinas, não criar exemplos
-    }
-    
-    try {
-      const disciplinasComUser = DISCIPLINAS_EXEMPLO.map(d => ({
-        ...d,
-        user_id: userId,
-        created_at: new Date().toISOString()
-      }));
-
-      const { data, error } = await supabase
-        .from('disciplinas')
-        .insert(disciplinasComUser)
-        .select();
-
-      if (error) {
-        console.error('Erro ao criar disciplinas de exemplo:', error);
-        return [];
-      }
-
-      return data || [];
-    } catch (error) {
-      console.error('Erro ao criar disciplinas de exemplo:', error);
-      return [];
-    }
-  }, []);
-
   // Carregar disciplinas do usuário
   const loadDisciplinas = useCallback(async () => {
     if (!user || !supabase) {
@@ -104,10 +58,6 @@ export function useNotas() {
       if (error) {
         console.error('Erro ao carregar disciplinas:', error)
         setDisciplinasState([])
-      } else if (!data || data.length === 0) {
-        // Novo usuário - criar disciplinas de exemplo
-        const exemplos = await criarDisciplinasExemplo(user.id);
-        setDisciplinasState(exemplos);
       } else {
         setDisciplinasState(data || [])
       }
@@ -118,7 +68,7 @@ export function useNotas() {
       setSyncing(false)
       setLoading(false)
     }
-  }, [user, criarDisciplinasExemplo])
+  }, [user])
 
   // Carregar ao iniciar ou quando user mudar
   useEffect(() => {
