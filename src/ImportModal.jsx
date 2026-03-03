@@ -528,7 +528,7 @@ ${textoParaAnalisar.substring(0, 20000)}`
 
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
-        throw new Error(err.error?.message || `Erro ${res.status}`);
+        throw new Error(err.error?.message || `Erro HTTP ${res.status}`);
       }
 
       const { data: disciplinas } = await res.json();
@@ -617,9 +617,12 @@ ${textoParaAnalisar.substring(0, 20000)}`
       setFiltroOptativas(true);
     } catch (err) {
       const msg = err.message || '';
+      console.error('Portal import error:', msg);
       if (msg === 'WAKE_FAIL') {
         setErroPortal('O servidor está iniciando (hospedagem gratuita). Tente novamente em 30 segundos.');
-      } else if (msg.includes('401') || msg.includes('Credenciais') || msg.includes('acesso negado')) {
+      } else if (msg.includes('Token') || msg.includes('token') || msg.includes('autenticação')) {
+        setErroPortal('Erro de autenticação com o servidor. Faça logout e login novamente no sistema.');
+      } else if (msg.includes('401') || msg.includes('Credenciais') || msg.includes('acesso negado') || msg.includes('Login failed') || msg.includes('login falhou')) {
         setErroPortal('Usuário ou senha incorretos. Verifique suas credenciais do portal UNISINOS.');
       } else if (msg.includes('429') || msg.includes('Muitas')) {
         setErroPortal('Muitas tentativas. Aguarde 1 minuto e tente novamente.');
@@ -631,8 +634,10 @@ ${textoParaAnalisar.substring(0, 20000)}`
         setErroPortal('Sem conexão com o servidor. Verifique sua internet e tente novamente.');
       } else if (msg.includes('timeout') || msg.includes('aborted') || msg.includes('AbortError') || msg.includes('504')) {
         setErroPortal('A busca demorou demais. O portal pode estar lento. Tente novamente em alguns minutos.');
+      } else if (msg.includes('500') || msg.includes('Internal')) {
+        setErroPortal('Erro interno do servidor. O portal pode estar instável. Tente novamente em alguns minutos.');
       } else {
-        setErroPortal('Erro inesperado ao buscar dados. Tente novamente ou use o modo "Upload PDF".');
+        setErroPortal(`Erro ao buscar dados: ${msg || 'desconhecido'}. Tente novamente ou use "Upload PDF".`);
       }
     } finally {
       setBuscandoPortal(false);
