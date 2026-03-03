@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useRef } from 'react';
-import { X, Upload, FileText, AlertCircle, CheckCircle, ChevronDown, ChevronUp, Info, File, Loader2, Eye, EyeOff, Sparkles, Zap, Globe } from 'lucide-react';
+import { X, Upload, FileText, AlertCircle, CheckCircle, ChevronDown, ChevronUp, Info, File, Loader2, Eye, EyeOff, Sparkles, Zap, Globe, RefreshCw } from 'lucide-react';
 import { supabase } from './supabaseClient';
 
 export default function ImportModal({ onClose, onImport, disciplinasExistentes = [] }) {
@@ -123,7 +123,7 @@ ${textoParaAnalisar.substring(0, 20000)}`
       throw new Error('Formato inválido');
     } catch (error) {
       console.error('Erro na análise IA:', error);
-      setErroPdf('Erro na análise inteligente. Tente o modo manual.');
+      setErroPdf('A análise inteligente falhou. Tente novamente ou use a aba "Portal Auto" para importar automaticamente.');
       return false;
     } finally {
       setProcessandoIA(false);
@@ -438,20 +438,20 @@ ${textoParaAnalisar.substring(0, 20000)}`
           const disciplinas = parseTextoManual(textoCompleto);
           setDisciplinasPreview(disciplinas);
           if (disciplinas.length === 0) {
-            setErroPdf('Nenhuma disciplina com código de 5 dígitos encontrada. Verifique se o PDF é uma grade curricular da UNISINOS.');
+            setErroPdf('Nenhuma disciplina encontrada no PDF. Verifique se é uma grade curricular da UNISINOS ou tente a aba "Portal Auto".');
           }
         }
       } else {
         const disciplinas = parseTextoManual(textoCompleto);
         setDisciplinasPreview(disciplinas);
         if (disciplinas.length === 0) {
-          setErroPdf('Nenhuma disciplina encontrada. O formato esperado é: SEQ | CÓDIGO (5 dígitos) | NOME | CRED | HORAS');
+          setErroPdf('Não foi possível extrair disciplinas do PDF. Tente usar a aba "Portal Auto" para importar automaticamente.');
         }
       }
 
     } catch (error) {
       console.error('Erro ao processar PDF:', error);
-      setErroPdf('Erro ao ler o PDF.');
+      setErroPdf('Erro ao processar o PDF. O arquivo pode estar protegido ou corrompido. Tente outro PDF ou a aba "Portal Auto".');
       setProcessandoPdf(false);
     }
   }, [analisarComIA, parseTextoManual]);
@@ -461,7 +461,7 @@ ${textoParaAnalisar.substring(0, 20000)}`
     if (file && file.type === 'application/pdf') {
       processarPdf(file, true);
     } else {
-      setErroPdf('Por favor, selecione um arquivo PDF.');
+      setErroPdf('Formato de arquivo inválido. Selecione um arquivo .pdf.');
     }
   };
 
@@ -497,7 +497,7 @@ ${textoParaAnalisar.substring(0, 20000)}`
         } catch (e) {
           console.log(`Wake-up tentativa ${tentativa}/5:`, e.message);
           if (tentativa === 5) {
-            throw new Error('Não foi possível conectar ao servidor. Verifique sua conexão e tente novamente.');
+            throw new Error('WAKE_FAIL');
           }
           const msgs = [
             'Servidor inicializando...',
@@ -616,7 +616,24 @@ ${textoParaAnalisar.substring(0, 20000)}`
       setFiltroTrilhas(true);
       setFiltroOptativas(true);
     } catch (err) {
-      setErroPortal(err.message);
+      const msg = err.message || '';
+      if (msg === 'WAKE_FAIL') {
+        setErroPortal('O servidor está iniciando (hospedagem gratuita). Tente novamente em 30 segundos.');
+      } else if (msg.includes('401') || msg.includes('Credenciais') || msg.includes('acesso negado')) {
+        setErroPortal('Usuário ou senha incorretos. Verifique suas credenciais do portal UNISINOS.');
+      } else if (msg.includes('429') || msg.includes('Muitas')) {
+        setErroPortal('Muitas tentativas. Aguarde 1 minuto e tente novamente.');
+      } else if (msg.includes('502') || msg.includes('503')) {
+        setErroPortal('O portal UNISINOS está fora do ar. Tente novamente em alguns minutos.');
+      } else if (msg.includes('Nenhuma disciplina')) {
+        setErroPortal('Nenhuma disciplina encontrada. Verifique se seu usuário está correto e possui matrícula ativa.');
+      } else if (msg.includes('Failed to fetch') || msg.includes('NetworkError') || msg.includes('network')) {
+        setErroPortal('Sem conexão com o servidor. Verifique sua internet e tente novamente.');
+      } else if (msg.includes('timeout') || msg.includes('aborted') || msg.includes('AbortError') || msg.includes('504')) {
+        setErroPortal('A busca demorou demais. O portal pode estar lento. Tente novamente em alguns minutos.');
+      } else {
+        setErroPortal('Erro inesperado ao buscar dados. Tente novamente ou use o modo "Upload PDF".');
+      }
     } finally {
       setBuscandoPortal(false);
     }
@@ -965,9 +982,17 @@ ${textoParaAnalisar.substring(0, 20000)}`
               )}
 
               {erroPortal && (
-                <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-3 flex items-start gap-2">
-                  <AlertCircle size={16} className="text-red-400 mt-0.5 flex-shrink-0" />
-                  <p className="text-red-400 text-sm">{erroPortal}</p>
+                <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-3 space-y-2">
+                  <div className="flex items-start gap-2">
+                    <AlertCircle size={16} className="text-red-400 mt-0.5 flex-shrink-0" />
+                    <p className="text-red-400 text-sm">{erroPortal}</p>
+                  </div>
+                  <button
+                    onClick={() => { setErroPortal(null); buscarDoPortal(); }}
+                    className="text-xs text-cyan-400 hover:text-cyan-300 flex items-center gap-1 transition-colors"
+                  >
+                    <RefreshCw size={12} /> Tentar novamente
+                  </button>
                 </div>
               )}
 

@@ -1,5 +1,5 @@
 import { config } from '../config/index.js';
-import { PortalAuthError, PortalConnectionError } from '../utils/errors.js';
+import { PortalAuthError, PortalConnectionError, PortalTimeoutError } from '../utils/errors.js';
 import { logger } from '../utils/logger.js';
 import { ParserService } from './parser.service.js';
 
@@ -268,6 +268,9 @@ export class PortalService {
       };
     } catch (err) {
       if (err instanceof PortalAuthError) throw err;
+      if (err.name === 'TimeoutError' || err.message?.includes('timeout') || err.message?.includes('Timeout')) {
+        throw new PortalTimeoutError('Portal demorou para responder ao buscar notas');
+      }
       logger.error('Erro ao buscar notas', err.message);
       throw new PortalConnectionError(`Falha ao buscar notas: ${err.message}`);
     }
@@ -316,6 +319,9 @@ export class PortalService {
         logger.warn(`fetchHistorico: erro na tentativa ${_attempt}, retentando...`, err.message);
         return this.fetchHistorico(ra, senha, _attempt + 1);
       }
+      if (err.name === 'TimeoutError' || err.message?.includes('timeout') || err.message?.includes('Timeout')) {
+        throw new PortalTimeoutError('Portal demorou para responder ao buscar histórico');
+      }
       logger.error('Erro ao buscar histórico', err.message);
       throw new PortalConnectionError(`Falha ao buscar histórico: ${err.message}`);
     }
@@ -344,6 +350,9 @@ export class PortalService {
       };
     } catch (err) {
       if (err instanceof PortalAuthError) throw err;
+      if (err.name === 'TimeoutError' || err.message?.includes('timeout') || err.message?.includes('Timeout')) {
+        throw new PortalTimeoutError('Portal demorou para responder ao buscar cadeiras');
+      }
       logger.error('Erro ao buscar cadeiras', err.message);
       throw new PortalConnectionError(`Falha ao buscar cadeiras: ${err.message}`);
     }

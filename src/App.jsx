@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { AuthProvider, useAuth } from './AuthContext'
+import { ToastProvider } from './ToastContext'
 import SistemaNotas from './SistemaNotas'
 import Login from './Login'
 import ResetPassword from './ResetPassword'
@@ -99,7 +100,9 @@ function AppContent() {
 function App() {
   return (
     <AuthProvider>
-      <AppContent />
+      <ToastProvider>
+        <AppContent />
+      </ToastProvider>
     </AuthProvider>
   )
 }

@@ -6,6 +6,8 @@ import { useAuth } from './AuthContext';
 import { usePermissoes } from './usePermissoes';
 import ImportModal from './ImportModal';
 import UpgradeModal from './UpgradeModal';
+import ConfirmModal from './ConfirmModal';
+import { useToast } from './ToastContext';
 
 // Configuração de status com cores estilo Apple
 const STATUS = {
@@ -120,6 +122,8 @@ const BotaoComUpgrade = ({ temPermissao, planoNecessario, onUpgrade, onClick, ch
 export default function SistemaNotas({ onOpenAdmin }) {
   const { user, userName, userCurso, userPlano, userPlanoExpiraEm, isNewUser, updateUserCurso, updateUserProfile, signOut } = useAuth();
   const { permissoes, podeAdicionarDisciplina, getLimiteDisciplinas, temPermissao, planoAtual, planoExpirado, diasRestantes, podeEditar } = usePermissoes();
+  const { toast } = useToast();
+  const [confirmState, setConfirmState] = useState(null);
   const {
     disciplinas,
     setDisciplinas,
@@ -337,7 +341,7 @@ export default function SistemaNotas({ onOpenAdmin }) {
     
     if (result.error) {
       console.error('Erro ao salvar curso:', result.error);
-      alert('Erro ao salvar curso. Verifique o console.');
+      toast.error('Erro ao salvar o curso. Tente novamente.');
     } else {
       setShowWelcomeModal(false);
       // Marcar que o modal foi mostrado
@@ -460,11 +464,11 @@ export default function SistemaNotas({ onOpenAdmin }) {
       const result = await importarDisciplinas(disciplinasImport);
       if (result.error) {
         console.error('Erro ao importar disciplinas:', result.error);
-        alert(`Erro ao importar: ${result.error}`);
+        toast.error('Erro ao importar disciplinas. Tente novamente.');
       }
     } catch (error) {
       console.error('Erro ao importar disciplinas:', error);
-      alert(`Erro ao importar: ${error.message}`);
+      toast.error('Erro ao importar disciplinas. Tente novamente.');
     }
     setShowImportModal(false);
   };
@@ -510,8 +514,10 @@ export default function SistemaNotas({ onOpenAdmin }) {
       }
       setShowResetModal(false);
       setResetConfirmText('');
+      toast.success('Todas as disciplinas foram removidas.');
     } catch (error) {
       console.error('Erro ao resetar cadeiras:', error);
+      toast.error('Erro ao resetar disciplinas. Tente novamente.');
     } finally {
       setResettingAll(false);
     }
@@ -551,7 +557,7 @@ export default function SistemaNotas({ onOpenAdmin }) {
     const { jsPDF } = window.jspdf;
     if (!jsPDF) {
       console.error('jsPDF não está disponível!');
-      alert('Erro: biblioteca PDF não carregada. Recarregue a página.');
+      toast.error('Biblioteca PDF não carregada. Recarregue a página.');
       return;
     }
     
@@ -2635,15 +2641,23 @@ export default function SistemaNotas({ onOpenAdmin }) {
                           const texto = await file.text();
                           const dados = JSON.parse(texto);
                           if (dados.disciplinas && Array.isArray(dados.disciplinas)) {
-                            if (confirm(`Importar ${dados.disciplinas.length} disciplinas? Isso substituirá os dados atuais.`)) {
-                              setDisciplinas(dados.disciplinas);
-                              alert('Dados importados com sucesso!');
-                            }
+                            setConfirmState({
+                              title: 'Importar Backup',
+                              message: `Importar ${dados.disciplinas.length} disciplinas? Isso substituirá os dados atuais.`,
+                              confirmLabel: 'Importar',
+                              variant: 'danger',
+                              onConfirm: () => {
+                                setDisciplinas(dados.disciplinas);
+                                toast.success('Dados importados com sucesso!');
+                                setConfirmState(null);
+                              },
+                              onCancel: () => setConfirmState(null),
+                            });
                           } else {
-                            alert('Arquivo inválido');
+                            toast.error('Arquivo inválido. O formato esperado é um backup JSON deste app.');
                           }
                         } catch (err) {
-                          alert('Erro ao ler arquivo');
+                          toast.error('Erro ao ler o arquivo. Verifique se é um JSON válido.');
                         }
                       };
                       input.click();
@@ -3078,6 +3092,9 @@ export default function SistemaNotas({ onOpenAdmin }) {
           {planoExpirado || !podeAdicionarDisciplina(disciplinas.length) ? <Lock size={24} /> : <Plus size={24} />}
         </button>
       </div>
+
+      {/* Confirm Modal */}
+      {confirmState && <ConfirmModal {...confirmState} />}
     </div>
   );
 }

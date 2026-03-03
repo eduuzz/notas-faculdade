@@ -24,6 +24,12 @@ export class PortalParseError extends PortalError {
   }
 }
 
+export class PortalTimeoutError extends PortalError {
+  constructor(message = 'O portal demorou muito para responder') {
+    super(message, 504);
+  }
+}
+
 export function errorHandler(err, req, res, next) {
   const statusCode = err.statusCode || 500;
   const message = err.message || 'Erro interno do servidor';
@@ -36,6 +42,7 @@ export function errorHandler(err, req, res, next) {
     error: {
       type: err.name || 'Error',
       message,
+      code: statusCode,
     },
   });
 }

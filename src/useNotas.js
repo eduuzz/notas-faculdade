@@ -10,6 +10,20 @@ const DISCIPLINAS_EXEMPLO = [
   { nome: 'Banco de Dados', periodo: 2, creditos: 4, cargaHoraria: 60, notaMinima: 6.0, status: 'NAO_INICIADA', ga: null, gb: null, notaFinal: null, faltas: 0, semestreCursado: null, observacao: '' },
 ];
 
+function humanizeSupabaseError(error) {
+  const msg = error?.message || '';
+  if (msg.includes('duplicate key') || msg.includes('unique')) {
+    return 'Disciplina duplicada. Já existe uma com esse nome neste período.';
+  }
+  if (msg.includes('permission denied') || msg.includes('row-level security')) {
+    return 'Sem permissão. Faça login novamente.';
+  }
+  if (msg.includes('network') || msg.includes('fetch') || msg.includes('Failed')) {
+    return 'Erro de conexão. Verifique sua internet.';
+  }
+  return 'Erro ao salvar dados. Tente novamente.';
+}
+
 export function useNotas() {
   const { user } = useAuth()
   const [disciplinas, setDisciplinasState] = useState([])
@@ -131,7 +145,7 @@ export function useNotas() {
 
       if (error) {
         console.error('Erro ao adicionar:', error)
-        return { error: error.message }
+        return { error: humanizeSupabaseError(error) }
       }
 
       setDisciplinasState(prev => [...prev, data])
@@ -157,7 +171,7 @@ export function useNotas() {
 
       if (error) {
         console.error('Erro ao atualizar:', error)
-        return { error: error.message }
+        return { error: humanizeSupabaseError(error) }
       }
 
       setDisciplinasState(prev => 
@@ -183,7 +197,7 @@ export function useNotas() {
 
       if (error) {
         console.error('Erro ao remover:', error)
-        return { error: error.message }
+        return { error: humanizeSupabaseError(error) }
       }
 
       setDisciplinasState(prev => prev.filter(d => d.id !== id))
@@ -246,7 +260,7 @@ export function useNotas() {
 
       if (error) {
         console.error('Erro ao importar:', error)
-        return { error: error.message }
+        return { error: humanizeSupabaseError(error) }
       }
 
       setDisciplinasState(prev => [...prev, ...data])
