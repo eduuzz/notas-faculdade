@@ -485,6 +485,14 @@ export default function SistemaNotas({ onOpenAdmin }) {
     setShowDeleteMenu(null);
   };
 
+  const toggleTipo = async (id) => {
+    const disc = disciplinas.find(d => d.id === id);
+    const novoTipo = disc.tipo === 'optativa' ? 'obrigatoria' : 'optativa';
+    await atualizarDisciplina(id, { tipo: novoTipo });
+    toast.info(`Disciplina alterada para ${novoTipo === 'optativa' ? 'optativa' : 'obrigatória'}.`);
+    setShowDeleteMenu(null);
+  };
+
   // Gerar código aleatório para confirmação de reset
   const gerarCodigoReset = useCallback(() => {
     const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
@@ -1490,7 +1498,7 @@ export default function SistemaNotas({ onOpenAdmin }) {
                                   const status = STATUS[disc.status];
                                   return (
                                     <tr key={disc.id} className="border-b border-white/5 hover:bg-white/[0.03]">
-                                      <td className="p-3"><span className="font-medium">{disc.nome}</span></td>
+                                      <td className="p-3"><span className="font-medium">{disc.nome}</span>{disc.tipo === 'optativa' && <span className="ml-2 px-1.5 py-0.5 rounded text-[10px] font-medium bg-amber-500/20 text-amber-400 border border-amber-500/30">OPT</span>}</td>
                                       <td className="p-3 text-center text-slate-400 hidden sm:table-cell">{disc.creditos}</td>
                                       <td className="p-3 text-center"><span className={`px-2 py-1 rounded-lg text-xs font-medium ${status.bg} ${status.text} border ${status.border}`}>{status.label}</span></td>
                                       <td className="p-3 text-center font-semibold">{disc.notaFinal ? disc.notaFinal.toFixed(1) : '-'}</td>
@@ -1520,6 +1528,7 @@ export default function SistemaNotas({ onOpenAdmin }) {
                                   <div className="flex-1 min-w-0">
                                     <div className="flex items-center gap-3 mb-1.5 flex-wrap">
                                       <h4 className="font-medium text-white group-hover:text-violet-300 transition-colors truncate">{disc.nome}</h4>
+                                      {disc.tipo === 'optativa' && <span className="px-1.5 py-0.5 rounded-lg text-[10px] font-medium bg-amber-500/20 text-amber-400 border border-amber-500/30">OPT</span>}
                                       <span className={`px-2.5 py-1 rounded-lg text-xs font-semibold ${status.bg} ${status.text} border ${status.border}`}>{status.label}</span>
                                     </div>
                                     <p className="text-sm text-slate-500">{disc.creditos} créditos • {disc.cargaHoraria}h{disc.semestreCursado && ` • ${disc.semestreCursado}`}</p>
@@ -2404,6 +2413,9 @@ export default function SistemaNotas({ onOpenAdmin }) {
                     <RotateCcw size={18} /><div><div className="font-medium">Resetar andamento</div><div className="text-xs text-slate-500">Volta para "Pendente"</div></div>
                   </button>
                 )}
+                <button onClick={() => toggleTipo(showDeleteMenu)} className="w-full flex items-center gap-3 px-4 py-4 text-left text-violet-400 hover:bg-white/5 transition-colors border-t border-white/10">
+                  <RefreshCw size={18} /><div><div className="font-medium">{disciplinas.find(d => d.id === showDeleteMenu)?.tipo === 'optativa' ? 'Marcar como obrigatória' : 'Marcar como optativa'}</div><div className="text-xs text-slate-500">Altera classificação da disciplina</div></div>
+                </button>
                 <button onClick={() => handleRemoverDisciplina(showDeleteMenu)} className="w-full flex items-center gap-3 px-4 py-4 text-left text-red-400 hover:bg-white/5 transition-colors border-t border-white/10">
                   <Trash2 size={18} /><div><div className="font-medium">Excluir disciplina</div><div className="text-xs text-slate-500">Remove permanentemente</div></div>
                 </button>
