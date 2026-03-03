@@ -45,7 +45,17 @@ export default function SistemaNotas({ onOpenAdmin }) {
   const [modoAdicionar, setModoAdicionar] = useState('uma'); // 'uma' ou 'varias'
   const [showImportModal, setShowImportModal] = useState(false);
   const [editingDisciplina, setEditingDisciplina] = useState(null);
-  const [expandedPeriodos, setExpandedPeriodos] = useState({1: true, 2: true, 3: true, 4: true, 5: true, 6: true, 7: true, 8: true});
+  const [numSemestres, setNumSemestres] = useState(() => {
+    const saved = localStorage.getItem('numSemestres');
+    return saved ? parseInt(saved, 10) : 8;
+  });
+  const [expandedPeriodos, setExpandedPeriodos] = useState(() => {
+    const saved = localStorage.getItem('numSemestres');
+    const n = saved ? parseInt(saved, 10) : 8;
+    const obj = {};
+    for (let i = 1; i <= n; i++) obj[i] = true;
+    return obj;
+  });
   const [abaSemestre, setAbaSemestre] = useState({}); // { periodo: 'obrigatorias' | 'optativas' }
   const [filtroStatus, setFiltroStatus] = useState('TODOS');
   const [modoCompacto, setModoCompacto] = useState(() => localStorage.getItem('modoCompacto') === 'true');
@@ -194,7 +204,29 @@ export default function SistemaNotas({ onOpenAdmin }) {
     return { total, aprovadas, emCurso, reprovadas, naoIniciadas, creditosTotal, creditosConcluidos, mediaGeral, progresso };
   }, [disciplinas]);
 
-  const periodos = [1, 2, 3, 4, 5, 6, 7, 8];
+  const periodos = useMemo(() => Array.from({ length: numSemestres }, (_, i) => i + 1), [numSemestres]);
+
+  // Auto-expandir se disciplinas existentes têm periodo > numSemestres
+  useEffect(() => {
+    if (disciplinas.length > 0) {
+      const maxPeriodo = Math.max(...disciplinas.map(d => d.periodo || 0));
+      if (maxPeriodo > numSemestres) {
+        setNumSemestres(maxPeriodo);
+        localStorage.setItem('numSemestres', String(maxPeriodo));
+      }
+    }
+  }, [disciplinas, numSemestres]);
+
+  // Sincronizar expandedPeriodos quando numSemestres muda
+  useEffect(() => {
+    setExpandedPeriodos(prev => {
+      const next = {};
+      for (let i = 1; i <= numSemestres; i++) {
+        next[i] = prev[i] !== undefined ? prev[i] : true;
+      }
+      return next;
+    });
+  }, [numSemestres]);
 
   const disciplinasFiltradas = useMemo(() => {
     return disciplinas.filter(d => {
@@ -209,6 +241,25 @@ export default function SistemaNotas({ onOpenAdmin }) {
     periodos.forEach(p => { porPeriodo[p] = disciplinasFiltradas.filter(d => d.periodo === p); });
     return porPeriodo;
   }, [disciplinasFiltradas]);
+
+  const addSemestre = useCallback(() => {
+    setNumSemestres(prev => {
+      const next = prev + 1;
+      localStorage.setItem('numSemestres', String(next));
+      return next;
+    });
+  }, []);
+
+  const removeSemestre = useCallback(() => {
+    const ultimoPeriodo = numSemestres;
+    const temDisciplinas = disciplinas.some(d => d.periodo === ultimoPeriodo);
+    if (temDisciplinas || numSemestres <= 1) return;
+    setNumSemestres(prev => {
+      const next = prev - 1;
+      localStorage.setItem('numSemestres', String(next));
+      return next;
+    });
+  }, [numSemestres, disciplinas]);
 
   const handleAddDisciplina = async () => {
     if (!novaDisciplina.nome.trim()) return;
@@ -228,6 +279,13 @@ export default function SistemaNotas({ onOpenAdmin }) {
 
   const handleImportarDisciplinas = async (disciplinasImport, onProgress) => {
     try {
+      // Auto-ajustar quantidade de semestres para cobrir os dados importados
+      const maxPeriodo = Math.max(...disciplinasImport.map(d => d.periodo || 0), 0);
+      if (maxPeriodo > 0 && maxPeriodo !== numSemestres) {
+        setNumSemestres(maxPeriodo);
+        localStorage.setItem('numSemestres', String(maxPeriodo));
+      }
+
       const result = await importarDisciplinas(disciplinasImport, onProgress);
       if (result?.error) {
         console.error('Erro ao importar disciplinas:', result.error);
@@ -473,6 +531,8 @@ export default function SistemaNotas({ onOpenAdmin }) {
             modoCompacto={modoCompacto} setModoCompacto={setModoCompacto}
             expandedPeriodos={expandedPeriodos} togglePeriodo={togglePeriodo} toggleAllPeriodos={toggleAllPeriodos}
             periodos={periodos}
+            addSemestre={addSemestre} removeSemestre={removeSemestre}
+            numSemestres={numSemestres} disciplinas={disciplinas}
             disciplinasPorPeriodo={disciplinasPorPeriodo}
             abaSemestre={abaSemestre} setAbaSemestre={setAbaSemestre}
             setShowIniciarModal={setShowIniciarModal}

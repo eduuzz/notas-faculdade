@@ -1,5 +1,5 @@
 import React from 'react';
-import { Plus, Trash2, Award, TrendingUp, CheckCircle, Clock, Edit2, ChevronDown, ChevronUp, Search, Download, Upload as UploadIcon, List, LayoutGrid } from 'lucide-react';
+import { Plus, Minus, Trash2, Award, TrendingUp, CheckCircle, Clock, Edit2, ChevronDown, ChevronUp, Search, Download, Upload as UploadIcon, List, LayoutGrid } from 'lucide-react';
 import { STATUS } from '../ui/STATUS';
 import GlassCard from '../ui/GlassCard';
 import GradientButton from '../ui/GradientButton';
@@ -14,6 +14,8 @@ export default function GradeTab({
   modoCompacto, setModoCompacto,
   expandedPeriodos, togglePeriodo, toggleAllPeriodos,
   periodos,
+  addSemestre, removeSemestre,
+  numSemestres, disciplinas,
   disciplinasPorPeriodo,
   abaSemestre, setAbaSemestre,
   setShowIniciarModal,
@@ -235,6 +237,28 @@ export default function GradeTab({
             </div>
           );
         })}
+
+        {/* Botões adicionar/remover semestre */}
+        <div className="flex items-center justify-center gap-3 pt-2">
+          <button
+            onClick={removeSemestre}
+            disabled={numSemestres <= 1 || disciplinas.some(d => d.periodo === numSemestres)}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all bg-[var(--bg-input)] border border-[var(--border-input)] text-[var(--text-secondary)] hover:bg-red-500/10 hover:text-red-400 hover:border-red-500/30 disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-[var(--bg-input)] disabled:hover:text-[var(--text-secondary)] disabled:hover:border-[var(--border-input)]"
+            title={disciplinas.some(d => d.periodo === numSemestres) ? 'Remova as cadeiras do último semestre primeiro' : 'Remover último semestre'}
+          >
+            <Minus size={16} />
+            <span className="hidden sm:inline">Remover Semestre</span>
+          </button>
+          <span className="text-sm text-[var(--text-muted)]">{numSemestres} semestres</span>
+          <button
+            onClick={addSemestre}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all bg-[var(--bg-input)] border border-[var(--border-input)] text-[var(--text-secondary)] hover:bg-violet-500/10 hover:text-violet-400 hover:border-violet-500/30"
+            title="Adicionar semestre"
+          >
+            <Plus size={16} />
+            <span className="hidden sm:inline">Adicionar Semestre</span>
+          </button>
+        </div>
       </div>
     </div>
   );
