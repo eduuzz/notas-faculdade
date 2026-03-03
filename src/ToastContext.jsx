@@ -40,13 +40,13 @@ function ToastItem({ toast: t, onRemove }) {
 
   return (
     <div
-      className={`flex items-start gap-3 p-4 rounded-2xl border backdrop-blur-xl bg-white/[0.08] shadow-2xl shadow-black/40 max-w-sm transition-all duration-300 ${config.border} ${visible ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-8'}`}
+      className={`flex items-start gap-3 p-4 rounded-2xl border backdrop-blur-xl bg-[var(--bg-modal)] shadow-2xl max-w-sm transition-all duration-300 ${config.border} ${visible ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-8'}`}
     >
       <div className={`${config.bg} p-1.5 rounded-lg flex-shrink-0`}>
         <Icon size={16} className={config.iconColor} />
       </div>
-      <p className="text-sm text-slate-200 flex-1 leading-relaxed">{t.message}</p>
-      <button onClick={handleClose} className="text-slate-500 hover:text-slate-300 flex-shrink-0 transition-colors">
+      <p className="text-sm text-[var(--text-primary)] flex-1 leading-relaxed">{t.message}</p>
+      <button onClick={handleClose} className="text-[var(--text-muted)] hover:text-[var(--text-primary)] flex-shrink-0 transition-colors">
         <X size={14} />
       </button>
     </div>

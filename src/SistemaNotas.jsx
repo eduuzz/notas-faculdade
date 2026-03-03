@@ -1,17 +1,16 @@
-import React, { useState, useMemo, useEffect, useCallback } from 'react';
+import React, { useState, useMemo, useEffect, useCallback, Suspense } from 'react';
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import { Plus, Trash2, BookOpen, Award, TrendingUp, AlertCircle, CheckCircle, GraduationCap, Edit2, X, Clock, PlayCircle, ChevronDown, ChevronUp, Search, Save, Cloud, CloudOff, RefreshCw, LogOut, User, Wifi, WifiOff, Download, Upload as UploadIcon, RotateCcw, Sun, Moon, Monitor, List, LayoutGrid, Shield, ChevronRight, Sparkles, Settings, Crown, Zap, Star, Lock, FileText, Calculator, Target, Database, Calendar } from 'lucide-react';
+import { Plus, Trash2, BookOpen, Award, TrendingUp, AlertCircle, CheckCircle, GraduationCap, Edit2, X, Clock, PlayCircle, ChevronDown, ChevronUp, Search, Save, Cloud, CloudOff, RefreshCw, LogOut, User, Wifi, WifiOff, Download, Upload as UploadIcon, RotateCcw, Sun, Moon, Monitor, List, LayoutGrid, Shield, ChevronRight, Sparkles, Settings, FileText, Calculator, Target, Database } from 'lucide-react';
 import { useNotas } from './useNotas';
 import { useAuth } from './AuthContext';
-import { usePermissoes } from './usePermissoes';
-import ImportModal from './ImportModal';
-import UpgradeModal from './UpgradeModal';
+import { useTheme } from './ThemeContext';
+const ImportModal = React.lazy(() => import('./ImportModal'));
 import ConfirmModal from './ConfirmModal';
 import { useToast } from './ToastContext';
 
 // Configuração de status com cores estilo Apple
 const STATUS = {
-  NAO_INICIADA: { label: 'Pendente', color: 'slate', bg: 'bg-slate-500/20', text: 'text-slate-400', border: 'border-slate-500/30', bar: 'bg-slate-500' },
+  NAO_INICIADA: { label: 'Pendente', color: 'slate', bg: 'bg-slate-500/20', text: 'text-[var(--text-secondary)]', border: 'border-slate-500/30', bar: 'bg-slate-500' },
   EM_CURSO: { label: 'Em Curso', color: 'blue', bg: 'bg-blue-500/20', text: 'text-blue-400', border: 'border-blue-500/30', bar: 'bg-blue-500' },
   APROVADA: { label: 'Aprovada', color: 'emerald', bg: 'bg-emerald-500/20', text: 'text-emerald-400', border: 'border-emerald-500/30', bar: 'bg-emerald-500' },
   REPROVADA: { label: 'Reprovada', color: 'red', bg: 'bg-red-500/20', text: 'text-red-400', border: 'border-red-500/30', bar: 'bg-red-500' }
@@ -19,13 +18,15 @@ const STATUS = {
 
 // Componente Glass Card
 const GlassCard = ({ children, className = '', hover = true, onClick }) => (
-  <div 
+  <div
     onClick={onClick}
     className={`
-      relative overflow-hidden rounded-2xl 
-      bg-white/[0.03] backdrop-blur-xl 
-      border border-white/10 
-      ${hover ? 'hover:bg-white/[0.06] transition-all duration-300 cursor-pointer' : ''}
+      relative overflow-hidden rounded-2xl
+      bg-[var(--bg-card)] dark:backdrop-blur-xl
+      border border-[var(--border-card)]
+      shadow-[var(--shadow-card)]
+      transition-all duration-300
+      ${hover ? 'hover:bg-[var(--bg-card-hover)] cursor-pointer' : ''}
       ${className}
     `}
   >
@@ -39,16 +40,14 @@ const GradientButton = ({ children, onClick, disabled, variant = 'primary', clas
     primary: 'bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 shadow-lg shadow-violet-500/25 hover:shadow-violet-500/40',
     success: 'bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-500 hover:to-green-500 shadow-lg shadow-emerald-500/25',
     danger: 'bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 shadow-lg shadow-red-500/25',
-    secondary: 'bg-white/5 hover:bg-white/10 border border-white/10',
+    secondary: 'bg-[var(--bg-input)] hover:bg-[var(--bg-hover)] border border-[var(--border-input)]',
     amber: 'bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-500 hover:to-orange-500 shadow-lg shadow-amber-500/25',
-    purple: 'bg-gradient-to-r from-purple-600 to-fuchsia-600 hover:from-purple-500 hover:to-fuchsia-500 shadow-lg shadow-purple-500/25',
-  };
+    purple: 'bg-gradient-to-r from-purple-600 to-fuchsia-600 hover:from-purple-500 hover:to-fuchsia-500 shadow-lg shadow-purple-500/25' };
   
   const sizes = {
     sm: 'px-3 py-2 text-sm',
     md: 'px-5 py-3 text-sm',
-    lg: 'px-6 py-3.5 text-base',
-  };
+    lg: 'px-6 py-3.5 text-base' };
 
   return (
     <button
@@ -66,63 +65,10 @@ const GradientButton = ({ children, onClick, disabled, variant = 'primary', clas
   );
 };
 
-// Componente para mostrar funcionalidade bloqueada
-const FeatureLock = ({ planoNecessario, children, onUpgrade }) => {
-  const planoLabel = planoNecessario === 'pro' ? 'Pro' : 'Premium';
-  const gradiente = planoNecessario === 'pro' 
-    ? 'from-violet-500 to-indigo-600' 
-    : 'from-amber-500 to-orange-600';
-  
-  return (
-    <div className="relative">
-      <div className="opacity-50 pointer-events-none blur-[1px]">
-        {children}
-      </div>
-      <div className="absolute inset-0 flex items-center justify-center bg-black/40 backdrop-blur-sm rounded-2xl">
-        <div className="text-center p-4">
-          <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${gradiente} flex items-center justify-center mx-auto mb-3 shadow-lg`}>
-            <Lock size={24} className="text-white" />
-          </div>
-          <p className="text-white font-medium mb-1">Recurso {planoLabel}</p>
-          <p className="text-slate-400 text-sm mb-3">Faça upgrade para desbloquear</p>
-          <button
-            onClick={onUpgrade}
-            className={`px-4 py-2 rounded-lg bg-gradient-to-r ${gradiente} text-white text-sm font-medium hover:scale-105 transition-transform`}
-          >
-            Fazer Upgrade
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-// Botão que abre upgrade quando funcionalidade bloqueada
-const BotaoComUpgrade = ({ temPermissao, planoNecessario, onUpgrade, onClick, children, className, disabled }) => {
-  if (!temPermissao) {
-    return (
-      <button
-        onClick={onUpgrade}
-        className={`${className} relative group`}
-        title={`Requer plano ${planoNecessario === 'pro' ? 'Pro' : 'Premium'}`}
-      >
-        <span className="opacity-50">{children}</span>
-        <Lock size={14} className="absolute -top-1 -right-1 text-amber-400" />
-      </button>
-    );
-  }
-  
-  return (
-    <button onClick={onClick} disabled={disabled} className={className}>
-      {children}
-    </button>
-  );
-};
-
 export default function SistemaNotas({ onOpenAdmin }) {
-  const { user, userName, userCurso, userPlano, userPlanoExpiraEm, isNewUser, updateUserCurso, updateUserProfile, signOut } = useAuth();
-  const { permissoes, podeAdicionarDisciplina, getLimiteDisciplinas, temPermissao, planoAtual, planoExpirado, diasRestantes, podeEditar } = usePermissoes();
+  const { user, userName, userCurso, isNewUser, updateUserCurso, updateUserProfile, signOut } = useAuth();
   const { toast } = useToast();
+  const { isDark, toggleTheme } = useTheme();
   const [confirmState, setConfirmState] = useState(null);
   const {
     disciplinas,
@@ -169,12 +115,7 @@ export default function SistemaNotas({ onOpenAdmin }) {
   const [settingsCurso, setSettingsCurso] = useState('');
   const [savingSettings, setSavingSettings] = useState(false);
   
-  // Modal de upgrade de plano
-  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
-  
-  // Modal de aviso de expiração
-  const [showExpiracaoModal, setShowExpiracaoModal] = useState(false);
-  
+
   // Modal de confirmação de logout
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   
@@ -184,125 +125,11 @@ export default function SistemaNotas({ onOpenAdmin }) {
   const [resetCode, setResetCode] = useState('');
   const [resettingAll, setResettingAll] = useState(false);
   
-  // Estados do Planejador de Matrícula
-  const [gradePlanejamento, setGradePlanejamento] = useState({});
-  const [mostrarSabado, setMostrarSabado] = useState(true);
-  const [creditosLimite, setCreditosLimite] = useState({ min: 12, max: 24 });
-  const [salvandoPlanejamento, setSalvandoPlanejamento] = useState(false);
-  
   // Modal do simulador de notas
   const [showSimulador, setShowSimulador] = useState(false);
   const [simuladorDisciplina, setSimuladorDisciplina] = useState(null);
   const [simuladorGA, setSimuladorGA] = useState('');
   const [simuladorGB, setSimuladorGB] = useState('');
-
-  // Configuração dos horários do planejador
-  const HORARIOS_PLANEJADOR = [
-    { id: 'manha', label: '09:00 - 12:00', inicio: '09:00', fim: '12:00' },
-    { id: 'noite1', label: '19:30 - 20:45', inicio: '19:30', fim: '20:45' },
-    { id: 'noite2', label: '21:00 - 22:15', inicio: '21:00', fim: '22:15' },
-  ];
-
-  const DIAS_SEMANA = [
-    { id: 'seg', label: 'Segunda', abrev: 'Seg' },
-    { id: 'ter', label: 'Terça', abrev: 'Ter' },
-    { id: 'qua', label: 'Quarta', abrev: 'Qua' },
-    { id: 'qui', label: 'Quinta', abrev: 'Qui' },
-    { id: 'sex', label: 'Sexta', abrev: 'Sex' },
-    { id: 'sab', label: 'Sábado', abrev: 'Sáb' },
-  ];
-
-  const CORES_DISCIPLINAS = [
-    'bg-violet-500/30 border-violet-500/50 text-violet-200',
-    'bg-blue-500/30 border-blue-500/50 text-blue-200',
-    'bg-emerald-500/30 border-emerald-500/50 text-emerald-200',
-    'bg-amber-500/30 border-amber-500/50 text-amber-200',
-    'bg-pink-500/30 border-pink-500/50 text-pink-200',
-    'bg-cyan-500/30 border-cyan-500/50 text-cyan-200',
-  ];
-
-  // Carregar planejamento salvo do localStorage
-  useEffect(() => {
-    if (user) {
-      const saved = localStorage.getItem(`planejamento_${user.id}`);
-      if (saved) {
-        try {
-          const parsed = JSON.parse(saved);
-          setGradePlanejamento(parsed.grade || {});
-          setCreditosLimite(parsed.limites || { min: 12, max: 24 });
-          setMostrarSabado(parsed.mostrarSabado !== false);
-        } catch (e) {
-          console.error('Erro ao carregar planejamento:', e);
-        }
-      }
-    }
-  }, [user]);
-
-  // Salvar planejamento automaticamente
-  const salvarPlanejamento = useCallback(() => {
-    if (!user) return;
-    setSalvandoPlanejamento(true);
-    const data = {
-      grade: gradePlanejamento,
-      limites: creditosLimite,
-      mostrarSabado,
-      updatedAt: new Date().toISOString()
-    };
-    localStorage.setItem(`planejamento_${user.id}`, JSON.stringify(data));
-    setTimeout(() => setSalvandoPlanejamento(false), 500);
-  }, [user, gradePlanejamento, creditosLimite, mostrarSabado]);
-
-  // Salvar quando mudar a grade
-  useEffect(() => {
-    if (user && Object.keys(gradePlanejamento).length > 0) {
-      salvarPlanejamento();
-    }
-  }, [gradePlanejamento, salvarPlanejamento, user]);
-
-  // Funções do planejador
-  const [coresDisciplinas, setCoresDisciplinas] = useState({});
-  const [disciplinaSelecionadaPlanejador, setDisciplinaSelecionadaPlanejador] = useState(null);
-
-  const getCorDisciplina = (disciplinaId) => {
-    if (!coresDisciplinas[disciplinaId]) {
-      const indice = Object.keys(coresDisciplinas).length % CORES_DISCIPLINAS.length;
-      setCoresDisciplinas(prev => ({ ...prev, [disciplinaId]: CORES_DISCIPLINAS[indice] }));
-      return CORES_DISCIPLINAS[indice];
-    }
-    return coresDisciplinas[disciplinaId];
-  };
-
-  const adicionarNaGradePlanejamento = (dia, horario, disciplina) => {
-    const chave = `${dia}-${horario}`;
-    const cor = getCorDisciplina(disciplina.id);
-    setGradePlanejamento(prev => ({
-      ...prev,
-      [chave]: {
-        disciplinaId: disciplina.id,
-        nome: disciplina.nome,
-        creditos: disciplina.creditos || 4,
-        cor
-      }
-    }));
-    setDisciplinaSelecionadaPlanejador(null);
-  };
-
-  const removerDaGradePlanejamento = (dia, horario) => {
-    const chave = `${dia}-${horario}`;
-    setGradePlanejamento(prev => {
-      const novo = { ...prev };
-      delete novo[chave];
-      return novo;
-    });
-  };
-
-  const limparGradePlanejamento = () => {
-    setGradePlanejamento({});
-    setCoresDisciplinas({});
-    if (user) {
-      localStorage.removeItem(`planejamento_${user.id}`);
-    }
-  };
 
   // Mostrar modal de boas-vindas APENAS na primeira vez (usando localStorage)
   useEffect(() => {
@@ -314,24 +141,7 @@ export default function SistemaNotas({ onOpenAdmin }) {
     }
   }, [user, userCurso, loading]);
 
-  // Mostrar pop-up de aviso de expiração (quando faltam 30 dias ou menos)
-  useEffect(() => {
-    if (!loading && user && diasRestantes !== null && diasRestantes <= 30 && diasRestantes > 0 && !planoExpirado) {
-      // Verificar se já mostrou hoje
-      const ultimoAviso = localStorage.getItem(`expiracaoAviso_${user.id}`);
-      const hoje = new Date().toDateString();
-      
-      if (ultimoAviso !== hoje) {
-        // Mostrar após 2 segundos para não ser muito intrusivo
-        const timer = setTimeout(() => {
-          setShowExpiracaoModal(true);
-          localStorage.setItem(`expiracaoAviso_${user.id}`, hoje);
-        }, 2000);
-        
-        return () => clearTimeout(timer);
-      }
-    }
-  }, [user, diasRestantes, planoExpirado, loading]);
+
 
   const handleSaveCurso = async () => {
     if (!cursoInput.trim()) return;
@@ -571,11 +381,6 @@ export default function SistemaNotas({ onOpenAdmin }) {
   };
 
   const exportarPDF = () => {
-    console.log('=== DEBUG PDF ===');
-    console.log('userPlano:', userPlano);
-    console.log('temPermissao exportarPdf:', temPermissao('exportarPdf'));
-    console.log('temPermissao exportarPdfGraficos:', temPermissao('exportarPdfGraficos'));
-    
     const { jsPDF } = window.jspdf;
     if (!jsPDF) {
       console.error('jsPDF não está disponível!');
@@ -584,7 +389,7 @@ export default function SistemaNotas({ onOpenAdmin }) {
     }
     
     const doc = new jsPDF();
-    const podeGraficos = temPermissao('exportarPdfGraficos');
+    const podeGraficos = true;
     
     // Cores por plano
     const isPremium = podeGraficos;
@@ -1178,12 +983,11 @@ export default function SistemaNotas({ onOpenAdmin }) {
     periodo: `${p}º`,
     aprovadas: disciplinas.filter(d => d.periodo === p && d.status === 'APROVADA').length,
     emCurso: disciplinas.filter(d => d.periodo === p && d.status === 'EM_CURSO').length,
-    pendentes: disciplinas.filter(d => d.periodo === p && d.status === 'NAO_INICIADA').length,
-  }));
+    pendentes: disciplinas.filter(d => d.periodo === p && d.status === 'NAO_INICIADA').length }));
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#09090b] text-white flex items-center justify-center">
+      <div className="min-h-screen bg-[var(--bg-root)] text-[var(--text-primary)] flex items-center justify-center">
         <div className="fixed inset-0 overflow-hidden pointer-events-none">
           <div className="absolute top-[-20%] right-[-10%] w-[600px] h-[600px] bg-violet-600/10 rounded-full blur-[120px]" />
           <div className="absolute bottom-[-20%] left-[-10%] w-[500px] h-[500px] bg-blue-600/10 rounded-full blur-[100px]" />
@@ -1192,68 +996,21 @@ export default function SistemaNotas({ onOpenAdmin }) {
           <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-violet-500 to-indigo-600 flex items-center justify-center shadow-xl shadow-violet-500/30 mx-auto mb-4">
             <RefreshCw size={32} className="text-white animate-spin" />
           </div>
-          <p className="text-slate-400">Carregando...</p>
+          <p className="text-[var(--text-secondary)]">Carregando...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#09090b] text-white">
-      <div className="fixed inset-0 overflow-hidden pointer-events-none">
+    <div className="min-h-screen bg-[var(--bg-root)] text-[var(--text-primary)]">
+      <div className="fixed inset-0 overflow-hidden pointer-events-none dark:block hidden">
         <div className="absolute top-[-20%] right-[-10%] w-[600px] h-[600px] bg-violet-600/10 rounded-full blur-[120px]" />
         <div className="absolute bottom-[-20%] left-[-10%] w-[500px] h-[500px] bg-blue-600/10 rounded-full blur-[100px]" />
         <div className="absolute top-[40%] left-[30%] w-[300px] h-[300px] bg-fuchsia-600/5 rounded-full blur-[80px]" />
       </div>
 
       <div className="relative z-10 max-w-6xl mx-auto px-4 sm:px-6 py-8">
-        {/* Banner de Expiração */}
-        {planoExpirado && (
-          <div className="mb-6 p-4 rounded-2xl bg-gradient-to-r from-red-500/20 to-orange-500/20 border border-red-500/30">
-            <div className="flex items-center justify-between flex-wrap gap-4">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-red-500/20 flex items-center justify-center">
-                  <AlertCircle className="text-red-400" size={22} />
-                </div>
-                <div>
-                  <h3 className="text-red-300 font-semibold">Seu período gratuito expirou!</h3>
-                  <p className="text-red-200/70 text-sm">Suas disciplinas estão seguras, mas você não pode mais editar. Assine para continuar.</p>
-                </div>
-              </div>
-              <button 
-                onClick={() => setShowUpgradeModal(true)}
-                className="px-5 py-2.5 bg-gradient-to-r from-red-500 to-orange-500 rounded-xl text-white font-medium hover:from-red-400 hover:to-orange-400 transition-all shadow-lg shadow-red-500/25"
-              >
-                Assinar Agora
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* Banner de Aviso de Expiração (menos de 30 dias) */}
-        {!planoExpirado && diasRestantes !== null && diasRestantes <= 30 && diasRestantes > 0 && (
-          <div className="mb-6 p-4 rounded-2xl bg-gradient-to-r from-amber-500/20 to-yellow-500/20 border border-amber-500/30">
-            <div className="flex items-center justify-between flex-wrap gap-4">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-amber-500/20 flex items-center justify-center">
-                  <Clock className="text-amber-400" size={22} />
-                </div>
-                <div>
-                  <h3 className="text-amber-300 font-semibold">
-                    {diasRestantes === 1 ? 'Último dia!' : `${diasRestantes} dias restantes`}
-                  </h3>
-                  <p className="text-amber-200/70 text-sm">Seu período gratuito está acabando. Assine para não perder acesso.</p>
-                </div>
-              </div>
-              <button 
-                onClick={() => setShowUpgradeModal(true)}
-                className="px-5 py-2.5 bg-gradient-to-r from-amber-500 to-yellow-500 rounded-xl text-black font-medium hover:from-amber-400 hover:to-yellow-400 transition-all shadow-lg shadow-amber-500/25"
-              >
-                Ver Planos
-              </button>
-            </div>
-          </div>
-        )}
 
         {/* Header */}
         <header className="mb-10">
@@ -1264,31 +1021,34 @@ export default function SistemaNotas({ onOpenAdmin }) {
               </div>
               <div>
                 <h1 className="text-2xl font-semibold tracking-tight">Sistema de Notas</h1>
-                <p className="text-slate-500 text-sm">Gerencie suas disciplinas</p>
+                <p className="text-[var(--text-muted)] text-sm">Gerencie suas disciplinas</p>
               </div>
             </div>
             <div className="flex items-center gap-2 sm:gap-3">
-              <div className={`p-2.5 sm:p-3 rounded-2xl bg-white/5 border border-white/10 ${isOnline ? 'text-emerald-400' : 'text-red-400'}`}>
+              <div className={`p-2.5 sm:p-3 rounded-2xl bg-[var(--bg-input)] border border-[var(--border-input)] ${isOnline ? 'text-emerald-400' : 'text-red-400'}`}>
                 {isOnline ? <Wifi size={18} /> : <WifiOff size={18} />}
               </div>
-              <button onClick={forceSync} disabled={syncing || !isOnline} className="p-2.5 sm:p-3 rounded-2xl bg-white/5 border border-white/10 hover:bg-white/10 transition-all disabled:opacity-50">
-                <RefreshCw size={18} className={`text-slate-400 ${syncing ? 'animate-spin' : ''}`} />
+              <button onClick={forceSync} disabled={syncing || !isOnline} className="p-2.5 sm:p-3 rounded-2xl bg-[var(--bg-input)] border border-[var(--border-input)] hover:bg-[var(--bg-hover)] transition-all disabled:opacity-50">
+                <RefreshCw size={18} className={`text-[var(--text-secondary)] ${syncing ? 'animate-spin' : ''}`} />
               </button>
               {onOpenAdmin && (
-                <button onClick={onOpenAdmin} className="p-2.5 sm:p-3 rounded-2xl bg-white/5 border border-white/10 hover:bg-white/10 transition-all">
+                <button onClick={onOpenAdmin} className="p-2.5 sm:p-3 rounded-2xl bg-[var(--bg-input)] border border-[var(--border-input)] hover:bg-[var(--bg-hover)] transition-all">
                   <Shield size={18} className="text-violet-400" />
                 </button>
               )}
-              <button onClick={openSettings} className="p-2.5 sm:p-3 rounded-2xl bg-white/5 border border-white/10 hover:bg-white/10 transition-all">
-                <Settings size={18} className="text-slate-400" />
+              <button onClick={toggleTheme} className="p-2.5 sm:p-3 rounded-2xl bg-[var(--bg-input)] border border-[var(--border-input)] hover:bg-[var(--bg-hover)] transition-all" title={isDark ? 'Modo claro' : 'Modo escuro'}>
+                {isDark ? <Sun size={18} className="text-amber-400" /> : <Moon size={18} className="text-indigo-500" />}
               </button>
-              <div className="hidden sm:flex items-center gap-3 px-4 py-2.5 rounded-2xl bg-white/5 border border-white/10">
+              <button onClick={openSettings} className="p-2.5 sm:p-3 rounded-2xl bg-[var(--bg-input)] border border-[var(--border-input)] hover:bg-[var(--bg-hover)] transition-all">
+                <Settings size={18} className="text-[var(--text-secondary)]" />
+              </button>
+              <div className="hidden sm:flex items-center gap-3 px-4 py-2.5 rounded-2xl bg-[var(--bg-input)] border border-[var(--border-input)]">
                 <div className="w-9 h-9 rounded-full bg-gradient-to-br from-violet-500 to-pink-500 flex items-center justify-center text-sm font-semibold">
                   {user?.email?.charAt(0).toUpperCase()}
                 </div>
-                <span className="text-sm text-slate-300 font-medium max-w-[120px] truncate">{user?.email}</span>
+                <span className="text-sm text-[var(--text-secondary)] font-medium max-w-[120px] truncate">{user?.email}</span>
               </div>
-              <button onClick={() => setShowLogoutModal(true)} className="p-2.5 sm:p-3 rounded-2xl bg-white/5 border border-white/10 hover:bg-red-500/20 hover:border-red-500/30 transition-all">
+              <button onClick={() => setShowLogoutModal(true)} className="p-2.5 sm:p-3 rounded-2xl bg-[var(--bg-input)] border border-[var(--border-input)] hover:bg-red-500/20 hover:border-red-500/30 transition-all">
                 <LogOut size={18} className="text-red-400" />
               </button>
             </div>
@@ -1297,7 +1057,7 @@ export default function SistemaNotas({ onOpenAdmin }) {
 
         {/* Saudação estilo Apple */}
         <div className="mb-8">
-          <h2 className="text-2xl sm:text-3xl font-semibold tracking-tight text-white">
+          <h2 className="text-2xl sm:text-3xl font-semibold tracking-tight text-[var(--text-primary)]">
             {(() => {
               const hora = new Date().getHours();
               const saudacao = hora >= 5 && hora < 12 ? 'Bom dia' : hora >= 12 && hora < 18 ? 'Boa tarde' : 'Boa noite';
@@ -1306,7 +1066,7 @@ export default function SistemaNotas({ onOpenAdmin }) {
             })()}
           </h2>
           {userCurso && (
-            <p className="text-slate-500 text-sm sm:text-base mt-1 flex items-center gap-2">
+            <p className="text-[var(--text-muted)] text-sm sm:text-base mt-1 flex items-center gap-2">
               <BookOpen size={16} className="text-violet-400" />
               {userCurso}
             </p>
@@ -1315,34 +1075,26 @@ export default function SistemaNotas({ onOpenAdmin }) {
 
         {/* Tabs */}
         <nav className="mb-8 overflow-x-auto">
-          <div className="inline-flex p-1.5 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-xl">
+          <div className="inline-flex p-1.5 rounded-2xl bg-[var(--bg-tabs)] border border-[var(--border-tabs)] dark:backdrop-blur-xl">
             {[
-              { id: 'grade', label: '📚 Grade', icon: BookOpen, requerPermissao: null },
-              { id: 'planejar', label: '📅 Planejar', icon: Calendar, requerPermissao: null },
-              { id: 'emCurso', label: '⏱️ Em Curso', icon: Clock, requerPermissao: null },
-              { id: 'dashboard', label: '📊 Dashboard', icon: TrendingUp, requerPermissao: null },
-              { id: 'formatura', label: '🎓 Formatura', icon: GraduationCap, requerPermissao: 'previsaoFormatura' },
+              { id: 'grade', label: '📚 Grade', icon: BookOpen },
+              { id: 'emCurso', label: '⏱️ Em Curso', icon: Clock },
+              { id: 'dashboard', label: '📊 Dashboard', icon: TrendingUp },
+              { id: 'formatura', label: '🎓 Formatura', icon: GraduationCap },
             ].map(tab => {
-              const bloqueado = tab.requerPermissao && !temPermissao(tab.requerPermissao);
-              
               return (
-                <button 
-                  key={tab.id} 
-                  onClick={() => bloqueado ? setShowUpgradeModal(true) : setActiveTab(tab.id)} 
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
                   className={`relative px-3 sm:px-6 py-3 rounded-xl text-sm font-medium transition-all duration-300 whitespace-nowrap ${
-                    activeTab === tab.id 
-                      ? tab.id === 'planejar' 
-                        ? 'bg-cyan-500/20 text-cyan-300 shadow-lg' 
-                        : 'bg-white/10 text-white shadow-lg' 
-                      : tab.id === 'planejar'
-                        ? 'text-cyan-400 hover:text-cyan-300 hover:bg-cyan-500/10'
-                        : 'text-slate-400 hover:text-white'
-                  } ${bloqueado ? 'opacity-60' : ''}`}
+                    activeTab === tab.id
+                      ? 'bg-[var(--bg-hover)] text-[var(--text-primary)] shadow-lg dark:bg-white/10'
+                      : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+                  }`}
                 >
                   <tab.icon size={16} className="sm:hidden" />
                   <span className="hidden sm:inline">{tab.label}</span>
                   <span className="sm:hidden text-xs">{tab.label.split(' ')[1]}</span>
-                  {bloqueado && <Lock size={12} className="absolute -top-1 -right-1 text-amber-400" />}
                 </button>
               );
             })}
@@ -1363,7 +1115,7 @@ export default function SistemaNotas({ onOpenAdmin }) {
                 <GlassCard key={i} className="p-3 sm:p-5" hover={false}>
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-slate-500 text-xs sm:text-sm mb-1">{stat.label}</p>
+                      <p className="text-[var(--text-muted)] text-xs sm:text-sm mb-1">{stat.label}</p>
                       <p className="text-2xl sm:text-3xl font-semibold">{stat.value}</p>
                     </div>
                     <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-gradient-to-br ${stat.gradient} flex items-center justify-center shadow-lg ${stat.shadow}`}>
@@ -1378,10 +1130,10 @@ export default function SistemaNotas({ onOpenAdmin }) {
             {/* Search & Actions */}
             <div className="flex flex-col sm:flex-row gap-4">
               <div className="flex-1 relative">
-                <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" />
-                <input type="text" placeholder="Buscar disciplina..." value={busca} onChange={(e) => setBusca(e.target.value)} className="w-full pl-12 pr-4 py-3.5 rounded-2xl bg-white/5 border border-white/10 text-white placeholder-slate-500 focus:outline-none focus:border-violet-500/50 transition-all" />
+                <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" />
+                <input type="text" placeholder="Buscar disciplina..." value={busca} onChange={(e) => setBusca(e.target.value)} className="w-full pl-12 pr-4 py-3.5 rounded-2xl bg-[var(--bg-input)] border border-[var(--border-input)] text-white placeholder-[var(--text-muted)] focus:outline-none focus:border-violet-500/50 transition-all" />
               </div>
-              <select value={filtroStatus} onChange={(e) => setFiltroStatus(e.target.value)} className="px-4 py-3.5 rounded-2xl bg-white/5 border border-white/10 text-white focus:outline-none cursor-pointer">
+              <select value={filtroStatus} onChange={(e) => setFiltroStatus(e.target.value)} className="px-4 py-3.5 rounded-2xl bg-[var(--bg-input)] border border-[var(--border-input)] text-[var(--text-primary)] focus:outline-none cursor-pointer">
                 <option value="TODOS" className="bg-slate-800">Todos</option>
                 <option value="APROVADA" className="bg-slate-800">Aprovadas</option>
                 <option value="EM_CURSO" className="bg-slate-800">Em Curso</option>
@@ -1391,44 +1143,37 @@ export default function SistemaNotas({ onOpenAdmin }) {
               <div className="flex gap-2 flex-wrap">
                 <GradientButton 
                   variant="success" 
-                  onClick={() => temPermissao('exportarPdf') ? exportarPDF() : setShowUpgradeModal(true)}
-                  className={!temPermissao('exportarPdf') ? 'relative' : ''}
+                  onClick={() => exportarPDF()}
+                  
                 >
                   <Download size={16} />
                   <span className="text-xs sm:text-sm">PDF</span>
-                  {!temPermissao('exportarPdf') && <Lock size={12} className="absolute -top-1 -right-1 text-amber-400" />}
                 </GradientButton>
-                <GradientButton variant="amber" onClick={() => !planoExpirado && setShowImportModal(true)} disabled={planoExpirado}><UploadIcon size={16} /><span className="text-xs sm:text-sm">Importar</span></GradientButton>
+                <GradientButton variant="amber" onClick={() => setShowImportModal(true)}><UploadIcon size={16} /><span className="text-xs sm:text-sm">Importar</span></GradientButton>
                 <GradientButton 
-                  onClick={() => !planoExpirado && podeAdicionarDisciplina(disciplinas.length) ? setShowAddDisciplina(true) : setShowUpgradeModal(true)}
-                  disabled={planoExpirado}
+                  onClick={() => setShowAddDisciplina(true)}
                 >
                   <Plus size={16} /><span className="text-xs sm:text-sm">Adicionar</span>
                 </GradientButton>
               </div>
               {/* Indicador de limite para plano básico/gratuito */}
               {getLimiteDisciplinas() !== Infinity && (
-                <div className="text-xs text-slate-500">
+                <div className="text-xs text-[var(--text-muted)]">
                   {disciplinas.length}/{getLimiteDisciplinas()} disciplinas
                   {disciplinas.length >= getLimiteDisciplinas() && (
                     <span className="text-amber-400 ml-2">• Limite atingido</span>
                   )}
                 </div>
               )}
-              {planoExpirado && (
-                <div className="text-xs text-red-400">
-                  ⚠️ Modo somente leitura - Assine para editar
-                </div>
-              )}
             </div>
 
             {/* Toggle buttons */}
             <div className="flex items-center justify-between">
-              <button onClick={() => setModoCompacto(!modoCompacto)} className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/5 border border-white/10 text-slate-400 hover:text-white hover:bg-white/10 transition-all">
+              <button onClick={() => setModoCompacto(!modoCompacto)} className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[var(--bg-input)] border border-[var(--border-input)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-hover)] transition-all">
                 {modoCompacto ? <LayoutGrid size={18} /> : <List size={18} />}
                 <span className="text-sm">{modoCompacto ? 'Expandido' : 'Compacto'}</span>
               </button>
-              <button onClick={toggleAllPeriodos} className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/5 border border-white/10 text-slate-400 hover:text-white hover:bg-white/10 transition-all">
+              <button onClick={toggleAllPeriodos} className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[var(--bg-input)] border border-[var(--border-input)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-hover)] transition-all">
                 {periodos.every(p => expandedPeriodos[p]) ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
                 <span className="text-sm">{periodos.every(p => expandedPeriodos[p]) ? 'Minimizar' : 'Expandir'}</span>
               </button>
@@ -1459,7 +1204,7 @@ export default function SistemaNotas({ onOpenAdmin }) {
                           </div>
                           <div>
                             <h3 className="font-semibold text-lg">{periodo}º Semestre</h3>
-                            <p className="text-sm text-slate-500">{aprovadas} de {totalObrig} concluídas</p>
+                            <p className="text-sm text-[var(--text-muted)]">{aprovadas} de {totalObrig} concluídas</p>
                           </div>
                         </div>
                         <div className="flex items-center gap-4">
@@ -1467,9 +1212,9 @@ export default function SistemaNotas({ onOpenAdmin }) {
                             <div className="h-2.5 w-32 rounded-full bg-white/10 overflow-hidden">
                               <div className="h-full rounded-full bg-gradient-to-r from-emerald-500 to-green-400 transition-all" style={{ width: `${progresso}%` }} />
                             </div>
-                            <span className="text-sm text-slate-400 w-12">{progresso.toFixed(0)}%</span>
+                            <span className="text-sm text-[var(--text-secondary)] w-12">{progresso.toFixed(0)}%</span>
                           </div>
-                          {expandedPeriodos[periodo] ? <ChevronUp size={20} className="text-slate-500" /> : <ChevronDown size={20} className="text-slate-500" />}
+                          {expandedPeriodos[periodo] ? <ChevronUp size={20} className="text-[var(--text-muted)]" /> : <ChevronDown size={20} className="text-[var(--text-muted)]" />}
                         </div>
                       </div>
                     </GlassCard>
@@ -1481,32 +1226,32 @@ export default function SistemaNotas({ onOpenAdmin }) {
                           <div className="flex gap-2 mb-2">
                             <button
                               onClick={(e) => { e.stopPropagation(); setAbaSemestre(prev => ({ ...prev, [periodo]: 'obrigatorias' })); }}
-                              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${abaAtiva === 'obrigatorias' ? 'bg-violet-500/20 text-violet-300 border border-violet-500/30' : 'bg-white/5 text-slate-400 border border-white/10 hover:bg-white/10'}`}
+                              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${abaAtiva === 'obrigatorias' ? 'bg-violet-500/20 text-violet-300 border border-violet-500/30' : 'bg-[var(--bg-input)] text-[var(--text-secondary)] border border-[var(--border-input)] hover:bg-[var(--bg-hover)]'}`}
                             >
                               Obrigatórias ({obrigatorias.length})
                             </button>
                             <button
                               onClick={(e) => { e.stopPropagation(); setAbaSemestre(prev => ({ ...prev, [periodo]: 'optativas' })); }}
-                              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${abaAtiva === 'optativas' ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30' : 'bg-white/5 text-slate-400 border border-white/10 hover:bg-white/10'}`}
+                              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${abaAtiva === 'optativas' ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30' : 'bg-[var(--bg-input)] text-[var(--text-secondary)] border border-[var(--border-input)] hover:bg-[var(--bg-hover)]'}`}
                             >
                               Optativas ({optativas.length})
                             </button>
                           </div>
                         )}
                         {discsVisiveis.length === 0 ? (
-                          <p className="text-slate-500 text-sm py-4 text-center">
+                          <p className="text-[var(--text-muted)] text-sm py-4 text-center">
                             {abaAtiva === 'optativas' ? 'Nenhuma optativa neste período' : 'Nenhuma disciplina neste período'}
                           </p>
                         ) : modoCompacto ? (
                           <GlassCard className="overflow-hidden" hover={false}>
                             <table className="w-full">
                               <thead>
-                                <tr className="border-b border-white/10">
-                                  <th className="text-left p-3 text-slate-400 font-medium text-sm">Disciplina</th>
-                                  <th className="text-center p-3 text-slate-400 font-medium text-sm hidden sm:table-cell">Cr</th>
-                                  <th className="text-center p-3 text-slate-400 font-medium text-sm">Status</th>
-                                  <th className="text-center p-3 text-slate-400 font-medium text-sm">Nota</th>
-                                  <th className="text-center p-3 text-slate-400 font-medium text-sm w-28">Ações</th>
+                                <tr className="border-b border-[var(--border-input)]">
+                                  <th className="text-left p-3 text-[var(--text-secondary)] font-medium text-sm">Disciplina</th>
+                                  <th className="text-center p-3 text-[var(--text-secondary)] font-medium text-sm hidden sm:table-cell">Cr</th>
+                                  <th className="text-center p-3 text-[var(--text-secondary)] font-medium text-sm">Status</th>
+                                  <th className="text-center p-3 text-[var(--text-secondary)] font-medium text-sm">Nota</th>
+                                  <th className="text-center p-3 text-[var(--text-secondary)] font-medium text-sm w-28">Ações</th>
                                 </tr>
                               </thead>
                               <tbody>
@@ -1515,17 +1260,17 @@ export default function SistemaNotas({ onOpenAdmin }) {
                                   return (
                                     <tr key={disc.id} className="border-b border-white/5 hover:bg-white/[0.03]">
                                       <td className="p-3"><span className="font-medium">{disc.nome}</span>{disc.tipo === 'optativa' && <span className="ml-2 px-1.5 py-0.5 rounded text-[10px] font-medium bg-amber-500/20 text-amber-400 border border-amber-500/30">OPT</span>}</td>
-                                      <td className="p-3 text-center text-slate-400 hidden sm:table-cell">{disc.creditos}</td>
+                                      <td className="p-3 text-center text-[var(--text-secondary)] hidden sm:table-cell">{disc.creditos}</td>
                                       <td className="p-3 text-center"><span className={`px-2 py-1 rounded-lg text-xs font-medium ${status.bg} ${status.text} border ${status.border}`}>{status.label}</span></td>
                                       <td className="p-3 text-center font-semibold">{disc.notaFinal ? disc.notaFinal.toFixed(1) : '-'}</td>
                                       <td className="p-3 text-center">
                                         <div className="flex items-center justify-center gap-1">
                                           {disc.status === 'NAO_INICIADA' ? (
-                                            <button onClick={() => setShowIniciarModal(disc.id)} className="px-2 py-1 rounded-lg bg-white/5 border border-white/10 text-xs font-medium text-slate-400 hover:text-white hover:bg-white/10 transition-all">Iniciar</button>
+                                            <button onClick={() => setShowIniciarModal(disc.id)} className="px-2 py-1 rounded-lg bg-[var(--bg-input)] border border-[var(--border-input)] text-xs font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-hover)] transition-all">Iniciar</button>
                                           ) : (
-                                            <button onClick={() => startEditNotas(disc)} className="p-1.5 rounded-lg hover:bg-white/10 text-slate-400 hover:text-white transition-all"><Edit2 size={14} /></button>
+                                            <button onClick={() => startEditNotas(disc)} className="p-1.5 rounded-lg hover:bg-[var(--bg-hover)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-all"><Edit2 size={14} /></button>
                                           )}
-                                          <button onClick={() => setShowDeleteMenu(disc.id)} className="p-1.5 rounded-lg hover:bg-red-500/20 text-slate-400 hover:text-red-400 transition-all"><Trash2 size={14} /></button>
+                                          <button onClick={() => setShowDeleteMenu(disc.id)} className="p-1.5 rounded-lg hover:bg-red-500/20 text-[var(--text-secondary)] hover:text-red-400 transition-all"><Trash2 size={14} /></button>
                                         </div>
                                       </td>
                                     </tr>
@@ -1543,42 +1288,42 @@ export default function SistemaNotas({ onOpenAdmin }) {
                                 <div className="flex items-center justify-between p-5 pl-6">
                                   <div className="flex-1 min-w-0">
                                     <div className="flex items-center gap-3 mb-1.5 flex-wrap">
-                                      <h4 className="font-medium text-white group-hover:text-violet-300 transition-colors truncate">{disc.nome}</h4>
+                                      <h4 className="font-medium text-[var(--text-primary)] group-hover:text-violet-300 transition-colors truncate">{disc.nome}</h4>
                                       {disc.tipo === 'optativa' && <span className="px-1.5 py-0.5 rounded-lg text-[10px] font-medium bg-amber-500/20 text-amber-400 border border-amber-500/30">OPT</span>}
                                       <span className={`px-2.5 py-1 rounded-lg text-xs font-semibold ${status.bg} ${status.text} border ${status.border}`}>{status.label}</span>
                                     </div>
-                                    <p className="text-sm text-slate-500">{disc.creditos} créditos • {disc.cargaHoraria}h{disc.semestreCursado && ` • ${disc.semestreCursado}`}</p>
+                                    <p className="text-sm text-[var(--text-muted)]">{disc.creditos} créditos • {disc.cargaHoraria}h{disc.semestreCursado && ` • ${disc.semestreCursado}`}</p>
                                   </div>
                                   <div className="flex items-center gap-4">
                                     {disc.status === 'NAO_INICIADA' ? (
-                                      <button onClick={() => setShowIniciarModal(disc.id)} className="px-4 py-2 rounded-xl bg-white/5 border border-white/10 text-sm font-medium text-slate-400 hover:text-white hover:bg-white/10 transition-all">Iniciar</button>
+                                      <button onClick={() => setShowIniciarModal(disc.id)} className="px-4 py-2 rounded-xl bg-[var(--bg-input)] border border-[var(--border-input)] text-sm font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-hover)] transition-all">Iniciar</button>
                                     ) : (disc.ga !== null || disc.gb !== null || disc.notaFinal !== null) ? (
                                       <div className="flex items-center gap-4">
                                         {/* GA e GB */}
                                         <div className="flex items-center gap-3 text-sm">
                                           <div className="text-center">
-                                            <p className="text-slate-500 text-xs mb-0.5">GA</p>
-                                            <p className="font-medium text-slate-300">{disc.ga !== null ? disc.ga.toFixed(1) : '-'}</p>
+                                            <p className="text-[var(--text-muted)] text-xs mb-0.5">GA</p>
+                                            <p className="font-medium text-[var(--text-secondary)]">{disc.ga !== null ? disc.ga.toFixed(1) : '-'}</p>
                                           </div>
                                           <div className="text-center">
-                                            <p className="text-slate-500 text-xs mb-0.5">GB</p>
-                                            <p className="font-medium text-slate-300">{disc.gb !== null ? disc.gb.toFixed(1) : '-'}</p>
+                                            <p className="text-[var(--text-muted)] text-xs mb-0.5">GB</p>
+                                            <p className="font-medium text-[var(--text-secondary)]">{disc.gb !== null ? disc.gb.toFixed(1) : '-'}</p>
                                           </div>
                                         </div>
                                         {/* Nota Final */}
                                         {disc.notaFinal !== null && (
                                           <div className="text-right">
                                             <p className="text-xl sm:text-2xl font-semibold">{disc.notaFinal.toFixed(1)}</p>
-                                            <p className="text-xs text-slate-500">Final</p>
+                                            <p className="text-xs text-[var(--text-muted)]">Final</p>
                                           </div>
                                         )}
                                       </div>
                                     ) : null}
                                     <div className="flex items-center gap-1">
                                       {disc.status !== 'NAO_INICIADA' && (
-                                        <button onClick={() => startEditNotas(disc)} className="p-2 rounded-xl hover:bg-white/10 text-slate-500 hover:text-white transition-all"><Edit2 size={16} /></button>
+                                        <button onClick={() => startEditNotas(disc)} className="p-2 rounded-xl hover:bg-[var(--bg-hover)] text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-all"><Edit2 size={16} /></button>
                                       )}
-                                      <button onClick={() => setShowDeleteMenu(disc.id)} className="p-2 rounded-xl hover:bg-red-500/20 text-slate-500 hover:text-red-400 transition-all"><Trash2 size={16} /></button>
+                                      <button onClick={() => setShowDeleteMenu(disc.id)} className="p-2 rounded-xl hover:bg-red-500/20 text-[var(--text-muted)] hover:text-red-400 transition-all"><Trash2 size={16} /></button>
                                     </div>
                                   </div>
                                 </div>
@@ -1595,294 +1340,6 @@ export default function SistemaNotas({ onOpenAdmin }) {
           </div>
         )}
 
-        {/* Tab Planejar */}
-        {activeTab === 'planejar' && (() => {
-          const disciplinasPendentes = disciplinas.filter(d => d.status === 'NAO_INICIADA');
-          const disciplinasPorPeriodoPlan = {};
-          disciplinasPendentes.forEach(d => {
-            const periodo = d.periodo || 1;
-            if (!disciplinasPorPeriodoPlan[periodo]) disciplinasPorPeriodoPlan[periodo] = [];
-            disciplinasPorPeriodoPlan[periodo].push(d);
-          });
-
-          const disciplinasNaGrade = new Map();
-          Object.values(gradePlanejamento).forEach(item => {
-            if (item?.disciplinaId && !disciplinasNaGrade.has(item.disciplinaId)) {
-              disciplinasNaGrade.set(item.disciplinaId, item);
-            }
-          });
-
-          const creditosSelecionados = Array.from(disciplinasNaGrade.values()).reduce((acc, item) => acc + (item.creditos || 4), 0);
-          const diasMostrar = mostrarSabado ? DIAS_SEMANA : DIAS_SEMANA.slice(0, 5);
-
-          return (
-            <div className="space-y-6">
-              {/* Header */}
-              <div className="flex items-center justify-between flex-wrap gap-4">
-                <div>
-                  <h2 className="text-xl font-semibold text-white">Planejador de Matrícula</h2>
-                  <p className="text-slate-400 text-sm">Monte sua grade do próximo semestre</p>
-                </div>
-                <div className="flex items-center gap-2">
-                  {salvandoPlanejamento && (
-                    <span className="text-xs text-emerald-400 flex items-center gap-1">
-                      <Save size={14} className="animate-pulse" /> Salvando...
-                    </span>
-                  )}
-                  <button
-                    onClick={limparGradePlanejamento}
-                    className="px-3 py-2 rounded-xl bg-red-500/20 text-red-400 text-sm hover:bg-red-500/30 transition-all"
-                  >
-                    Limpar Grade
-                  </button>
-                </div>
-              </div>
-
-              {/* Stats */}
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <GlassCard className="p-4" hover={false}>
-                  <p className="text-slate-400 text-sm">Mínimo</p>
-                  <p className="text-2xl font-bold text-white">{creditosLimite.min}</p>
-                  <p className="text-slate-500 text-xs">créditos</p>
-                </GlassCard>
-                <GlassCard className="p-4" hover={false}>
-                  <p className="text-slate-400 text-sm">Máximo</p>
-                  <p className="text-2xl font-bold text-white">{creditosLimite.max}</p>
-                  <p className="text-slate-500 text-xs">créditos</p>
-                </GlassCard>
-                <div className={`rounded-2xl p-4 border ${
-                  creditosSelecionados >= creditosLimite.min && creditosSelecionados <= creditosLimite.max
-                    ? 'bg-emerald-500/10 border-emerald-500/30'
-                    : creditosSelecionados > creditosLimite.max
-                      ? 'bg-red-500/10 border-red-500/30'
-                      : 'bg-amber-500/10 border-amber-500/30'
-                }`}>
-                  <p className="text-slate-400 text-sm">Selecionados</p>
-                  <p className={`text-2xl font-bold ${
-                    creditosSelecionados >= creditosLimite.min && creditosSelecionados <= creditosLimite.max
-                      ? 'text-emerald-400'
-                      : creditosSelecionados > creditosLimite.max
-                        ? 'text-red-400'
-                        : 'text-amber-400'
-                  }`}>{creditosSelecionados}</p>
-                  <p className="text-slate-500 text-xs">créditos</p>
-                </div>
-                <GlassCard className="p-4" hover={false}>
-                  <p className="text-slate-400 text-sm">Cadeiras</p>
-                  <p className="text-2xl font-bold text-cyan-400">{disciplinasNaGrade.size}</p>
-                  <p className="text-slate-500 text-xs">na grade</p>
-                </GlassCard>
-              </div>
-
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                {/* Grade de Horários */}
-                <div className="lg:col-span-2">
-                  <GlassCard className="overflow-hidden" hover={false}>
-                    <div className="flex items-center justify-between p-4 border-b border-white/10">
-                      <h3 className="text-lg font-semibold text-white flex items-center gap-2">
-                        <Clock size={20} className="text-cyan-400" />
-                        Quadro de Horários
-                      </h3>
-                      <label className="flex items-center gap-2 text-sm text-slate-400 cursor-pointer">
-                        <input
-                          type="checkbox"
-                          checked={mostrarSabado}
-                          onChange={(e) => setMostrarSabado(e.target.checked)}
-                          className="w-4 h-4 rounded bg-white/10 border-white/20 text-cyan-500 focus:ring-cyan-500"
-                        />
-                        Sábado
-                      </label>
-                    </div>
-
-                    <div className="overflow-x-auto">
-                      <table className="w-full">
-                        <thead>
-                          <tr className="border-b border-white/10">
-                            <th className="p-3 text-left text-slate-400 text-sm font-medium w-24">Horário</th>
-                            {diasMostrar.map(dia => (
-                              <th key={dia.id} className="p-3 text-center text-slate-300 text-sm font-medium min-w-[120px]">
-                                <span className="hidden sm:inline">{dia.label}</span>
-                                <span className="sm:hidden">{dia.abrev}</span>
-                              </th>
-                            ))}
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {HORARIOS_PLANEJADOR.map(horario => (
-                            <tr key={horario.id} className="border-b border-white/5">
-                              <td className="p-3 text-slate-400 text-sm whitespace-nowrap">
-                                <div className="font-medium">{horario.inicio}</div>
-                                <div className="text-slate-500 text-xs">{horario.fim}</div>
-                              </td>
-                              {diasMostrar.map(dia => {
-                                const chave = `${dia.id}-${horario.id}`;
-                                const item = gradePlanejamento[chave];
-                                
-                                return (
-                                  <td key={dia.id} className="p-2">
-                                    {item ? (
-                                      <div className={`relative p-2 rounded-lg border ${item.cor} min-h-[60px] group`}>
-                                        <p className="text-xs font-medium line-clamp-2">{item.nome}</p>
-                                        <p className="text-xs opacity-60">{item.creditos}cr</p>
-                                        <button
-                                          onClick={() => removerDaGradePlanejamento(dia.id, horario.id)}
-                                          className="absolute -top-2 -right-2 w-5 h-5 rounded-full bg-red-500 text-white opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
-                                        >
-                                          <X size={12} />
-                                        </button>
-                                      </div>
-                                    ) : (
-                                      <button
-                                        onClick={() => setDisciplinaSelecionadaPlanejador({ dia: dia.id, horario: horario.id })}
-                                        className={`w-full min-h-[60px] rounded-lg border-2 border-dashed transition-all flex items-center justify-center ${
-                                          disciplinaSelecionadaPlanejador?.dia === dia.id && disciplinaSelecionadaPlanejador?.horario === horario.id
-                                            ? 'border-cyan-500 bg-cyan-500/20'
-                                            : 'border-white/10 hover:border-cyan-500/50 hover:bg-cyan-500/10'
-                                        }`}
-                                      >
-                                        <Plus size={20} className="text-slate-600" />
-                                      </button>
-                                    )}
-                                  </td>
-                                );
-                              })}
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  </GlassCard>
-
-                  {/* Cadeiras na Grade */}
-                  {disciplinasNaGrade.size > 0 && (
-                    <div className="mt-4">
-                      <p className="text-sm text-slate-400 mb-2">Cadeiras adicionadas:</p>
-                      <div className="flex flex-wrap gap-2">
-                        {Array.from(disciplinasNaGrade.values()).map(item => (
-                          <span key={item.disciplinaId} className={`px-3 py-1.5 rounded-lg border ${item.cor} text-sm`}>
-                            {item.nome} ({item.creditos}cr)
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                {/* Lista de Cadeiras Pendentes */}
-                <div className="space-y-4">
-                  <GlassCard className="overflow-hidden" hover={false}>
-                    <div className="p-4 border-b border-white/10">
-                      <h3 className="text-lg font-semibold text-white flex items-center gap-2">
-                        <BookOpen size={20} className="text-blue-400" />
-                        Cadeiras Pendentes
-                      </h3>
-                    </div>
-
-                    <div className="max-h-[400px] overflow-y-auto">
-                      {Object.entries(disciplinasPorPeriodoPlan).sort(([a], [b]) => a - b).map(([periodo, discs]) => (
-                        <div key={periodo}>
-                          <div className="px-4 py-2 bg-white/5 text-sm text-slate-400 font-medium sticky top-0">
-                            {periodo}º Semestre
-                          </div>
-                          {discs.map(disc => {
-                            const jaNaGrade = disciplinasNaGrade.has(disc.id);
-                            return (
-                              <div
-                                key={disc.id}
-                                className={`flex items-center justify-between p-3 border-b border-white/5 hover:bg-white/5 transition-all ${
-                                  jaNaGrade ? 'opacity-50' : ''
-                                }`}
-                              >
-                                <div className="flex-1 min-w-0">
-                                  <p className="text-sm text-white truncate">{disc.nome}</p>
-                                  <p className="text-xs text-slate-500">{disc.creditos || 4} créditos</p>
-                                </div>
-                                {jaNaGrade ? (
-                                  <span className="text-xs text-emerald-400 flex items-center gap-1">
-                                    <CheckCircle size={14} /> Na grade
-                                  </span>
-                                ) : (
-                                  <button
-                                    onClick={() => {
-                                      if (disciplinaSelecionadaPlanejador) {
-                                        adicionarNaGradePlanejamento(disciplinaSelecionadaPlanejador.dia, disciplinaSelecionadaPlanejador.horario, disc);
-                                      }
-                                    }}
-                                    disabled={!disciplinaSelecionadaPlanejador}
-                                    className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
-                                      disciplinaSelecionadaPlanejador
-                                        ? 'bg-cyan-500/20 text-cyan-300 hover:bg-cyan-500/30'
-                                        : 'bg-white/5 text-slate-500 cursor-not-allowed'
-                                    }`}
-                                  >
-                                    {disciplinaSelecionadaPlanejador ? 'Adicionar' : 'Selecione horário'}
-                                  </button>
-                                )}
-                              </div>
-                            );
-                          })}
-                        </div>
-                      ))}
-
-                      {disciplinasPendentes.length === 0 && (
-                        <div className="p-8 text-center">
-                          <GraduationCap size={40} className="mx-auto text-slate-600 mb-3" />
-                          <p className="text-slate-400">Nenhuma cadeira pendente</p>
-                          <p className="text-slate-500 text-sm">Todas foram concluídas!</p>
-                        </div>
-                      )}
-                    </div>
-                  </GlassCard>
-
-                  {/* Configurações de Créditos */}
-                  <GlassCard className="p-4" hover={false}>
-                    <h4 className="text-sm font-medium text-slate-400 mb-3">Limites de Créditos</h4>
-                    <div className="grid grid-cols-2 gap-3">
-                      <div>
-                        <label className="text-xs text-slate-500">Mínimo</label>
-                        <input
-                          type="number"
-                          value={creditosLimite.min}
-                          onChange={(e) => setCreditosLimite(prev => ({ ...prev, min: parseInt(e.target.value) || 0 }))}
-                          className="w-full mt-1 px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm focus:outline-none focus:border-cyan-500"
-                        />
-                      </div>
-                      <div>
-                        <label className="text-xs text-slate-500">Máximo</label>
-                        <input
-                          type="number"
-                          value={creditosLimite.max}
-                          onChange={(e) => setCreditosLimite(prev => ({ ...prev, max: parseInt(e.target.value) || 0 }))}
-                          className="w-full mt-1 px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm focus:outline-none focus:border-cyan-500"
-                        />
-                      </div>
-                    </div>
-                  </GlassCard>
-
-                  {/* Alerta de seleção */}
-                  {disciplinaSelecionadaPlanejador && (
-                    <div className="bg-cyan-500/20 border border-cyan-500/30 rounded-2xl p-4">
-                      <div className="flex items-center gap-2 text-cyan-300">
-                        <AlertCircle size={18} />
-                        <span className="text-sm font-medium">Horário selecionado</span>
-                      </div>
-                      <p className="text-cyan-200/70 text-xs mt-1">
-                        {DIAS_SEMANA.find(d => d.id === disciplinaSelecionadaPlanejador.dia)?.label} - {HORARIOS_PLANEJADOR.find(h => h.id === disciplinaSelecionadaPlanejador.horario)?.label}
-                      </p>
-                      <button
-                        onClick={() => setDisciplinaSelecionadaPlanejador(null)}
-                        className="mt-2 text-xs text-cyan-400 hover:text-cyan-300"
-                      >
-                        Cancelar seleção
-                      </button>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-          );
-        })()}
-
         {/* Tab Em Curso */}
         {activeTab === 'emCurso' && (
           <div className="space-y-4">
@@ -1890,23 +1347,17 @@ export default function SistemaNotas({ onOpenAdmin }) {
               <h2 className="text-xl font-semibold">Disciplinas em Curso</h2>
               {/* Botão Simulador */}
               <button
-                onClick={() => temPermissao('simuladorNotas') ? setShowSimulador(true) : setShowUpgradeModal(true)}
-                className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all ${
-                  temPermissao('simuladorNotas')
-                    ? 'bg-gradient-to-r from-amber-500 to-orange-600 text-white shadow-lg shadow-amber-500/25 hover:scale-105'
-                    : 'bg-white/5 border border-white/10 text-slate-400'
-                }`}
+                onClick={() => setShowSimulador(true)} className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all bg-gradient-to-r from-amber-500 to-orange-600 text-white shadow-lg shadow-amber-500/25 hover:scale-105"
               >
                 <Calculator size={18} />
                 Simulador
-                {!temPermissao('simuladorNotas') && <Lock size={14} className="text-amber-400" />}
               </button>
             </div>
             
             {disciplinas.filter(d => d.status === 'EM_CURSO').length === 0 ? (
               <GlassCard className="p-8 text-center" hover={false}>
                 <Clock size={48} className="mx-auto text-slate-600 mb-4" />
-                <p className="text-slate-400">Nenhuma disciplina em curso</p>
+                <p className="text-[var(--text-secondary)]">Nenhuma disciplina em curso</p>
               </GlassCard>
             ) : (
               disciplinas.filter(d => d.status === 'EM_CURSO').map(disc => {
@@ -1918,22 +1369,22 @@ export default function SistemaNotas({ onOpenAdmin }) {
                       <div className="flex items-center justify-between mb-4">
                         <div>
                           <h4 className="font-medium text-lg">{disc.nome}</h4>
-                          <p className="text-sm text-slate-500">{disc.periodo}º Semestre • {disc.creditos} créditos</p>
+                          <p className="text-sm text-[var(--text-muted)]">{disc.periodo}º Semestre • {disc.creditos} créditos</p>
                         </div>
                         <span className={`px-3 py-1.5 rounded-xl text-sm font-semibold ${status.bg} ${status.text} border ${status.border}`}>{status.label}</span>
                       </div>
                       <div className="grid grid-cols-3 gap-2 sm:gap-4">
-                        <div className="text-center p-2 sm:p-3 rounded-xl bg-white/5">
+                        <div className="text-center p-2 sm:p-3 rounded-xl bg-[var(--bg-input)]">
                           <p className="text-lg sm:text-2xl font-semibold">{disc.ga ?? '-'}</p>
-                          <p className="text-xs text-slate-500">Grau A</p>
+                          <p className="text-xs text-[var(--text-muted)]">Grau A</p>
                         </div>
-                        <div className="text-center p-2 sm:p-3 rounded-xl bg-white/5">
+                        <div className="text-center p-2 sm:p-3 rounded-xl bg-[var(--bg-input)]">
                           <p className="text-lg sm:text-2xl font-semibold">{disc.gb ?? '-'}</p>
-                          <p className="text-xs text-slate-500">Grau B</p>
+                          <p className="text-xs text-[var(--text-muted)]">Grau B</p>
                         </div>
-                        <div className="text-center p-2 sm:p-3 rounded-xl bg-white/5">
+                        <div className="text-center p-2 sm:p-3 rounded-xl bg-[var(--bg-input)]">
                           <p className="text-lg sm:text-2xl font-semibold">{disc.notaFinal ?? '-'}</p>
-                          <p className="text-xs text-slate-500">Final</p>
+                          <p className="text-xs text-[var(--text-muted)]">Final</p>
                         </div>
                       </div>
                       <div className="flex justify-end mt-4">
@@ -1981,15 +1432,15 @@ export default function SistemaNotas({ onOpenAdmin }) {
             <GlassCard className="p-6" hover={false}>
               <h3 className="text-lg font-semibold mb-4">Resumo Geral</h3>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div className="text-center p-4 rounded-xl bg-white/5"><p className="text-3xl font-bold text-emerald-400">{estatisticas.aprovadas}</p><p className="text-sm text-slate-500">Aprovadas</p></div>
-                <div className="text-center p-4 rounded-xl bg-white/5"><p className="text-3xl font-bold text-blue-400">{estatisticas.emCurso}</p><p className="text-sm text-slate-500">Em Curso</p></div>
-                <div className="text-center p-4 rounded-xl bg-white/5"><p className="text-3xl font-bold text-slate-400">{estatisticas.naoIniciadas}</p><p className="text-sm text-slate-500">Pendentes</p></div>
-                <div className="text-center p-4 rounded-xl bg-white/5"><p className="text-3xl font-bold text-red-400">{estatisticas.reprovadas}</p><p className="text-sm text-slate-500">Reprovadas</p></div>
+                <div className="text-center p-4 rounded-xl bg-[var(--bg-input)]"><p className="text-3xl font-bold text-emerald-400">{estatisticas.aprovadas}</p><p className="text-sm text-[var(--text-muted)]">Aprovadas</p></div>
+                <div className="text-center p-4 rounded-xl bg-[var(--bg-input)]"><p className="text-3xl font-bold text-blue-400">{estatisticas.emCurso}</p><p className="text-sm text-[var(--text-muted)]">Em Curso</p></div>
+                <div className="text-center p-4 rounded-xl bg-[var(--bg-input)]"><p className="text-3xl font-bold text-[var(--text-secondary)]">{estatisticas.naoIniciadas}</p><p className="text-sm text-[var(--text-muted)]">Pendentes</p></div>
+                <div className="text-center p-4 rounded-xl bg-[var(--bg-input)]"><p className="text-3xl font-bold text-red-400">{estatisticas.reprovadas}</p><p className="text-sm text-[var(--text-muted)]">Reprovadas</p></div>
               </div>
               <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="p-4 rounded-xl bg-gradient-to-br from-violet-500/10 to-indigo-500/10 border border-violet-500/20"><p className="text-slate-400 text-sm mb-1">Total de Créditos</p><p className="text-2xl font-bold">{estatisticas.creditosConcluidos}/{estatisticas.creditosTotal}</p></div>
-                <div className="p-4 rounded-xl bg-gradient-to-br from-amber-500/10 to-orange-500/10 border border-amber-500/20"><p className="text-slate-400 text-sm mb-1">Média Geral</p><p className="text-2xl font-bold">{estatisticas.mediaGeral.toFixed(2)}</p></div>
-                <div className="p-4 rounded-xl bg-gradient-to-br from-emerald-500/10 to-green-500/10 border border-emerald-500/20"><p className="text-slate-400 text-sm mb-1">Progresso</p><p className="text-2xl font-bold">{estatisticas.progresso.toFixed(1)}%</p></div>
+                <div className="p-4 rounded-xl bg-gradient-to-br from-violet-500/10 to-indigo-500/10 border border-violet-500/20"><p className="text-[var(--text-secondary)] text-sm mb-1">Total de Créditos</p><p className="text-2xl font-bold">{estatisticas.creditosConcluidos}/{estatisticas.creditosTotal}</p></div>
+                <div className="p-4 rounded-xl bg-gradient-to-br from-amber-500/10 to-orange-500/10 border border-amber-500/20"><p className="text-[var(--text-secondary)] text-sm mb-1">Média Geral</p><p className="text-2xl font-bold">{estatisticas.mediaGeral.toFixed(2)}</p></div>
+                <div className="p-4 rounded-xl bg-gradient-to-br from-emerald-500/10 to-green-500/10 border border-emerald-500/20"><p className="text-[var(--text-secondary)] text-sm mb-1">Progresso</p><p className="text-2xl font-bold">{estatisticas.progresso.toFixed(1)}%</p></div>
               </div>
             </GlassCard>
           </div>
@@ -2115,15 +1566,15 @@ export default function SistemaNotas({ onOpenAdmin }) {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-4">
                   <div className="text-center p-5 rounded-2xl bg-gradient-to-br from-violet-500/10 to-indigo-500/10 border border-violet-500/20">
                     <div className="text-4xl font-bold text-violet-400 mb-1">{previsaoFormatura}</div>
-                    <div className="text-slate-400 text-sm">Conclusão Prevista</div>
+                    <div className="text-[var(--text-secondary)] text-sm">Conclusão Prevista</div>
                   </div>
                   <div className="text-center p-5 rounded-2xl bg-gradient-to-br from-amber-500/10 to-orange-500/10 border border-amber-500/20">
                     <div className="text-4xl font-bold text-amber-400 mb-1">{calcularAnosAteFormar()}</div>
-                    <div className="text-slate-400 text-sm">Anos até Formar</div>
+                    <div className="text-[var(--text-secondary)] text-sm">Anos até Formar</div>
                   </div>
                   <div className="text-center p-5 rounded-2xl bg-gradient-to-br from-emerald-500/10 to-green-500/10 border border-emerald-500/20">
                     <div className="text-4xl font-bold text-emerald-400 mb-1">{progressoTotal.toFixed(0)}%</div>
-                    <div className="text-slate-400 text-sm">Progresso do Curso</div>
+                    <div className="text-[var(--text-secondary)] text-sm">Progresso do Curso</div>
                   </div>
                 </div>
               </GlassCard>
@@ -2134,10 +1585,10 @@ export default function SistemaNotas({ onOpenAdmin }) {
                 <GlassCard className="p-6" hover={false}>
                   <div className="flex items-center justify-between mb-4">
                     <h3 className="text-lg font-semibold flex items-center gap-2">
-                      <Edit2 size={20} className="text-slate-400" />
+                      <Edit2 size={20} className="text-[var(--text-secondary)]" />
                       Planejamento por Semestre
                     </h3>
-                    <button onClick={resetarPlanejamento} className="text-xs text-slate-400 hover:text-violet-400 flex items-center gap-1 px-3 py-1.5 rounded-lg hover:bg-white/5 transition-all">
+                    <button onClick={resetarPlanejamento} className="text-xs text-[var(--text-secondary)] hover:text-violet-400 flex items-center gap-1 px-3 py-1.5 rounded-lg hover:bg-[var(--bg-input)] transition-all">
                       <RefreshCw size={14} />Resetar
                     </button>
                   </div>
@@ -2146,15 +1597,15 @@ export default function SistemaNotas({ onOpenAdmin }) {
                     {planejamentoSemestres.map((sem, index) => {
                       const isAtual = index === 0;
                       return (
-                        <div key={index} className={`flex items-center gap-3 p-3 rounded-xl ${isAtual ? 'bg-blue-500/10 border border-blue-500/30' : 'bg-white/5 border border-white/10'}`}>
+                        <div key={index} className={`flex items-center gap-3 p-3 rounded-xl ${isAtual ? 'bg-blue-500/10 border border-blue-500/30' : 'bg-[var(--bg-input)] border border-[var(--border-input)]'}`}>
                           <div className="flex items-center gap-1">
-                            <input type="text" value={sem.periodo} onChange={e => atualizarPeriodo(index, e.target.value)} className={`w-20 px-2 py-1.5 bg-white/5 rounded-lg text-center text-sm font-medium border border-white/10 focus:border-violet-500 focus:outline-none ${isAtual ? 'text-blue-400' : 'text-slate-300'}`} />
+                            <input type="text" value={sem.periodo} onChange={e => atualizarPeriodo(index, e.target.value)} className={`w-20 px-2 py-1.5 bg-[var(--bg-input)] rounded-lg text-center text-sm font-medium border border-[var(--border-input)] focus:border-violet-500 focus:outline-none ${isAtual ? 'text-blue-400' : 'text-[var(--text-secondary)]'}`} />
                             {isAtual && <span className="text-xs text-blue-400">(atual)</span>}
                           </div>
                           <div className="flex items-center gap-2 flex-1">
-                            <button onClick={() => atualizarQuantidade(index, sem.quantidade - 1)} disabled={sem.quantidade <= 0} className="w-8 h-8 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 flex items-center justify-center text-lg font-bold disabled:opacity-30 transition-all">-</button>
-                            <input type="number" value={sem.quantidade} onChange={e => atualizarQuantidade(index, parseInt(e.target.value) || 0)} className="w-14 px-2 py-1.5 bg-white/5 rounded-lg text-center font-bold text-lg border border-white/10 focus:border-violet-500 focus:outline-none" min="0" max="10" />
-                            <button onClick={() => atualizarQuantidade(index, sem.quantidade + 1)} disabled={sem.quantidade >= 10} className="w-8 h-8 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 flex items-center justify-center text-lg font-bold disabled:opacity-30 transition-all">+</button>
+                            <button onClick={() => atualizarQuantidade(index, sem.quantidade - 1)} disabled={sem.quantidade <= 0} className="w-8 h-8 rounded-lg bg-[var(--bg-input)] hover:bg-[var(--bg-hover)] border border-[var(--border-input)] flex items-center justify-center text-lg font-bold disabled:opacity-30 transition-all">-</button>
+                            <input type="number" value={sem.quantidade} onChange={e => atualizarQuantidade(index, parseInt(e.target.value) || 0)} className="w-14 px-2 py-1.5 bg-[var(--bg-input)] rounded-lg text-center font-bold text-lg border border-[var(--border-input)] focus:border-violet-500 focus:outline-none" min="0" max="10" />
+                            <button onClick={() => atualizarQuantidade(index, sem.quantidade + 1)} disabled={sem.quantidade >= 10} className="w-8 h-8 rounded-lg bg-[var(--bg-input)] hover:bg-[var(--bg-hover)] border border-[var(--border-input)] flex items-center justify-center text-lg font-bold disabled:opacity-30 transition-all">+</button>
                           </div>
                           {planejamentoSemestres.length > 1 && (
                             <button onClick={() => removerSemestre(index)} className="p-2 text-red-400 hover:bg-red-500/20 rounded-lg transition-all"><Trash2 size={16} /></button>
@@ -2164,7 +1615,7 @@ export default function SistemaNotas({ onOpenAdmin }) {
                     })}
                   </div>
                   
-                  <button onClick={adicionarSemestre} className="mt-4 w-full py-3 border-2 border-dashed border-white/10 hover:border-violet-500/50 rounded-xl text-slate-400 hover:text-violet-400 flex items-center justify-center gap-2 transition-all">
+                  <button onClick={adicionarSemestre} className="mt-4 w-full py-3 border-2 border-dashed border-[var(--border-input)] hover:border-violet-500/50 rounded-xl text-[var(--text-secondary)] hover:text-violet-400 flex items-center justify-center gap-2 transition-all">
                     <Plus size={18} />Adicionar Semestre
                   </button>
                 </GlassCard>
@@ -2172,26 +1623,26 @@ export default function SistemaNotas({ onOpenAdmin }) {
                 {/* Tabela Resumo */}
                 <GlassCard className="p-6" hover={false}>
                   <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                    <TrendingUp size={20} className="text-slate-400" />
+                    <TrendingUp size={20} className="text-[var(--text-secondary)]" />
                     Resumo do Planejamento
                   </h3>
                   
                   <div className="overflow-x-auto">
                     <table className="w-full text-sm">
                       <thead>
-                        <tr className="border-b border-white/10">
-                          <th className="text-left py-2 px-3 text-slate-400 font-medium">Semestre</th>
-                          <th className="text-center py-2 px-3 text-slate-400 font-medium">Qtd</th>
-                          <th className="text-center py-2 px-3 text-slate-400 font-medium">Acum.</th>
-                          <th className="text-right py-2 px-3 text-slate-400 font-medium">%</th>
+                        <tr className="border-b border-[var(--border-input)]">
+                          <th className="text-left py-2 px-3 text-[var(--text-secondary)] font-medium">Semestre</th>
+                          <th className="text-center py-2 px-3 text-[var(--text-secondary)] font-medium">Qtd</th>
+                          <th className="text-center py-2 px-3 text-[var(--text-secondary)] font-medium">Acum.</th>
+                          <th className="text-right py-2 px-3 text-[var(--text-secondary)] font-medium">%</th>
                         </tr>
                       </thead>
                       <tbody>
                         <tr className="border-b border-white/5">
                           <td className="py-2 px-3 text-emerald-400">✓ Aprovadas</td>
                           <td className="text-center py-2 px-3 font-bold text-emerald-400">{disciplinasAprovadas}</td>
-                          <td className="text-center py-2 px-3 text-slate-300">{disciplinasAprovadas}</td>
-                          <td className="text-right py-2 px-3 text-slate-400">{totalDisciplinas > 0 ? ((disciplinasAprovadas / totalDisciplinas) * 100).toFixed(0) : 0}%</td>
+                          <td className="text-center py-2 px-3 text-[var(--text-secondary)]">{disciplinasAprovadas}</td>
+                          <td className="text-right py-2 px-3 text-[var(--text-secondary)]">{totalDisciplinas > 0 ? ((disciplinasAprovadas / totalDisciplinas) * 100).toFixed(0) : 0}%</td>
                         </tr>
                         {planejamentoSemestres.map((sem, index) => {
                           const acumulado = calcularAcumulado(index);
@@ -2199,14 +1650,14 @@ export default function SistemaNotas({ onOpenAdmin }) {
                           const isAtual = index === 0;
                           return (
                             <tr key={index} className={`border-b border-white/5 ${isAtual ? 'bg-blue-500/5' : ''}`}>
-                              <td className={`py-2 px-3 ${isAtual ? 'text-blue-400' : 'text-slate-300'}`}>{sem.periodo} {isAtual && '(atual)'}</td>
+                              <td className={`py-2 px-3 ${isAtual ? 'text-blue-400' : 'text-[var(--text-secondary)]'}`}>{sem.periodo} {isAtual && '(atual)'}</td>
                               <td className="text-center py-2 px-3 font-bold">{sem.quantidade}</td>
-                              <td className="text-center py-2 px-3 text-slate-300">{acumulado}</td>
-                              <td className="text-right py-2 px-3 text-slate-400">{percentual.toFixed(0)}%</td>
+                              <td className="text-center py-2 px-3 text-[var(--text-secondary)]">{acumulado}</td>
+                              <td className="text-right py-2 px-3 text-[var(--text-secondary)]">{percentual.toFixed(0)}%</td>
                             </tr>
                           );
                         })}
-                        <tr className="bg-white/5 font-bold">
+                        <tr className="bg-[var(--bg-input)] font-bold">
                           <td className="py-3 px-3 text-violet-400">Total Planejado</td>
                           <td className="text-center py-3 px-3 text-violet-400">{totalPlanejado}</td>
                           <td className="text-center py-3 px-3">{disciplinasAprovadas + totalPlanejado}</td>
@@ -2241,8 +1692,8 @@ export default function SistemaNotas({ onOpenAdmin }) {
               <GlassCard className="p-4" hover={false}>
                 <div className="flex items-start gap-3">
                   <AlertCircle className="text-violet-400 shrink-0 mt-0.5" size={20} />
-                  <div className="text-sm text-slate-400">
-                    <strong className="text-slate-300">Dica:</strong> Ajuste a quantidade de disciplinas por semestre usando os botões + e -. 
+                  <div className="text-sm text-[var(--text-secondary)]">
+                    <strong className="text-[var(--text-secondary)]">Dica:</strong> Ajuste a quantidade de disciplinas por semestre usando os botões + e -. 
                     O sistema calcula automaticamente sua previsão de formatura baseado no planejamento.
                   </div>
                 </div>
@@ -2253,13 +1704,13 @@ export default function SistemaNotas({ onOpenAdmin }) {
 
         {/* Modais */}
         {showAddDisciplina && (
-          <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="fixed inset-0 bg-[var(--bg-modal-overlay)] backdrop-blur-sm flex items-center justify-center z-50 p-4">
             <GlassCard className="w-full max-w-lg" hover={false}>
               <div className="p-6">
                 <div className="flex items-center justify-between mb-6">
                   <h3 className="text-xl font-semibold">Adicionar Cadeira</h3>
-                  <button onClick={() => setShowAddDisciplina(false)} className="p-2 rounded-lg hover:bg-white/10 transition-all">
-                    <X size={20} className="text-slate-400" />
+                  <button onClick={() => setShowAddDisciplina(false)} className="p-2 rounded-lg hover:bg-[var(--bg-hover)] transition-all">
+                    <X size={20} className="text-[var(--text-secondary)]" />
                   </button>
                 </div>
                 
@@ -2268,7 +1719,7 @@ export default function SistemaNotas({ onOpenAdmin }) {
                   <button
                     onClick={() => setModoAdicionar('uma')}
                     className={`flex-1 py-2 px-4 rounded-xl text-sm font-medium transition-all ${
-                      modoAdicionar === 'uma' ? 'bg-violet-500/20 text-violet-300 border border-violet-500/30' : 'bg-white/5 text-slate-400 border border-white/10 hover:bg-white/10'
+                      modoAdicionar === 'uma' ? 'bg-violet-500/20 text-violet-300 border border-violet-500/30' : 'bg-[var(--bg-input)] text-[var(--text-secondary)] border border-[var(--border-input)] hover:bg-[var(--bg-hover)]'
                     }`}
                   >
                     Uma Cadeira
@@ -2276,7 +1727,7 @@ export default function SistemaNotas({ onOpenAdmin }) {
                   <button
                     onClick={() => setModoAdicionar('varias')}
                     className={`flex-1 py-2 px-4 rounded-xl text-sm font-medium transition-all ${
-                      modoAdicionar === 'varias' ? 'bg-violet-500/20 text-violet-300 border border-violet-500/30' : 'bg-white/5 text-slate-400 border border-white/10 hover:bg-white/10'
+                      modoAdicionar === 'varias' ? 'bg-violet-500/20 text-violet-300 border border-violet-500/30' : 'bg-[var(--bg-input)] text-[var(--text-secondary)] border border-[var(--border-input)] hover:bg-[var(--bg-hover)]'
                     }`}
                   >
                     Várias Cadeiras
@@ -2286,53 +1737,53 @@ export default function SistemaNotas({ onOpenAdmin }) {
                 {modoAdicionar === 'uma' ? (
                   <div className="space-y-4">
                     <div>
-                      <label className="text-sm text-slate-400 block mb-2">Nome da Cadeira</label>
+                      <label className="text-sm text-[var(--text-secondary)] block mb-2">Nome da Cadeira</label>
                       <input 
                         type="text" 
                         value={novaDisciplina.nome} 
                         onChange={(e) => setNovaDisciplina({ ...novaDisciplina, nome: e.target.value })} 
-                        className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white focus:outline-none focus:border-violet-500/50" 
+                        className="w-full px-4 py-3 rounded-xl bg-[var(--bg-input)] border border-[var(--border-input)] text-[var(--text-primary)] focus:outline-none focus:border-violet-500/50" 
                         placeholder="Ex: Cálculo I" 
                       />
                     </div>
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                       <div>
-                        <label className="text-sm text-slate-400 block mb-2">Semestre</label>
+                        <label className="text-sm text-[var(--text-secondary)] block mb-2">Semestre</label>
                         <select
                           value={novaDisciplina.periodo}
                           onChange={(e) => setNovaDisciplina({ ...novaDisciplina, periodo: parseInt(e.target.value) })}
-                          className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white focus:outline-none"
+                          className="w-full px-4 py-3 rounded-xl bg-[var(--bg-input)] border border-[var(--border-input)] text-[var(--text-primary)] focus:outline-none"
                         >
                           {periodos.map(p => (<option key={p} value={p} className="bg-slate-800">{p}º</option>))}
                         </select>
                       </div>
                       <div>
-                        <label className="text-sm text-slate-400 block mb-2">Tipo</label>
+                        <label className="text-sm text-[var(--text-secondary)] block mb-2">Tipo</label>
                         <select
                           value={novaDisciplina.tipo}
                           onChange={(e) => setNovaDisciplina({ ...novaDisciplina, tipo: e.target.value })}
-                          className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white focus:outline-none"
+                          className="w-full px-4 py-3 rounded-xl bg-[var(--bg-input)] border border-[var(--border-input)] text-[var(--text-primary)] focus:outline-none"
                         >
                           <option value="obrigatoria" className="bg-slate-800">Obrigatória</option>
                           <option value="optativa" className="bg-slate-800">Optativa</option>
                         </select>
                       </div>
                       <div>
-                        <label className="text-sm text-slate-400 block mb-2">Créditos</label>
+                        <label className="text-sm text-[var(--text-secondary)] block mb-2">Créditos</label>
                         <input
                           type="number"
                           value={novaDisciplina.creditos}
                           onChange={(e) => setNovaDisciplina({ ...novaDisciplina, creditos: parseInt(e.target.value) })}
-                          className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white focus:outline-none"
+                          className="w-full px-4 py-3 rounded-xl bg-[var(--bg-input)] border border-[var(--border-input)] text-[var(--text-primary)] focus:outline-none"
                         />
                       </div>
                       <div>
-                        <label className="text-sm text-slate-400 block mb-2">Carga H.</label>
+                        <label className="text-sm text-[var(--text-secondary)] block mb-2">Carga H.</label>
                         <input
                           type="number"
                           value={novaDisciplina.cargaHoraria}
                           onChange={(e) => setNovaDisciplina({ ...novaDisciplina, cargaHoraria: parseInt(e.target.value) })}
-                          className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white focus:outline-none"
+                          className="w-full px-4 py-3 rounded-xl bg-[var(--bg-input)] border border-[var(--border-input)] text-[var(--text-primary)] focus:outline-none"
                         />
                       </div>
                     </div>
@@ -2344,26 +1795,26 @@ export default function SistemaNotas({ onOpenAdmin }) {
                 ) : (
                   <div className="space-y-4">
                     <div>
-                      <label className="text-sm text-slate-400 block mb-2">Semestre</label>
+                      <label className="text-sm text-[var(--text-secondary)] block mb-2">Semestre</label>
                       <select 
                         value={periodoMultiplas} 
                         onChange={(e) => setPeriodoMultiplas(parseInt(e.target.value))} 
-                        className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white focus:outline-none"
+                        className="w-full px-4 py-3 rounded-xl bg-[var(--bg-input)] border border-[var(--border-input)] text-[var(--text-primary)] focus:outline-none"
                       >
                         {periodos.map(p => (<option key={p} value={p} className="bg-slate-800">{p}º Semestre</option>))}
                       </select>
                     </div>
                     <div>
-                      <label className="text-sm text-slate-400 block mb-2">Cadeiras (uma por linha)</label>
+                      <label className="text-sm text-[var(--text-secondary)] block mb-2">Cadeiras (uma por linha)</label>
                       <textarea 
                         value={disciplinasMultiplas} 
                         onChange={(e) => setDisciplinasMultiplas(e.target.value)} 
                         rows={6} 
-                        className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white focus:outline-none resize-none" 
+                        className="w-full px-4 py-3 rounded-xl bg-[var(--bg-input)] border border-[var(--border-input)] text-[var(--text-primary)] focus:outline-none resize-none" 
                         placeholder="Cálculo I&#10;Física I&#10;Programação I&#10;Álgebra Linear" 
                       />
                     </div>
-                    <p className="text-xs text-slate-500">
+                    <p className="text-xs text-[var(--text-muted)]">
                       💡 Cada linha será uma cadeira nova com 4 créditos e 60h de carga horária
                     </p>
                     <div className="flex gap-3 mt-6">
@@ -2380,12 +1831,12 @@ export default function SistemaNotas({ onOpenAdmin }) {
         )}
 
         {showIniciarModal && (
-          <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="fixed inset-0 bg-[var(--bg-modal-overlay)] backdrop-blur-sm flex items-center justify-center z-50 p-4">
             <GlassCard className="w-full max-w-sm" hover={false}>
               <div className="p-6">
                 <h3 className="text-xl font-semibold mb-2">Iniciar Disciplina</h3>
-                <p className="text-slate-400 mb-6">{disciplinas.find(d => d.id === showIniciarModal)?.nome}</p>
-                <div><label className="text-sm text-slate-400 block mb-2">Semestre</label><input type="text" value={semestreIniciar} onChange={(e) => setSemestreIniciar(e.target.value)} className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white focus:outline-none" placeholder="2024.2" /></div>
+                <p className="text-[var(--text-secondary)] mb-6">{disciplinas.find(d => d.id === showIniciarModal)?.nome}</p>
+                <div><label className="text-sm text-[var(--text-secondary)] block mb-2">Semestre</label><input type="text" value={semestreIniciar} onChange={(e) => setSemestreIniciar(e.target.value)} className="w-full px-4 py-3 rounded-xl bg-[var(--bg-input)] border border-[var(--border-input)] text-[var(--text-primary)] focus:outline-none" placeholder="2024.2" /></div>
                 <div className="flex gap-3 mt-6">
                   <GradientButton variant="secondary" className="flex-1" onClick={() => setShowIniciarModal(null)}>Cancelar</GradientButton>
                   <GradientButton className="flex-1" onClick={() => iniciarDisciplina(showIniciarModal)}>Iniciar</GradientButton>
@@ -2396,19 +1847,19 @@ export default function SistemaNotas({ onOpenAdmin }) {
         )}
 
         {editingNotas && (
-          <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="fixed inset-0 bg-[var(--bg-modal-overlay)] backdrop-blur-sm flex items-center justify-center z-50 p-4">
             <GlassCard className="w-full max-w-md" hover={false}>
               <div className="p-6">
                 <h3 className="text-xl font-semibold mb-2">Editar Notas</h3>
-                <p className="text-slate-400 mb-6">{disciplinas.find(d => d.id === editingNotas)?.nome}</p>
+                <p className="text-[var(--text-secondary)] mb-6">{disciplinas.find(d => d.id === editingNotas)?.nome}</p>
                 <div className="space-y-4">
                   <div className="grid grid-cols-3 gap-4">
-                    <div><label className="text-sm text-slate-400 block mb-2">GA</label><input type="number" step="0.1" value={notasTemp.ga} onChange={(e) => setNotasTemp({ ...notasTemp, ga: e.target.value })} className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white focus:outline-none" placeholder="0.0" /></div>
-                    <div><label className="text-sm text-slate-400 block mb-2">GB</label><input type="number" step="0.1" value={notasTemp.gb} onChange={(e) => setNotasTemp({ ...notasTemp, gb: e.target.value })} className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white focus:outline-none" placeholder="0.0" /></div>
-                    <div><label className="text-sm text-slate-400 block mb-2">Final</label><input type="number" step="0.1" value={notasTemp.notaFinal} onChange={(e) => setNotasTemp({ ...notasTemp, notaFinal: e.target.value })} className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white focus:outline-none" placeholder="Auto" /></div>
+                    <div><label className="text-sm text-[var(--text-secondary)] block mb-2">GA</label><input type="number" step="0.1" value={notasTemp.ga} onChange={(e) => setNotasTemp({ ...notasTemp, ga: e.target.value })} className="w-full px-4 py-3 rounded-xl bg-[var(--bg-input)] border border-[var(--border-input)] text-[var(--text-primary)] focus:outline-none" placeholder="0.0" /></div>
+                    <div><label className="text-sm text-[var(--text-secondary)] block mb-2">GB</label><input type="number" step="0.1" value={notasTemp.gb} onChange={(e) => setNotasTemp({ ...notasTemp, gb: e.target.value })} className="w-full px-4 py-3 rounded-xl bg-[var(--bg-input)] border border-[var(--border-input)] text-[var(--text-primary)] focus:outline-none" placeholder="0.0" /></div>
+                    <div><label className="text-sm text-[var(--text-secondary)] block mb-2">Final</label><input type="number" step="0.1" value={notasTemp.notaFinal} onChange={(e) => setNotasTemp({ ...notasTemp, notaFinal: e.target.value })} className="w-full px-4 py-3 rounded-xl bg-[var(--bg-input)] border border-[var(--border-input)] text-[var(--text-primary)] focus:outline-none" placeholder="Auto" /></div>
                   </div>
-                  <div><label className="text-sm text-slate-400 block mb-2">Semestre</label><input type="text" value={notasTemp.semestreCursado} onChange={(e) => setNotasTemp({ ...notasTemp, semestreCursado: e.target.value })} className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white focus:outline-none" placeholder="2024.2" /></div>
-                  <div><label className="text-sm text-slate-400 block mb-2">Observação</label><input type="text" value={notasTemp.observacao} onChange={(e) => setNotasTemp({ ...notasTemp, observacao: e.target.value })} className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white focus:outline-none" placeholder="Opcional" /></div>
+                  <div><label className="text-sm text-[var(--text-secondary)] block mb-2">Semestre</label><input type="text" value={notasTemp.semestreCursado} onChange={(e) => setNotasTemp({ ...notasTemp, semestreCursado: e.target.value })} className="w-full px-4 py-3 rounded-xl bg-[var(--bg-input)] border border-[var(--border-input)] text-[var(--text-primary)] focus:outline-none" placeholder="2024.2" /></div>
+                  <div><label className="text-sm text-[var(--text-secondary)] block mb-2">Observação</label><input type="text" value={notasTemp.observacao} onChange={(e) => setNotasTemp({ ...notasTemp, observacao: e.target.value })} className="w-full px-4 py-3 rounded-xl bg-[var(--bg-input)] border border-[var(--border-input)] text-[var(--text-primary)] focus:outline-none" placeholder="Opcional" /></div>
                 </div>
                 <div className="flex gap-3 mt-6">
                   <GradientButton variant="secondary" className="flex-1" onClick={() => setEditingNotas(null)}>Cancelar</GradientButton>
@@ -2420,57 +1871,57 @@ export default function SistemaNotas({ onOpenAdmin }) {
         )}
 
         {showDeleteMenu && (
-          <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="fixed inset-0 bg-[var(--bg-modal-overlay)] backdrop-blur-sm flex items-center justify-center z-50 p-4">
             <GlassCard className="w-full max-w-sm" hover={false}>
               <div className="p-2">
-                <div className="p-4 border-b border-white/10"><h3 className="font-semibold">{disciplinas.find(d => d.id === showDeleteMenu)?.nome}</h3></div>
+                <div className="p-4 border-b border-[var(--border-input)]"><h3 className="font-semibold">{disciplinas.find(d => d.id === showDeleteMenu)?.nome}</h3></div>
                 {disciplinas.find(d => d.id === showDeleteMenu)?.status !== 'NAO_INICIADA' && (
-                  <button onClick={() => resetarDisciplina(showDeleteMenu)} className="w-full flex items-center gap-3 px-4 py-4 text-left text-amber-400 hover:bg-white/5 transition-colors">
-                    <RotateCcw size={18} /><div><div className="font-medium">Resetar andamento</div><div className="text-xs text-slate-500">Volta para "Pendente"</div></div>
+                  <button onClick={() => resetarDisciplina(showDeleteMenu)} className="w-full flex items-center gap-3 px-4 py-4 text-left text-amber-400 hover:bg-[var(--bg-input)] transition-colors">
+                    <RotateCcw size={18} /><div><div className="font-medium">Resetar andamento</div><div className="text-xs text-[var(--text-muted)]">Volta para "Pendente"</div></div>
                   </button>
                 )}
-                <button onClick={() => toggleTipo(showDeleteMenu)} className="w-full flex items-center gap-3 px-4 py-4 text-left text-violet-400 hover:bg-white/5 transition-colors border-t border-white/10">
-                  <RefreshCw size={18} /><div><div className="font-medium">{disciplinas.find(d => d.id === showDeleteMenu)?.tipo === 'optativa' ? 'Marcar como obrigatória' : 'Marcar como optativa'}</div><div className="text-xs text-slate-500">Altera classificação da disciplina</div></div>
+                <button onClick={() => toggleTipo(showDeleteMenu)} className="w-full flex items-center gap-3 px-4 py-4 text-left text-violet-400 hover:bg-[var(--bg-input)] transition-colors border-t border-[var(--border-input)]">
+                  <RefreshCw size={18} /><div><div className="font-medium">{disciplinas.find(d => d.id === showDeleteMenu)?.tipo === 'optativa' ? 'Marcar como obrigatória' : 'Marcar como optativa'}</div><div className="text-xs text-[var(--text-muted)]">Altera classificação da disciplina</div></div>
                 </button>
-                <button onClick={() => handleRemoverDisciplina(showDeleteMenu)} className="w-full flex items-center gap-3 px-4 py-4 text-left text-red-400 hover:bg-white/5 transition-colors border-t border-white/10">
-                  <Trash2 size={18} /><div><div className="font-medium">Excluir disciplina</div><div className="text-xs text-slate-500">Remove permanentemente</div></div>
+                <button onClick={() => handleRemoverDisciplina(showDeleteMenu)} className="w-full flex items-center gap-3 px-4 py-4 text-left text-red-400 hover:bg-[var(--bg-input)] transition-colors border-t border-[var(--border-input)]">
+                  <Trash2 size={18} /><div><div className="font-medium">Excluir disciplina</div><div className="text-xs text-[var(--text-muted)]">Remove permanentemente</div></div>
                 </button>
-                <button onClick={() => setShowDeleteMenu(null)} className="w-full px-4 py-3 text-sm text-slate-400 hover:bg-white/5 border-t border-white/10">Cancelar</button>
+                <button onClick={() => setShowDeleteMenu(null)} className="w-full px-4 py-3 text-sm text-[var(--text-secondary)] hover:bg-[var(--bg-input)] border-t border-[var(--border-input)]">Cancelar</button>
               </div>
             </GlassCard>
           </div>
         )}
 
-        {showImportModal && (<ImportModal onClose={() => setShowImportModal(false)} onImport={handleImportarDisciplinas} onUpdate={handleAtualizarNotas} disciplinasExistentes={disciplinas} />)}
+        {showImportModal && (<Suspense fallback={null}><ImportModal onClose={() => setShowImportModal(false)} onImport={handleImportarDisciplinas} onUpdate={handleAtualizarNotas} disciplinasExistentes={disciplinas} /></Suspense>)}
 
         {/* Modal Boas-vindas - Novo Usuário */}
         {showWelcomeModal && (
-          <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-            <div className="bg-gradient-to-br from-slate-800 to-slate-900 border border-white/10 rounded-3xl p-8 max-w-md w-full shadow-2xl">
+          <div className="fixed inset-0 bg-[var(--bg-modal-overlay)] backdrop-blur-sm flex items-center justify-center z-50 p-4">
+            <div className="bg-[var(--bg-modal)] border border-[var(--border-input)] rounded-3xl p-8 max-w-md w-full shadow-2xl">
               {/* Header com ícone */}
               <div className="text-center mb-6">
                 <div className="w-20 h-20 rounded-[24px] bg-gradient-to-br from-violet-500 to-indigo-600 flex items-center justify-center shadow-xl shadow-violet-500/30 mx-auto mb-4">
                   <GraduationCap size={40} className="text-white" />
                 </div>
-                <h2 className="text-2xl font-bold text-white mb-2">Bem-vindo ao Sistema de Notas!</h2>
-                <p className="text-slate-400">Para personalizar sua experiência, conte-nos qual curso você está fazendo.</p>
+                <h2 className="text-2xl font-bold text-[var(--text-primary)] mb-2">Bem-vindo ao Sistema de Notas!</h2>
+                <p className="text-[var(--text-secondary)]">Para personalizar sua experiência, conte-nos qual curso você está fazendo.</p>
               </div>
 
               {/* Input do curso */}
               <div className="mb-6">
-                <label className="text-sm text-slate-400 block mb-2">Qual é o seu curso?</label>
+                <label className="text-sm text-[var(--text-secondary)] block mb-2">Qual é o seu curso?</label>
                 <input
                   type="text"
                   value={cursoInput}
                   onChange={(e) => setCursoInput(e.target.value)}
-                  className="w-full px-4 py-4 rounded-xl bg-white/5 border border-white/10 text-white text-lg focus:outline-none focus:border-violet-500 transition-colors"
+                  className="w-full px-4 py-4 rounded-xl bg-[var(--bg-input)] border border-[var(--border-input)] text-white text-lg focus:outline-none focus:border-violet-500 transition-colors"
                   placeholder="Ex: Ciência da Computação"
                   autoFocus
                 />
               </div>
 
               {/* Aviso */}
-              <p className="text-slate-500 text-sm text-center mb-6">
+              <p className="text-[var(--text-muted)] text-sm text-center mb-6">
                 Você pode alterar isso depois nas configurações.
               </p>
 
@@ -2478,7 +1929,7 @@ export default function SistemaNotas({ onOpenAdmin }) {
               <div className="flex gap-3">
                 <button
                   onClick={handleSkipWelcome}
-                  className="flex-1 py-3 rounded-xl bg-white/5 border border-white/10 text-slate-400 font-medium hover:bg-white/10 transition-colors"
+                  className="flex-1 py-3 rounded-xl bg-[var(--bg-input)] border border-[var(--border-input)] text-[var(--text-secondary)] font-medium hover:bg-[var(--bg-hover)] transition-colors"
                 >
                   Pular
                 </button>
@@ -2503,71 +1954,16 @@ export default function SistemaNotas({ onOpenAdmin }) {
 
         {/* Modal Configurações */}
         {showSettingsModal && (
-          <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={(e) => e.target === e.currentTarget && setShowSettingsModal(false)}>
-            <div className="bg-gradient-to-br from-slate-800 to-slate-900 border border-white/10 rounded-3xl p-8 max-w-md w-full shadow-2xl max-h-[90vh] overflow-y-auto">
+          <div className="fixed inset-0 bg-[var(--bg-modal-overlay)] backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={(e) => e.target === e.currentTarget && setShowSettingsModal(false)}>
+            <div className="bg-[var(--bg-modal)] border border-[var(--border-input)] rounded-3xl p-8 max-w-md w-full shadow-2xl max-h-[90vh] overflow-y-auto">
               {/* Header */}
               <div className="flex items-center gap-4 mb-6">
                 <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-slate-600 to-slate-700 flex items-center justify-center">
                   <Settings size={28} className="text-white" />
                 </div>
                 <div>
-                  <h2 className="text-xl font-bold text-white">Configurações</h2>
-                  <p className="text-slate-400 text-sm">Edite suas informações</p>
-                </div>
-              </div>
-
-              {/* Seção do Plano */}
-              <div className="mb-6 p-4 rounded-xl bg-gradient-to-br from-violet-500/10 to-indigo-500/10 border border-violet-500/30">
-                <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center gap-3">
-                    {userPlano === 'admin' ? (
-                      <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-red-500 to-rose-600 flex items-center justify-center">
-                        <Shield size={20} className="text-white" />
-                      </div>
-                    ) : userPlano === 'premium' ? (
-                      <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center">
-                        <Crown size={20} className="text-white" />
-                      </div>
-                    ) : userPlano === 'pro' ? (
-                      <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-violet-500 to-indigo-600 flex items-center justify-center">
-                        <Star size={20} className="text-white" />
-                      </div>
-                    ) : (
-                      <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-slate-500 to-slate-600 flex items-center justify-center">
-                        <Zap size={20} className="text-white" />
-                      </div>
-                    )}
-                    <div>
-                      <p className="font-semibold text-white capitalize">Plano {userPlano || 'Pro'}</p>
-                      {userPlanoExpiraEm && userPlano !== 'admin' && (
-                        <p className="text-xs text-slate-400">
-                          Expira em {new Date(userPlanoExpiraEm).toLocaleDateString('pt-BR')}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                  {userPlano !== 'premium' && userPlano !== 'admin' && (
-                    <button
-                      onClick={() => {
-                        setShowSettingsModal(false);
-                        setShowUpgradeModal(true);
-                      }}
-                      className="px-3 py-1.5 rounded-lg bg-gradient-to-r from-violet-600 to-indigo-600 text-white text-xs font-medium hover:from-violet-500 hover:to-indigo-500 transition-all"
-                    >
-                      Upgrade
-                    </button>
-                  )}
-                </div>
-                <div className="text-xs text-slate-400">
-                  {userPlano === 'admin' ? (
-                    '🛡️ Administrador - Acesso total ao sistema'
-                  ) : userPlano === 'premium' ? (
-                    '✨ Você tem acesso a todas as funcionalidades!'
-                  ) : userPlano === 'pro' ? (
-                    'Faça upgrade para Premium e desbloqueie simulador de notas, múltiplos cursos e mais!'
-                  ) : (
-                    'Faça upgrade para ter disciplinas ilimitadas, PDF e previsão de formatura!'
-                  )}
+                  <h2 className="text-xl font-bold text-[var(--text-primary)]">Configurações</h2>
+                  <p className="text-[var(--text-secondary)] text-sm">Edite suas informações</p>
                 </div>
               </div>
 
@@ -2575,59 +1971,51 @@ export default function SistemaNotas({ onOpenAdmin }) {
               <div className="space-y-4 mb-6">
                 {/* Email (somente leitura) */}
                 <div>
-                  <label className="text-sm text-slate-400 block mb-2">Email</label>
-                  <div className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-slate-500">
+                  <label className="text-sm text-[var(--text-secondary)] block mb-2">Email</label>
+                  <div className="w-full px-4 py-3 rounded-xl bg-[var(--bg-input)] border border-[var(--border-input)] text-[var(--text-muted)]">
                     {user?.email}
                   </div>
                 </div>
 
                 {/* Nome */}
                 <div>
-                  <label className="text-sm text-slate-400 block mb-2">Nome</label>
+                  <label className="text-sm text-[var(--text-secondary)] block mb-2">Nome</label>
                   <input
                     type="text"
                     value={settingsNome}
                     onChange={(e) => setSettingsNome(e.target.value)}
-                    className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white focus:outline-none focus:border-violet-500 transition-colors"
+                    className="w-full px-4 py-3 rounded-xl bg-[var(--bg-input)] border border-[var(--border-input)] text-[var(--text-primary)] focus:outline-none focus:border-violet-500 transition-colors"
                     placeholder="Seu nome"
                   />
                 </div>
 
                 {/* Curso */}
                 <div>
-                  <label className="text-sm text-slate-400 block mb-2">Curso</label>
+                  <label className="text-sm text-[var(--text-secondary)] block mb-2">Curso</label>
                   <input
                     type="text"
                     value={settingsCurso}
                     onChange={(e) => setSettingsCurso(e.target.value)}
-                    className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white focus:outline-none focus:border-violet-500 transition-colors"
+                    className="w-full px-4 py-3 rounded-xl bg-[var(--bg-input)] border border-[var(--border-input)] text-[var(--text-primary)] focus:outline-none focus:border-violet-500 transition-colors"
                     placeholder="Ex: Ciência da Computação"
                   />
                 </div>
               </div>
 
               {/* Seção Backup/Exportar (Premium) */}
-              <div className="mb-6 p-4 rounded-xl bg-white/5 border border-white/10">
+              <div className="mb-6 p-4 rounded-xl bg-[var(--bg-input)] border border-[var(--border-input)]">
                 <div className="flex items-center gap-3 mb-3">
                   <Database size={20} className="text-amber-400" />
-                  <h4 className="font-medium text-white">Backup de Dados</h4>
-                  {!temPermissao('backupExportar') && (
-                    <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-400 text-xs font-medium flex items-center gap-1">
-                      <Lock size={10} /> Premium
-                    </span>
-                  )}
+                  <h4 className="font-medium text-[var(--text-primary)]">Backup de Dados</h4>
+                  
                 </div>
-                <p className="text-slate-400 text-sm mb-3">
+                <p className="text-[var(--text-secondary)] text-sm mb-3">
                   Exporte seus dados para backup ou importe de outro dispositivo.
                 </p>
                 <div className="flex gap-2">
                   <button
                     onClick={() => {
-                      if (!temPermissao('backupExportar')) {
-                        setShowSettingsModal(false);
-                        setShowUpgradeModal(true);
-                        return;
-                      }
+                      
                       const dados = {
                         versao: '1.0',
                         exportadoEm: new Date().toISOString(),
@@ -2642,23 +2030,14 @@ export default function SistemaNotas({ onOpenAdmin }) {
                       a.click();
                       URL.revokeObjectURL(url);
                     }}
-                    className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-sm font-medium transition-all ${
-                      temPermissao('backupExportar')
-                        ? 'bg-amber-500/20 text-amber-400 hover:bg-amber-500/30'
-                        : 'bg-white/5 text-slate-500'
-                    }`}
+                    className="flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-sm font-medium transition-all bg-amber-500/20 text-amber-400 hover:bg-amber-500/30"
                   >
                     <Download size={16} />
                     Exportar
-                    {!temPermissao('backupExportar') && <Lock size={12} />}
                   </button>
                   <button
                     onClick={() => {
-                      if (!temPermissao('backupExportar')) {
-                        setShowSettingsModal(false);
-                        setShowUpgradeModal(true);
-                        return;
-                      }
+                      
                       const input = document.createElement('input');
                       input.type = 'file';
                       input.accept = '.json';
@@ -2679,8 +2058,7 @@ export default function SistemaNotas({ onOpenAdmin }) {
                                 toast.success('Dados importados com sucesso!');
                                 setConfirmState(null);
                               },
-                              onCancel: () => setConfirmState(null),
-                            });
+                              onCancel: () => setConfirmState(null) });
                           } else {
                             toast.error('Arquivo inválido. O formato esperado é um backup JSON deste app.');
                           }
@@ -2690,15 +2068,10 @@ export default function SistemaNotas({ onOpenAdmin }) {
                       };
                       input.click();
                     }}
-                    className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-sm font-medium transition-all ${
-                      temPermissao('backupExportar')
-                        ? 'bg-white/5 text-slate-300 hover:bg-white/10'
-                        : 'bg-white/5 text-slate-500'
-                    }`}
+                    className="flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-sm font-medium transition-all bg-[var(--bg-input)] text-[var(--text-secondary)] hover:bg-[var(--bg-hover)]"
                   >
                     <UploadIcon size={16} />
                     Importar
-                    {!temPermissao('backupExportar') && <Lock size={12} />}
                   </button>
                 </div>
               </div>
@@ -2709,7 +2082,7 @@ export default function SistemaNotas({ onOpenAdmin }) {
                   <AlertCircle size={20} className="text-red-400" />
                   <h4 className="font-medium text-red-400">Zona de Perigo</h4>
                 </div>
-                <p className="text-slate-400 text-sm mb-3">
+                <p className="text-[var(--text-secondary)] text-sm mb-3">
                   Ações irreversíveis. Tenha cuidado!
                 </p>
                 <button
@@ -2729,7 +2102,7 @@ export default function SistemaNotas({ onOpenAdmin }) {
               <div className="flex gap-3">
                 <button
                   onClick={() => setShowSettingsModal(false)}
-                  className="flex-1 py-3 rounded-xl bg-white/5 border border-white/10 text-slate-400 font-medium hover:bg-white/10 transition-colors"
+                  className="flex-1 py-3 rounded-xl bg-[var(--bg-input)] border border-[var(--border-input)] text-[var(--text-secondary)] font-medium hover:bg-[var(--bg-hover)] transition-colors"
                 >
                   Cancelar
                 </button>
@@ -2752,100 +2125,10 @@ export default function SistemaNotas({ onOpenAdmin }) {
           </div>
         )}
 
-        {/* Modal Upgrade de Plano */}
-        {showUpgradeModal && (
-          <UpgradeModal 
-            planoAtual={planoAtual} 
-            userEmail={user?.email}
-            userName={userName}
-            onClose={() => setShowUpgradeModal(false)} 
-          />
-        )}
-
-        {/* Modal Aviso de Expiração */}
-        {showExpiracaoModal && (
-          <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={(e) => e.target === e.currentTarget && setShowExpiracaoModal(false)}>
-            <div className="bg-gradient-to-br from-slate-800 to-slate-900 border border-amber-500/30 rounded-3xl p-8 max-w-md w-full shadow-2xl animate-in fade-in zoom-in duration-300">
-              {/* Ícone animado */}
-              <div className="flex justify-center mb-6">
-                <div className="relative">
-                  <div className="w-20 h-20 rounded-full bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center shadow-lg shadow-amber-500/40 animate-pulse">
-                    <Clock size={40} className="text-white" />
-                  </div>
-                  <div className="absolute -top-1 -right-1 w-8 h-8 rounded-full bg-red-500 flex items-center justify-center text-white text-sm font-bold shadow-lg">
-                    {diasRestantes}
-                  </div>
-                </div>
-              </div>
-
-              {/* Título */}
-              <h2 className="text-2xl font-bold text-white text-center mb-2">
-                {diasRestantes === 1 ? 'Último dia!' : `${diasRestantes} dias restantes!`}
-              </h2>
-              
-              <p className="text-slate-400 text-center mb-6">
-                Seu período {planoAtual === 'gratuito' ? 'gratuito' : `do plano ${planoAtual}`} está chegando ao fim. 
-                {diasRestantes <= 7 ? ' Assine agora para não perder acesso!' : ' Aproveite para fazer upgrade e continuar usando todas as funcionalidades.'}
-              </p>
-
-              {/* Barra de progresso */}
-              <div className="mb-6">
-                <div className="flex justify-between text-xs text-slate-500 mb-1">
-                  <span>Tempo restante</span>
-                  <span>{diasRestantes} de 30 dias</span>
-                </div>
-                <div className="h-2 bg-slate-700 rounded-full overflow-hidden">
-                  <div 
-                    className={`h-full rounded-full transition-all ${
-                      diasRestantes <= 7 ? 'bg-gradient-to-r from-red-500 to-orange-500' : 'bg-gradient-to-r from-amber-500 to-yellow-500'
-                    }`}
-                    style={{ width: `${Math.max((diasRestantes / 30) * 100, 5)}%` }}
-                  />
-                </div>
-              </div>
-
-              {/* Benefícios do upgrade */}
-              <div className="bg-white/5 rounded-xl p-4 mb-6">
-                <p className="text-sm text-slate-400 mb-2">Com o upgrade você terá:</p>
-                <ul className="space-y-1 text-sm">
-                  <li className="flex items-center gap-2 text-emerald-400">
-                    <CheckCircle size={14} /> Disciplinas ilimitadas
-                  </li>
-                  <li className="flex items-center gap-2 text-emerald-400">
-                    <CheckCircle size={14} /> Exportar PDF
-                  </li>
-                  <li className="flex items-center gap-2 text-emerald-400">
-                    <CheckCircle size={14} /> Dashboard completo
-                  </li>
-                </ul>
-              </div>
-
-              {/* Botões */}
-              <div className="flex gap-3">
-                <button
-                  onClick={() => setShowExpiracaoModal(false)}
-                  className="flex-1 py-3 rounded-xl bg-white/5 border border-white/10 text-slate-400 font-medium hover:bg-white/10 transition-colors"
-                >
-                  Depois
-                </button>
-                <button
-                  onClick={() => {
-                    setShowExpiracaoModal(false);
-                    setShowUpgradeModal(true);
-                  }}
-                  className="flex-1 py-3 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 text-white font-semibold hover:from-amber-400 hover:to-orange-400 transition-all shadow-lg shadow-amber-500/25"
-                >
-                  Ver Planos
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-
         {/* Modal Confirmação de Logout */}
         {showLogoutModal && (
-          <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={(e) => e.target === e.currentTarget && setShowLogoutModal(false)}>
-            <div className="bg-gradient-to-br from-slate-800 to-slate-900 border border-white/10 rounded-3xl p-8 max-w-sm w-full shadow-2xl">
+          <div className="fixed inset-0 bg-[var(--bg-modal-overlay)] backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={(e) => e.target === e.currentTarget && setShowLogoutModal(false)}>
+            <div className="bg-[var(--bg-modal)] border border-[var(--border-input)] rounded-3xl p-8 max-w-sm w-full shadow-2xl">
               {/* Ícone */}
               <div className="flex justify-center mb-6">
                 <div className="w-16 h-16 rounded-full bg-red-500/20 flex items-center justify-center">
@@ -2854,11 +2137,11 @@ export default function SistemaNotas({ onOpenAdmin }) {
               </div>
 
               {/* Título */}
-              <h2 className="text-xl font-bold text-white text-center mb-2">
+              <h2 className="text-xl font-bold text-[var(--text-primary)] text-center mb-2">
                 Sair da conta?
               </h2>
               
-              <p className="text-slate-400 text-center mb-6">
+              <p className="text-[var(--text-secondary)] text-center mb-6">
                 Tem certeza que deseja sair? Seus dados estão salvos na nuvem.
               </p>
 
@@ -2866,7 +2149,7 @@ export default function SistemaNotas({ onOpenAdmin }) {
               <div className="flex gap-3">
                 <button
                   onClick={() => setShowLogoutModal(false)}
-                  className="flex-1 py-3 rounded-xl bg-white/5 border border-white/10 text-slate-300 font-medium hover:bg-white/10 transition-colors"
+                  className="flex-1 py-3 rounded-xl bg-[var(--bg-input)] border border-[var(--border-input)] text-[var(--text-secondary)] font-medium hover:bg-[var(--bg-hover)] transition-colors"
                 >
                   Cancelar
                 </button>
@@ -2887,8 +2170,8 @@ export default function SistemaNotas({ onOpenAdmin }) {
 
         {/* Modal Resetar Todas as Cadeiras */}
         {showResetModal && (
-          <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={(e) => e.target === e.currentTarget && !resettingAll && setShowResetModal(false)}>
-            <div className="bg-gradient-to-br from-slate-800 to-slate-900 border border-red-500/30 rounded-3xl p-8 max-w-md w-full shadow-2xl">
+          <div className="fixed inset-0 bg-[var(--bg-modal-overlay)] backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={(e) => e.target === e.currentTarget && !resettingAll && setShowResetModal(false)}>
+            <div className="bg-[var(--bg-modal)] border border-red-500/30 rounded-3xl p-8 max-w-md w-full shadow-2xl">
               {/* Ícone */}
               <div className="flex justify-center mb-6">
                 <div className="w-20 h-20 rounded-full bg-red-500/20 flex items-center justify-center animate-pulse">
@@ -2897,11 +2180,11 @@ export default function SistemaNotas({ onOpenAdmin }) {
               </div>
 
               {/* Título */}
-              <h2 className="text-xl font-bold text-white text-center mb-2">
+              <h2 className="text-xl font-bold text-[var(--text-primary)] text-center mb-2">
                 Excluir todas as cadeiras?
               </h2>
               
-              <p className="text-slate-400 text-center mb-4">
+              <p className="text-[var(--text-secondary)] text-center mb-4">
                 Esta ação é <span className="text-red-400 font-semibold">irreversível</span>. 
                 Todas as <span className="text-white font-semibold">{disciplinas.length} cadeiras</span> serão 
                 permanentemente excluídas, incluindo notas e histórico.
@@ -2923,7 +2206,7 @@ export default function SistemaNotas({ onOpenAdmin }) {
 
               {/* Campo de confirmação */}
               <div className="mb-6">
-                <label className="text-sm text-slate-400 block mb-2">
+                <label className="text-sm text-[var(--text-secondary)] block mb-2">
                   Para confirmar, digite <span className="font-mono bg-red-500/20 text-red-400 px-2 py-0.5 rounded">{resetCode}</span> abaixo:
                 </label>
                 <input
@@ -2931,7 +2214,7 @@ export default function SistemaNotas({ onOpenAdmin }) {
                   value={resetConfirmText}
                   onChange={(e) => setResetConfirmText(e.target.value.toUpperCase())}
                   placeholder="Digite o código de confirmação"
-                  className="w-full px-4 py-3 rounded-xl bg-white/5 border border-red-500/30 text-white font-mono text-center text-lg tracking-widest focus:outline-none focus:border-red-500 transition-colors uppercase"
+                  className="w-full px-4 py-3 rounded-xl bg-[var(--bg-input)] border border-red-500/30 text-white font-mono text-center text-lg tracking-widest focus:outline-none focus:border-red-500 transition-colors uppercase"
                   maxLength={6}
                   disabled={resettingAll}
                 />
@@ -2955,7 +2238,7 @@ export default function SistemaNotas({ onOpenAdmin }) {
                     setResetConfirmText('');
                   }}
                   disabled={resettingAll}
-                  className="flex-1 py-3 rounded-xl bg-white/5 border border-white/10 text-slate-300 font-medium hover:bg-white/10 transition-colors disabled:opacity-50"
+                  className="flex-1 py-3 rounded-xl bg-[var(--bg-input)] border border-[var(--border-input)] text-[var(--text-secondary)] font-medium hover:bg-[var(--bg-hover)] transition-colors disabled:opacity-50"
                 >
                   Cancelar
                 </button>
@@ -2983,22 +2266,22 @@ export default function SistemaNotas({ onOpenAdmin }) {
 
         {/* Modal Simulador de Notas (Premium) */}
         {showSimulador && (
-          <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={(e) => e.target === e.currentTarget && setShowSimulador(false)}>
-            <div className="bg-gradient-to-br from-slate-800 to-slate-900 border border-amber-500/30 rounded-3xl p-8 max-w-lg w-full shadow-2xl">
+          <div className="fixed inset-0 bg-[var(--bg-modal-overlay)] backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={(e) => e.target === e.currentTarget && setShowSimulador(false)}>
+            <div className="bg-[var(--bg-modal)] border border-amber-500/30 rounded-3xl p-8 max-w-lg w-full shadow-2xl">
               {/* Header */}
               <div className="flex items-center gap-4 mb-6">
                 <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center shadow-lg shadow-amber-500/30">
                   <Calculator size={28} className="text-white" />
                 </div>
                 <div>
-                  <h2 className="text-xl font-bold text-white">Simulador de Notas</h2>
-                  <p className="text-amber-400 text-sm">✨ Recurso Premium</p>
+                  <h2 className="text-xl font-bold text-[var(--text-primary)]">Simulador de Notas</h2>
+                  <p className="text-amber-400 text-sm">Calcule suas notas</p>
                 </div>
               </div>
 
               {/* Seletor de disciplina */}
               <div className="mb-6">
-                <label className="text-sm text-slate-400 block mb-2">Disciplina</label>
+                <label className="text-sm text-[var(--text-secondary)] block mb-2">Disciplina</label>
                 <select
                   value={simuladorDisciplina || ''}
                   onChange={(e) => {
@@ -3007,7 +2290,7 @@ export default function SistemaNotas({ onOpenAdmin }) {
                     setSimuladorGA(disc?.ga?.toString() || '');
                     setSimuladorGB(disc?.gb?.toString() || '');
                   }}
-                  className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white focus:outline-none focus:border-amber-500"
+                  className="w-full px-4 py-3 rounded-xl bg-[var(--bg-input)] border border-[var(--border-input)] text-[var(--text-primary)] focus:outline-none focus:border-amber-500"
                 >
                   <option value="" className="bg-slate-800">Selecione uma disciplina</option>
                   {disciplinas.filter(d => d.status === 'EM_CURSO').map(d => (
@@ -3019,7 +2302,7 @@ export default function SistemaNotas({ onOpenAdmin }) {
               {/* Inputs de notas */}
               <div className="grid grid-cols-2 gap-4 mb-6">
                 <div>
-                  <label className="text-sm text-slate-400 block mb-2">Nota GA (atual ou esperada)</label>
+                  <label className="text-sm text-[var(--text-secondary)] block mb-2">Nota GA (atual ou esperada)</label>
                   <input
                     type="number"
                     step="0.1"
@@ -3027,12 +2310,12 @@ export default function SistemaNotas({ onOpenAdmin }) {
                     max="10"
                     value={simuladorGA}
                     onChange={(e) => setSimuladorGA(e.target.value)}
-                    className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white focus:outline-none focus:border-amber-500 text-center text-xl"
+                    className="w-full px-4 py-3 rounded-xl bg-[var(--bg-input)] border border-[var(--border-input)] text-[var(--text-primary)] focus:outline-none focus:border-amber-500 text-center text-xl"
                     placeholder="0.0"
                   />
                 </div>
                 <div>
-                  <label className="text-sm text-slate-400 block mb-2">Nota GB (atual ou esperada)</label>
+                  <label className="text-sm text-[var(--text-secondary)] block mb-2">Nota GB (atual ou esperada)</label>
                   <input
                     type="number"
                     step="0.1"
@@ -3040,7 +2323,7 @@ export default function SistemaNotas({ onOpenAdmin }) {
                     max="10"
                     value={simuladorGB}
                     onChange={(e) => setSimuladorGB(e.target.value)}
-                    className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white focus:outline-none focus:border-amber-500 text-center text-xl"
+                    className="w-full px-4 py-3 rounded-xl bg-[var(--bg-input)] border border-[var(--border-input)] text-[var(--text-primary)] focus:outline-none focus:border-amber-500 text-center text-xl"
                     placeholder="0.0"
                   />
                 </div>
@@ -3061,15 +2344,15 @@ export default function SistemaNotas({ onOpenAdmin }) {
                     return (
                       <div className={`p-4 rounded-xl border ${aprovado ? 'bg-emerald-500/10 border-emerald-500/30' : 'bg-red-500/10 border-red-500/30'}`}>
                         <div className="flex items-center justify-between mb-3">
-                          <span className="text-slate-400">Média calculada:</span>
+                          <span className="text-[var(--text-secondary)]">Média calculada:</span>
                           <span className={`text-2xl font-bold ${aprovado ? 'text-emerald-400' : 'text-red-400'}`}>
                             {mediaFinal.toFixed(1)}
                           </span>
                         </div>
                         
                         {simuladorGA && !simuladorGB && (
-                          <div className="pt-3 border-t border-white/10">
-                            <p className="text-sm text-slate-400 mb-1">Para atingir média {notaMinima}:</p>
+                          <div className="pt-3 border-t border-[var(--border-input)]">
+                            <p className="text-sm text-[var(--text-secondary)] mb-1">Para atingir média {notaMinima}:</p>
                             <p className="text-lg font-semibold text-amber-400">
                               Você precisa de {precisaNaGB.toFixed(1)} na GB
                             </p>
@@ -3091,8 +2374,8 @@ export default function SistemaNotas({ onOpenAdmin }) {
               )}
 
               {/* Dica */}
-              <div className="bg-white/5 rounded-xl p-3 mb-6">
-                <p className="text-xs text-slate-400">
+              <div className="bg-[var(--bg-input)] rounded-xl p-3 mb-6">
+                <p className="text-xs text-[var(--text-secondary)]">
                   💡 <strong>Dica:</strong> Digite apenas a nota da GA para descobrir quanto você precisa tirar na GB para passar.
                 </p>
               </div>
@@ -3100,7 +2383,7 @@ export default function SistemaNotas({ onOpenAdmin }) {
               {/* Botão fechar */}
               <button
                 onClick={() => setShowSimulador(false)}
-                className="w-full py-3 rounded-xl bg-white/5 border border-white/10 text-slate-400 font-medium hover:bg-white/10 transition-colors"
+                className="w-full py-3 rounded-xl bg-[var(--bg-input)] border border-[var(--border-input)] text-[var(--text-secondary)] font-medium hover:bg-[var(--bg-hover)] transition-colors"
               >
                 Fechar
               </button>
@@ -3110,14 +2393,10 @@ export default function SistemaNotas({ onOpenAdmin }) {
 
         {/* FAB Mobile */}
         <button 
-          onClick={() => !planoExpirado && podeAdicionarDisciplina(disciplinas.length) ? setShowAddDisciplina(true) : setShowUpgradeModal(true)} 
-          className={`fixed bottom-6 right-6 w-14 h-14 rounded-full flex items-center justify-center shadow-2xl hover:scale-110 transition-transform duration-300 sm:hidden ${
-            planoExpirado 
-              ? 'bg-gradient-to-br from-red-600 to-orange-600 shadow-red-500/40' 
-              : 'bg-gradient-to-br from-violet-600 to-indigo-600 shadow-violet-500/40'
-          }`}
+          onClick={() => setShowAddDisciplina(true)} 
+          className="fixed bottom-6 right-6 w-14 h-14 rounded-full flex items-center justify-center shadow-2xl hover:scale-110 transition-transform duration-300 sm:hidden bg-gradient-to-br from-violet-600 to-indigo-600 shadow-violet-500/40"
         >
-          {planoExpirado || !podeAdicionarDisciplina(disciplinas.length) ? <Lock size={24} /> : <Plus size={24} />}
+          <Plus size={24} />
         </button>
       </div>
 

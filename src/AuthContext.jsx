@@ -9,8 +9,6 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [userName, setUserName] = useState(null);
   const [userCurso, setUserCurso] = useState(null);
-  const [userPlano, setUserPlano] = useState(null);
-  const [userPlanoExpiraEm, setUserPlanoExpiraEm] = useState(null);
   const [isNewUser, setIsNewUser] = useState(false);
   const [loading, setLoading] = useState(true);
   const [authError, setAuthError] = useState(null);
@@ -21,16 +19,13 @@ export const AuthProvider = ({ children }) => {
     try {
       const { data, error } = await supabase
         .from('usuarios_autorizados')
-        .select('id, nome, curso, plano, plano_expira_em')
+        .select('id, nome, curso, plano')
         .eq('email', email.toLowerCase())
         .eq('ativo', true)
         .single();
       if (!error && data) {
         setUserName(data.nome || null);
         setUserCurso(data.curso || null);
-        setUserPlano(data.plano || 'pro');
-        setUserPlanoExpiraEm(data.plano_expira_em || null);
-        // Se não tem curso, é novo usuário
         setIsNewUser(!data.curso);
         return true;
       }
@@ -40,6 +35,23 @@ export const AuthProvider = ({ children }) => {
     }
   }, []);
 
+  // Auto-create user in usuarios_autorizados if not exists
+  const autoCreateUser = useCallback(async (email) => {
+    if (!email || !supabase) return false;
+    const { error: insertError } = await supabase
+      .from('usuarios_autorizados')
+      .insert([{
+        email: email.toLowerCase(),
+        ativo: true,
+        nome: null,
+        curso: null,
+      }]);
+    if (!insertError) {
+      return await verificarAutorizacao(email);
+    }
+    return false;
+  }, [verificarAutorizacao]);
+
   // Função para atualizar o curso do usuário
   const updateUserCurso = useCallback(async (curso) => {
     if (!user || !supabase) {
@@ -47,20 +59,17 @@ export const AuthProvider = ({ children }) => {
       return { error: 'Não autenticado' };
     }
     try {
-      console.log('Salvando curso:', curso, 'para email:', user.email);
-      
       const { data, error } = await supabase
         .from('usuarios_autorizados')
         .update({ curso })
         .eq('email', user.email.toLowerCase())
         .select();
-      
+
       if (error) {
         console.error('Erro ao salvar curso:', error);
         return { error: error.message };
       }
-      
-      console.log('Curso salvo com sucesso:', data);
+
       setUserCurso(curso);
       setIsNewUser(false);
       return { success: true };
@@ -78,11 +87,11 @@ export const AuthProvider = ({ children }) => {
         .from('usuarios_autorizados')
         .update({ nome, curso })
         .eq('email', user.email.toLowerCase());
-      
+
       if (error) {
         return { error: error.message };
       }
-      
+
       setUserName(nome || null);
       setUserCurso(curso || null);
       return { success: true };
@@ -107,23 +116,23 @@ export const AuthProvider = ({ children }) => {
       }
     }, 5000);
 
-    // Carregar sessão existente E VERIFICAR AUTORIZAÇÃO
+    // Carregar sessão existente
     const loadSession = async () => {
       try {
         const { data: { session } } = await supabase.auth.getSession();
-        
+
         if (mounted) {
           if (session?.user) {
-            // CORREÇÃO: Verificar se o usuário está autorizado
-            const autorizado = await verificarAutorizacao(session.user.email);
-            
+            let autorizado = await verificarAutorizacao(session.user.email);
+            if (!autorizado) {
+              autorizado = await autoCreateUser(session.user.email);
+            }
             if (autorizado) {
               setUser(session.user);
             } else {
-              // Usuário não autorizado - fazer logout
               await supabase.auth.signOut();
               setUser(null);
-              setAuthError('Email não autorizado. Realize o pagamento primeiro.');
+              setAuthError('Erro ao criar conta. Tente novamente.');
             }
           } else {
             setUser(null);
@@ -159,36 +168,16 @@ export const AuthProvider = ({ children }) => {
         }
 
         if ((event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') && session?.user) {
-          // Novo login ou refresh - verificar autorização
           let autorizado = await verificarAutorizacao(session.user.email);
-          
-          // Se não está autorizado, criar automaticamente com plano gratuito
           if (!autorizado) {
-            const dataExpiracao = new Date();
-            dataExpiracao.setMonth(dataExpiracao.getMonth() + 6); // 6 meses grátis
-            
-            const { error: insertError } = await supabase
-              .from('usuarios_autorizados')
-              .insert([{
-                email: session.user.email.toLowerCase(),
-                ativo: true,
-                nome: null,
-                curso: null,
-                plano: 'gratuito',
-                plano_expira_em: dataExpiracao.toISOString()
-              }]);
-            
-            if (!insertError) {
-              autorizado = await verificarAutorizacao(session.user.email);
-            }
+            autorizado = await autoCreateUser(session.user.email);
           }
-          
+
           if (mounted) {
             if (autorizado) {
               setUser(session.user);
               setAuthError(null);
             } else {
-              // Só faz logout se realmente não conseguiu criar/verificar
               await supabase.auth.signOut();
               setUser(null);
               setAuthError('Erro ao criar conta. Tente novamente.');
@@ -203,91 +192,49 @@ export const AuthProvider = ({ children }) => {
       clearTimeout(timeout);
       subscription.unsubscribe();
     };
-  }, [verificarAutorizacao, loading]);
+  }, [verificarAutorizacao, autoCreateUser, loading]);
 
   const signInWithEmail = async (email, password) => {
     if (!supabase) return { data: null, error: { message: 'Supabase não configurado' } };
     setAuthError(null);
-    
-    // Tentar login primeiro
+
     const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-    
+
     if (error) {
       setAuthError(error.message);
       return { data, error };
     }
-    
-    // Login bem sucedido - verificar se está na tabela usuarios_autorizados
-    const autorizado = await verificarAutorizacao(email);
-    
-    // Se não está autorizado, criar automaticamente com plano gratuito
+
+    let autorizado = await verificarAutorizacao(email);
     if (!autorizado) {
-      const dataExpiracao = new Date();
-      dataExpiracao.setMonth(dataExpiracao.getMonth() + 6); // 6 meses grátis
-      
-      const { error: insertError } = await supabase
-        .from('usuarios_autorizados')
-        .insert([{
-          email: email.toLowerCase(),
-          ativo: true,
-          nome: null,
-          curso: null,
-          plano: 'gratuito',
-          plano_expira_em: dataExpiracao.toISOString()
-        }]);
-      
-      if (!insertError) {
-        // Re-verificar autorização para pegar os dados
-        await verificarAutorizacao(email);
-      }
+      autorizado = await autoCreateUser(email);
     }
-    
+
     return { data, error };
   };
 
   const signUpWithEmail = async (email, password) => {
     if (!supabase) return { data: null, error: { message: 'Supabase não configurado' } };
     setAuthError(null);
-    
-    // Verificar se já existe na lista de autorizados
+
     const jaAutorizado = await verificarAutorizacao(email);
-    
-    // Criar conta no Supabase Auth
+
     const { data, error } = await supabase.auth.signUp({ email, password });
     if (error) {
       setAuthError(error.message);
       return { data: null, error };
     }
-    
-    // Se não está autorizado, criar automaticamente com plano gratuito (6 meses)
+
     if (!jaAutorizado) {
-      const dataExpiracao = new Date();
-      dataExpiracao.setMonth(dataExpiracao.getMonth() + 6); // 6 meses grátis
-      
-      const { error: insertError } = await supabase
-        .from('usuarios_autorizados')
-        .insert([{
-          email: email.toLowerCase(),
-          ativo: true,
-          nome: null,
-          curso: null,
-          plano: 'gratuito',
-          plano_expira_em: dataExpiracao.toISOString()
-        }]);
-      
-      if (insertError) {
-        console.error('Erro ao criar usuário gratuito:', insertError);
-        // Se falhar, ainda deixa criar a conta (admin pode ajustar depois)
-      }
+      await autoCreateUser(email);
     }
-    
+
     return { data, error: null };
   };
 
   const signInWithGoogle = async () => {
     if (!supabase) return { data: null, error: { message: 'Supabase não configurado' } };
     setAuthError(null);
-    // Nota: A verificação do Google é feita no onAuthStateChange após o redirect
     return await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: { redirectTo: window.location.origin },
@@ -305,7 +252,7 @@ export const AuthProvider = ({ children }) => {
 
   return (
     <AuthContext.Provider value={{
-      user, userName, userCurso, userPlano, userPlanoExpiraEm, isNewUser, loading, authError,
+      user, userName, userCurso, isNewUser, loading, authError,
       signInWithEmail, signUpWithEmail, signInWithGoogle,
       signOut, verificarAutorizacao, clearAuthError, updateUserCurso, updateUserProfile,
     }}>

@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="pt-BR">
+<html lang="pt-BR" class="dark">
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/png" href="/icon-192.png" />
@@ -13,6 +13,50 @@
     <link rel="manifest" href="/manifest.json" />
     <title>Sistema de Notas Acadêmicas</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = { darkMode: 'class' }
+    </script>
+    <style>
+      :root {
+        --bg-root: #f1f5f9;
+        --bg-card: #ffffff;
+        --bg-card-hover: rgba(0,0,0,0.02);
+        --border-card: rgba(0,0,0,0.08);
+        --text-primary: #0f172a;
+        --text-secondary: #64748b;
+        --text-muted: #94a3b8;
+        --bg-input: #f8fafc;
+        --border-input: #e2e8f0;
+        --bg-tabs: #ffffff;
+        --border-tabs: rgba(0,0,0,0.08);
+        --bg-modal: #ffffff;
+        --bg-modal-overlay: rgba(0,0,0,0.5);
+        --bg-hover: rgba(0,0,0,0.04);
+        --shadow-card: 0 1px 3px rgba(0,0,0,0.08);
+      }
+      .dark {
+        --bg-root: #09090b;
+        --bg-card: rgba(255,255,255,0.03);
+        --bg-card-hover: rgba(255,255,255,0.06);
+        --border-card: rgba(255,255,255,0.1);
+        --text-primary: #ffffff;
+        --text-secondary: #94a3b8;
+        --text-muted: #64748b;
+        --bg-input: rgba(255,255,255,0.05);
+        --border-input: rgba(255,255,255,0.1);
+        --bg-tabs: rgba(255,255,255,0.05);
+        --border-tabs: rgba(255,255,255,0.1);
+        --bg-modal: #1e293b;
+        --bg-modal-overlay: rgba(0,0,0,0.8);
+        --bg-hover: rgba(255,255,255,0.05);
+        --shadow-card: none;
+      }
+      body {
+        background-color: var(--bg-root);
+        color: var(--text-primary);
+        transition: background-color 0.3s ease, color 0.3s ease;
+      }
+    </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.1/jspdf.plugin.autotable.min.js"></script>
   </head>

@@ -759,32 +759,32 @@ ${textoParaAnalisar.substring(0, 20000)}`
   const isProcessando = processandoPdf || processandoIA || buscandoPortal || importando;
 
   return (
-    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-gradient-to-br from-slate-800 to-slate-900 border border-white/10 rounded-3xl w-full max-w-2xl max-h-[90vh] overflow-hidden shadow-2xl">
+    <div className="fixed inset-0 bg-[var(--bg-modal-overlay)] backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      <div className="bg-[var(--bg-modal)] border border-[var(--border-input)] rounded-3xl w-full max-w-2xl max-h-[90vh] overflow-hidden shadow-2xl">
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-white/10">
+        <div className="flex items-center justify-between p-6 border-b border-[var(--border-input)]">
           <div className="flex items-center gap-3">
             <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center">
-              <Upload size={24} className="text-white" />
+              <Upload size={24} className="text-[var(--text-primary)]" />
             </div>
             <div>
-              <h2 className="text-xl font-bold text-white">Importar Cadeiras</h2>
-              <p className="text-slate-400 text-sm">Análise inteligente com IA</p>
+              <h2 className="text-xl font-bold text-[var(--text-primary)]">Importar Cadeiras</h2>
+              <p className="text-[var(--text-secondary)] text-sm">Análise inteligente com IA</p>
             </div>
           </div>
-          <button onClick={onClose} className="p-2 rounded-xl hover:bg-white/10 transition-all">
-            <X size={20} className="text-slate-400" />
+          <button onClick={onClose} className="p-2 rounded-xl hover:bg-[var(--bg-hover)] transition-all">
+            <X size={20} className="text-[var(--text-secondary)]" />
           </button>
         </div>
 
         {/* Tabs */}
-        <div className="flex gap-2 p-3 sm:p-4 border-b border-white/10">
+        <div className="flex gap-2 p-3 sm:p-4 border-b border-[var(--border-input)]">
           <button
             onClick={() => { setModo('texto'); setDisciplinasPreview([]); }}
             className={`flex-1 py-2.5 px-2 sm:px-4 rounded-xl text-xs sm:text-sm font-medium transition-all flex items-center justify-center gap-1.5 sm:gap-2 ${
               modo === 'texto' 
                 ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30' 
-                : 'bg-white/5 text-slate-400 border border-white/10 hover:bg-white/10'
+                : 'bg-[var(--bg-input)] text-[var(--text-secondary)] border border-[var(--border-input)] hover:bg-[var(--bg-hover)]'
             }`}
           >
             <FileText size={16} />
@@ -795,7 +795,7 @@ ${textoParaAnalisar.substring(0, 20000)}`
             className={`flex-1 py-2.5 px-2 sm:px-4 rounded-xl text-xs sm:text-sm font-medium transition-all flex items-center justify-center gap-1.5 sm:gap-2 ${
               modo === 'pdf'
                 ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
-                : 'bg-white/5 text-slate-400 border border-white/10 hover:bg-white/10'
+                : 'bg-[var(--bg-input)] text-[var(--text-secondary)] border border-[var(--border-input)] hover:bg-[var(--bg-hover)]'
             }`}
           >
             <File size={16} />
@@ -806,7 +806,7 @@ ${textoParaAnalisar.substring(0, 20000)}`
             className={`flex-1 py-2.5 px-2 sm:px-4 rounded-xl text-xs sm:text-sm font-medium transition-all flex items-center justify-center gap-1.5 sm:gap-2 ${
               modo === 'portal'
                 ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/30'
-                : 'bg-white/5 text-slate-400 border border-white/10 hover:bg-white/10'
+                : 'bg-[var(--bg-input)] text-[var(--text-secondary)] border border-[var(--border-input)] hover:bg-[var(--bg-hover)]'
             }`}
           >
             <Globe size={16} />
@@ -819,14 +819,14 @@ ${textoParaAnalisar.substring(0, 20000)}`
           {modo === 'texto' && (
             <div className="space-y-4">
               <div>
-                <label className="text-sm text-slate-400 block mb-2">
+                <label className="text-sm text-[var(--text-secondary)] block mb-2">
                   Cole a lista de disciplinas
                 </label>
                 <textarea
                   value={texto}
                   onChange={(e) => setTexto(e.target.value)}
                   rows={8}
-                  className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white text-sm focus:outline-none focus:border-amber-500/50 resize-none font-mono"
+                  className="w-full px-4 py-3 rounded-xl bg-[var(--bg-input)] border border-[var(--border-input)] text-[var(--text-primary)] text-sm focus:outline-none focus:border-amber-500/50 resize-none font-mono"
                   placeholder="Cole aqui o texto do PDF ou lista de disciplinas..."
                 />
               </div>
@@ -835,7 +835,7 @@ ${textoParaAnalisar.substring(0, 20000)}`
                 <button
                   onClick={() => analisarTexto(true)}
                   disabled={!texto.trim() || isProcessando}
-                  className="flex-1 py-3 rounded-xl bg-gradient-to-r from-violet-500 to-purple-600 text-white font-medium hover:scale-[1.02] transition-all disabled:opacity-50 disabled:hover:scale-100 flex items-center justify-center gap-2"
+                  className="flex-1 py-3 rounded-xl bg-gradient-to-r from-violet-500 to-purple-600 text-[var(--text-primary)] font-medium hover:scale-[1.02] transition-all disabled:opacity-50 disabled:hover:scale-100 flex items-center justify-center gap-2"
                 >
                   {processandoIA ? (
                     <><Loader2 size={18} className="animate-spin" /> Analisando...</>
@@ -846,7 +846,7 @@ ${textoParaAnalisar.substring(0, 20000)}`
                 <button
                   onClick={() => analisarTexto(false)}
                   disabled={!texto.trim() || isProcessando}
-                  className="px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-slate-400 font-medium hover:bg-white/10 transition-all disabled:opacity-50"
+                  className="px-4 py-3 rounded-xl bg-[var(--bg-input)] border border-[var(--border-input)] text-[var(--text-secondary)] font-medium hover:bg-[var(--bg-hover)] transition-all disabled:opacity-50"
                   title="Análise manual sem IA"
                 >
                   <Zap size={18} />
@@ -896,13 +896,13 @@ ${textoParaAnalisar.substring(0, 20000)}`
                   <div className="flex flex-col items-center gap-3">
                     <CheckCircle size={40} className="text-emerald-400" />
                     <p className="text-emerald-300 font-medium">{arquivoPdf.name}</p>
-                    <p className="text-slate-500 text-sm">Clique para selecionar outro</p>
+                    <p className="text-[var(--text-muted)] text-sm">Clique para selecionar outro</p>
                   </div>
                 ) : (
                   <div className="flex flex-col items-center gap-3">
-                    <Upload size={40} className="text-slate-500" />
-                    <p className="text-white font-medium">Clique para selecionar o PDF</p>
-                    <p className="text-slate-500 text-sm">A IA vai analisar automaticamente</p>
+                    <Upload size={40} className="text-[var(--text-muted)]" />
+                    <p className="text-[var(--text-primary)] font-medium">Clique para selecionar o PDF</p>
+                    <p className="text-[var(--text-muted)] text-sm">A IA vai analisar automaticamente</p>
                   </div>
                 )}
               </div>
@@ -918,7 +918,7 @@ ${textoParaAnalisar.substring(0, 20000)}`
                 <div className="space-y-2">
                   <button
                     onClick={() => setMostrarTextoExtraido(!mostrarTextoExtraido)}
-                    className="flex items-center gap-2 text-sm text-slate-400 hover:text-white transition-all"
+                    className="flex items-center gap-2 text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-all"
                   >
                     {mostrarTextoExtraido ? <EyeOff size={16} /> : <Eye size={16} />}
                     {mostrarTextoExtraido ? 'Ocultar texto extraído' : 'Ver texto extraído'}
@@ -930,7 +930,7 @@ ${textoParaAnalisar.substring(0, 20000)}`
                         value={textoExtraidoPdf}
                         readOnly
                         rows={6}
-                        className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white text-xs focus:outline-none resize-none font-mono"
+                        className="w-full px-4 py-3 rounded-xl bg-[var(--bg-input)] border border-[var(--border-input)] text-[var(--text-primary)] text-xs focus:outline-none resize-none font-mono"
                       />
                       <div className="flex gap-2">
                         <button
@@ -956,24 +956,24 @@ ${textoParaAnalisar.substring(0, 20000)}`
 
           {modo === 'portal' && (
             <div className="space-y-4">
-              <p className="text-slate-400 text-sm">
+              <p className="text-[var(--text-secondary)] text-sm">
                 Busca automaticamente todas as cadeiras e notas diretamente do portal UNISINOS.
               </p>
 
               <div className="space-y-3">
                 <div>
-                  <label className="text-xs text-slate-500 block mb-1">Nome de usuário</label>
+                  <label className="text-xs text-[var(--text-muted)] block mb-1">Nome de usuário</label>
                   <input
                     type="text"
                     value={ra}
                     onChange={e => setRa(e.target.value)}
                     placeholder="Ex: sobrenomenome"
                     disabled={buscandoPortal}
-                    className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white text-sm focus:outline-none focus:border-cyan-500/50 disabled:opacity-50"
+                    className="w-full px-4 py-3 rounded-xl bg-[var(--bg-input)] border border-[var(--border-input)] text-[var(--text-primary)] text-sm focus:outline-none focus:border-cyan-500/50 disabled:opacity-50"
                   />
                 </div>
                 <div>
-                  <label className="text-xs text-slate-500 block mb-1">Senha do portal</label>
+                  <label className="text-xs text-[var(--text-muted)] block mb-1">Senha do portal</label>
                   <div className="relative">
                     <input
                       type={mostrarSenhaPortal ? 'text' : 'password'}
@@ -981,12 +981,12 @@ ${textoParaAnalisar.substring(0, 20000)}`
                       onChange={e => setSenha(e.target.value)}
                       placeholder="Sua senha do portal.unisinos.br"
                       disabled={buscandoPortal}
-                      className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white text-sm focus:outline-none focus:border-cyan-500/50 pr-12 disabled:opacity-50"
+                      className="w-full px-4 py-3 rounded-xl bg-[var(--bg-input)] border border-[var(--border-input)] text-[var(--text-primary)] text-sm focus:outline-none focus:border-cyan-500/50 pr-12 disabled:opacity-50"
                     />
                     <button
                       type="button"
                       onClick={() => setMostrarSenhaPortal(!mostrarSenhaPortal)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
                     >
                       {mostrarSenhaPortal ? <EyeOff size={18} /> : <Eye size={18} />}
                     </button>
@@ -998,12 +998,12 @@ ${textoParaAnalisar.substring(0, 20000)}`
                 <button
                   onClick={buscarDoPortal}
                   disabled={!ra.trim() || !senha.trim()}
-                  className="w-full py-3 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-medium hover:scale-[1.02] transition-all disabled:opacity-50 disabled:hover:scale-100 flex items-center justify-center gap-2"
+                  className="w-full py-3 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 text-[var(--text-primary)] font-medium hover:scale-[1.02] transition-all disabled:opacity-50 disabled:hover:scale-100 flex items-center justify-center gap-2"
                 >
                   <Globe size={18} /> Buscar do Portal
                 </button>
               ) : (
-                <div className="w-full py-4 rounded-xl bg-white/5 border border-cyan-500/30">
+                <div className="w-full py-4 rounded-xl bg-[var(--bg-input)] border border-cyan-500/30">
                   <div className="flex items-center justify-center gap-3 px-4">
                     <Loader2 size={20} className="animate-spin text-cyan-400 flex-shrink-0" />
                     <span className="text-cyan-300 text-sm font-medium">{statusPortal || 'Preparando...'}</span>
@@ -1032,8 +1032,8 @@ ${textoParaAnalisar.substring(0, 20000)}`
               )}
 
               <div className="bg-slate-700/30 border border-white/5 rounded-xl p-3">
-                <p className="text-slate-500 text-xs leading-relaxed">
-                  Suas credenciais são usadas apenas para acessar o portal e <strong className="text-slate-400">nunca ficam salvas</strong> no servidor.
+                <p className="text-[var(--text-muted)] text-xs leading-relaxed">
+                  Suas credenciais são usadas apenas para acessar o portal e <strong className="text-[var(--text-secondary)]">nunca ficam salvas</strong> no servidor.
                   O processo abre um browser automático e pode levar até 1 minuto.
                 </p>
               </div>
@@ -1044,7 +1044,7 @@ ${textoParaAnalisar.substring(0, 20000)}`
           {disciplinasPreview.length > 0 && (
             <div className="mt-6 space-y-4">
               <div className="flex items-center justify-between">
-                <h3 className="text-lg font-semibold text-white flex items-center gap-2">
+                <h3 className="text-lg font-semibold text-[var(--text-primary)] flex items-center gap-2">
                   {disciplinasPreview.length} cadeiras encontradas
                   {disciplinasPreview[0]?.fonte === 'ia' && (
                     <span className="text-xs px-2 py-0.5 rounded-full bg-violet-500/20 text-violet-300 border border-violet-500/30">
@@ -1059,7 +1059,7 @@ ${textoParaAnalisar.substring(0, 20000)}`
                 </h3>
                 <button
                   onClick={() => setExpandido(!expandido)}
-                  className="text-sm text-slate-400 hover:text-white flex items-center gap-1"
+                  className="text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)] flex items-center gap-1"
                 >
                   {expandido ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
                   {expandido ? 'Recolher' : 'Expandir'}
@@ -1068,12 +1068,12 @@ ${textoParaAnalisar.substring(0, 20000)}`
 
               {/* Filtros por tipo */}
               <div className="bg-slate-700/30 rounded-xl p-4 space-y-3">
-                <p className="text-sm text-slate-400 font-medium">Selecione o que importar:</p>
+                <p className="text-sm text-[var(--text-secondary)] font-medium">Selecione o que importar:</p>
                 <div className="flex flex-wrap gap-3">
                   <label className={`flex items-center gap-2 px-3 py-2 rounded-lg cursor-pointer transition-all ${
                     filtroObrigatorias 
                       ? 'bg-emerald-500/20 border border-emerald-500/50' 
-                      : 'bg-white/5 border border-white/10 hover:bg-white/10'
+                      : 'bg-[var(--bg-input)] border border-[var(--border-input)] hover:bg-[var(--bg-hover)]'
                   }`}>
                     <input
                       type="checkbox"
@@ -1081,7 +1081,7 @@ ${textoParaAnalisar.substring(0, 20000)}`
                       onChange={(e) => setFiltroObrigatorias(e.target.checked)}
                       className="w-4 h-4 rounded accent-emerald-500"
                     />
-                    <span className="text-sm text-white">Obrigatórias</span>
+                    <span className="text-sm text-[var(--text-primary)]">Obrigatórias</span>
                     <span className="text-xs px-1.5 py-0.5 rounded bg-emerald-500/30 text-emerald-300">
                       {contagens.obrigatorias}
                     </span>
@@ -1090,7 +1090,7 @@ ${textoParaAnalisar.substring(0, 20000)}`
                   <label className={`flex items-center gap-2 px-3 py-2 rounded-lg cursor-pointer transition-all ${
                     filtroTrilhas 
                       ? 'bg-violet-500/20 border border-violet-500/50' 
-                      : 'bg-white/5 border border-white/10 hover:bg-white/10'
+                      : 'bg-[var(--bg-input)] border border-[var(--border-input)] hover:bg-[var(--bg-hover)]'
                   }`}>
                     <input
                       type="checkbox"
@@ -1098,7 +1098,7 @@ ${textoParaAnalisar.substring(0, 20000)}`
                       onChange={(e) => setFiltroTrilhas(e.target.checked)}
                       className="w-4 h-4 rounded accent-violet-500"
                     />
-                    <span className="text-sm text-white">Trilhas</span>
+                    <span className="text-sm text-[var(--text-primary)]">Trilhas</span>
                     <span className="text-xs px-1.5 py-0.5 rounded bg-violet-500/30 text-violet-300">
                       {contagens.trilhas}
                     </span>
@@ -1107,7 +1107,7 @@ ${textoParaAnalisar.substring(0, 20000)}`
                   <label className={`flex items-center gap-2 px-3 py-2 rounded-lg cursor-pointer transition-all ${
                     filtroOptativas 
                       ? 'bg-amber-500/20 border border-amber-500/50' 
-                      : 'bg-white/5 border border-white/10 hover:bg-white/10'
+                      : 'bg-[var(--bg-input)] border border-[var(--border-input)] hover:bg-[var(--bg-hover)]'
                   }`}>
                     <input
                       type="checkbox"
@@ -1115,7 +1115,7 @@ ${textoParaAnalisar.substring(0, 20000)}`
                       onChange={(e) => setFiltroOptativas(e.target.checked)}
                       className="w-4 h-4 rounded accent-amber-500"
                     />
-                    <span className="text-sm text-white">Optativas</span>
+                    <span className="text-sm text-[var(--text-primary)]">Optativas</span>
                     <span className="text-xs px-1.5 py-0.5 rounded bg-amber-500/30 text-amber-300">
                       {contagens.optativas}
                     </span>
@@ -1127,15 +1127,15 @@ ${textoParaAnalisar.substring(0, 20000)}`
               <div className="grid grid-cols-3 gap-3">
                 <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-xl p-3 text-center">
                   <p className="text-2xl font-bold text-emerald-400">{disciplinasNovas.length}</p>
-                  <p className="text-xs text-slate-400">Novas</p>
+                  <p className="text-xs text-[var(--text-secondary)]">Novas</p>
                 </div>
                 <div className="bg-blue-500/10 border border-blue-500/30 rounded-xl p-3 text-center">
                   <p className="text-2xl font-bold text-blue-400">{disciplinasAtualizadas.length}</p>
-                  <p className="text-xs text-slate-400">Notas alteradas</p>
+                  <p className="text-xs text-[var(--text-secondary)]">Notas alteradas</p>
                 </div>
                 <div className="bg-slate-500/10 border border-slate-500/30 rounded-xl p-3 text-center">
-                  <p className="text-2xl font-bold text-slate-400">{disciplinasSemMudanca.length}</p>
-                  <p className="text-xs text-slate-400">Sem mudança</p>
+                  <p className="text-2xl font-bold text-[var(--text-secondary)]">{disciplinasSemMudanca.length}</p>
+                  <p className="text-xs text-[var(--text-secondary)]">Sem mudança</p>
                 </div>
               </div>
               
@@ -1167,25 +1167,25 @@ ${textoParaAnalisar.substring(0, 20000)}`
                             ? 'bg-blue-500/10 border-blue-500/30'
                             : isDuplicada
                               ? 'bg-slate-500/10 border-slate-500/30 opacity-50'
-                              : 'bg-white/5 border-white/10'
+                              : 'bg-[var(--bg-input)] border-[var(--border-input)]'
                         }`}
                       >
                         <div className="flex items-start justify-between">
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2 flex-wrap">
                               {d.codigo && (
-                                <span className="text-xs font-mono px-1.5 py-0.5 rounded bg-slate-700 text-slate-300">
+                                <span className="text-xs font-mono px-1.5 py-0.5 rounded bg-slate-700 text-[var(--text-secondary)]">
                                   {d.codigo}
                                 </span>
                               )}
-                              <p className="text-white font-medium text-sm truncate">{d.nome}</p>
+                              <p className="text-[var(--text-primary)] font-medium text-sm truncate">{d.nome}</p>
                               {mudancas && (
                                 <span className="text-xs px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-400">
                                   Nota atualizada
                                 </span>
                               )}
                               {isDuplicada && !mudancas && (
-                                <span className="text-xs px-2 py-0.5 rounded-full bg-slate-500/20 text-slate-400">
+                                <span className="text-xs px-2 py-0.5 rounded-full bg-slate-500/20 text-[var(--text-secondary)]">
                                   Sem mudança
                                 </span>
                               )}
@@ -1199,7 +1199,7 @@ ${textoParaAnalisar.substring(0, 20000)}`
                                 ))}
                               </div>
                             )}
-                            <div className="flex items-center gap-3 mt-1 text-xs text-slate-500">
+                            <div className="flex items-center gap-3 mt-1 text-xs text-[var(--text-muted)]">
                               <span className={`px-1.5 py-0.5 rounded ${
                                 d.tipo === 'obrigatoria'
                                   ? 'bg-emerald-500/20 text-emerald-400'
@@ -1221,7 +1221,7 @@ ${textoParaAnalisar.substring(0, 20000)}`
               )}
 
               {disciplinasFiltradas.length === 0 && (
-                <div className="text-center py-4 text-slate-500">
+                <div className="text-center py-4 text-[var(--text-muted)]">
                   <p>Selecione pelo menos um tipo de disciplina para importar</p>
                 </div>
               )}
@@ -1230,17 +1230,17 @@ ${textoParaAnalisar.substring(0, 20000)}`
         </div>
 
         {/* Footer */}
-        <div className="p-6 border-t border-white/10 flex gap-3">
+        <div className="p-6 border-t border-[var(--border-input)] flex gap-3">
           <button
             onClick={onClose}
-            className="flex-1 py-3 rounded-xl bg-white/5 border border-white/10 text-slate-400 font-medium hover:bg-white/10 transition-all"
+            className="flex-1 py-3 rounded-xl bg-[var(--bg-input)] border border-[var(--border-input)] text-[var(--text-secondary)] font-medium hover:bg-[var(--bg-hover)] transition-all"
           >
             Cancelar
           </button>
           <button
             onClick={confirmarImportacao}
             disabled={(disciplinasNovas.length === 0 && disciplinasAtualizadas.length === 0) || isProcessando}
-            className="flex-1 py-3 rounded-xl bg-gradient-to-r from-amber-500 to-orange-600 text-white font-medium hover:scale-[1.02] transition-all disabled:opacity-50 disabled:hover:scale-100 flex items-center justify-center gap-2"
+            className="flex-1 py-3 rounded-xl bg-gradient-to-r from-amber-500 to-orange-600 text-[var(--text-primary)] font-medium hover:scale-[1.02] transition-all disabled:opacity-50 disabled:hover:scale-100 flex items-center justify-center gap-2"
           >
             {importando ? (
               <><Loader2 size={18} className="animate-spin" /> Salvando...</>

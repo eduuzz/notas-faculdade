@@ -63,9 +63,9 @@ export default function ResetPassword({ onComplete }) {
   // Tela de sucesso
   if (success) {
     return (
-      <div className="min-h-screen bg-[#09090b] text-white flex items-center justify-center p-4">
+      <div className="min-h-screen bg-[var(--bg-root)] text-[var(--text-primary)] flex items-center justify-center p-4">
         {/* Background Effects */}
-        <div className="fixed inset-0 overflow-hidden pointer-events-none">
+        <div className="fixed inset-0 overflow-hidden pointer-events-none dark:block hidden">
           <div className="absolute top-[-20%] right-[-10%] w-[600px] h-[600px] bg-violet-600/10 rounded-full blur-[120px]" />
           <div className="absolute bottom-[-20%] left-[-10%] w-[500px] h-[500px] bg-blue-600/10 rounded-full blur-[100px]" />
           <div className="absolute top-[40%] left-[50%] w-[300px] h-[300px] bg-fuchsia-600/5 rounded-full blur-[80px]" />
@@ -73,12 +73,12 @@ export default function ResetPassword({ onComplete }) {
 
         {/* Card */}
         <div className="relative z-10 w-full max-w-md">
-          <div className="relative overflow-hidden rounded-3xl bg-white/[0.03] backdrop-blur-xl border border-white/10 p-8 text-center">
+          <div className="relative overflow-hidden rounded-3xl bg-[var(--bg-card)] dark:backdrop-blur-xl border border-[var(--border-card)] shadow-[var(--shadow-card)] p-8 text-center">
             <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-emerald-500/20 border border-emerald-500/30 mb-6">
               <CheckCircle size={40} className="text-emerald-400" />
             </div>
             <h1 className="text-2xl font-semibold tracking-tight mb-2">Senha Alterada!</h1>
-            <p className="text-slate-400 mb-6">
+            <p className="text-[var(--text-secondary)] mb-6">
               Sua senha foi atualizada com sucesso. Você será redirecionado para o login em instantes...
             </p>
             <button
@@ -94,9 +94,9 @@ export default function ResetPassword({ onComplete }) {
   }
 
   return (
-    <div className="min-h-screen bg-[#09090b] text-white flex items-center justify-center p-4">
+    <div className="min-h-screen bg-[var(--bg-root)] text-[var(--text-primary)] flex items-center justify-center p-4">
       {/* Background Effects */}
-      <div className="fixed inset-0 overflow-hidden pointer-events-none">
+      <div className="fixed inset-0 overflow-hidden pointer-events-none dark:block hidden">
         <div className="absolute top-[-20%] right-[-10%] w-[600px] h-[600px] bg-violet-600/10 rounded-full blur-[120px]" />
         <div className="absolute bottom-[-20%] left-[-10%] w-[500px] h-[500px] bg-blue-600/10 rounded-full blur-[100px]" />
         <div className="absolute top-[40%] left-[50%] w-[300px] h-[300px] bg-fuchsia-600/5 rounded-full blur-[80px]" />
@@ -104,14 +104,14 @@ export default function ResetPassword({ onComplete }) {
 
       {/* Card */}
       <div className="relative z-10 w-full max-w-md">
-        <div className="relative overflow-hidden rounded-3xl bg-white/[0.03] backdrop-blur-xl border border-white/10 p-8">
+        <div className="relative overflow-hidden rounded-3xl bg-[var(--bg-card)] dark:backdrop-blur-xl border border-[var(--border-card)] shadow-[var(--shadow-card)] p-8">
           {/* Logo */}
           <div className="text-center mb-8">
             <div className="inline-flex items-center justify-center w-20 h-20 rounded-[22px] bg-gradient-to-br from-violet-500 to-indigo-600 shadow-xl shadow-violet-500/30 mb-4">
               <GraduationCap size={40} className="text-white" />
             </div>
             <h1 className="text-2xl font-semibold tracking-tight">Nova Senha</h1>
-            <p className="text-slate-500 text-sm mt-1">
+            <p className="text-[var(--text-muted)] text-sm mt-1">
               Digite sua nova senha
             </p>
           </div>
@@ -127,14 +127,14 @@ export default function ResetPassword({ onComplete }) {
           {/* Form */}
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="text-sm text-slate-400 block mb-2">Nova Senha</label>
+              <label className="text-sm text-[var(--text-secondary)] block mb-2">Nova Senha</label>
               <div className="relative">
-                <Lock size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" />
+                <Lock size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" />
                 <input
                   type={showPassword ? 'text' : 'password'}
                   value={formData.password}
                   onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                  className="w-full pl-12 pr-12 py-3.5 rounded-2xl bg-white/5 border border-white/10 text-white placeholder-slate-500 focus:outline-none focus:border-violet-500/50 focus:bg-white/[0.07] transition-all duration-300"
+                  className="w-full pl-12 pr-12 py-3.5 rounded-2xl bg-[var(--bg-input)] border border-[var(--border-input)] text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none focus:border-violet-500/50 focus:bg-white/[0.07] transition-all duration-300"
                   placeholder="Mínimo 6 caracteres"
                   required
                   minLength={6}
@@ -142,7 +142,7 @@ export default function ResetPassword({ onComplete }) {
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white transition-colors"
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-[var(--text-muted)] hover:text-white transition-colors"
                 >
                   {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                 </button>
@@ -150,14 +150,14 @@ export default function ResetPassword({ onComplete }) {
             </div>
 
             <div>
-              <label className="text-sm text-slate-400 block mb-2">Confirmar Nova Senha</label>
+              <label className="text-sm text-[var(--text-secondary)] block mb-2">Confirmar Nova Senha</label>
               <div className="relative">
-                <Lock size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" />
+                <Lock size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" />
                 <input
                   type={showPassword ? 'text' : 'password'}
                   value={formData.confirmPassword}
                   onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
-                  className="w-full pl-12 pr-4 py-3.5 rounded-2xl bg-white/5 border border-white/10 text-white placeholder-slate-500 focus:outline-none focus:border-violet-500/50 focus:bg-white/[0.07] transition-all duration-300"
+                  className="w-full pl-12 pr-4 py-3.5 rounded-2xl bg-[var(--bg-input)] border border-[var(--border-input)] text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none focus:border-violet-500/50 focus:bg-white/[0.07] transition-all duration-300"
                   placeholder="Repita a senha"
                   required
                 />
@@ -173,7 +173,7 @@ export default function ResetPassword({ onComplete }) {
                   <div className={`h-1 flex-1 rounded-full ${formData.password.length >= 10 && /[A-Z]/.test(formData.password) ? 'bg-emerald-500' : 'bg-slate-700'}`} />
                   <div className={`h-1 flex-1 rounded-full ${formData.password.length >= 10 && /[A-Z]/.test(formData.password) && /[0-9]/.test(formData.password) ? 'bg-emerald-500' : 'bg-slate-700'}`} />
                 </div>
-                <p className="text-xs text-slate-500">
+                <p className="text-xs text-[var(--text-muted)]">
                   {formData.password.length < 6 && 'Senha muito curta'}
                   {formData.password.length >= 6 && formData.password.length < 8 && 'Senha fraca'}
                   {formData.password.length >= 8 && formData.password.length < 10 && 'Senha média'}
@@ -195,7 +195,7 @@ export default function ResetPassword({ onComplete }) {
           <div className="mt-6 text-center">
             <a
               href="/"
-              className="text-slate-400 hover:text-violet-400 text-sm transition-colors"
+              className="text-[var(--text-secondary)] hover:text-violet-400 text-sm transition-colors"
             >
               ← Voltar ao login
             </a>
