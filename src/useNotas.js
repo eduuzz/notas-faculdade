@@ -191,7 +191,7 @@ export function useNotas() {
     return true
   }, [loadDisciplinas])
 
-  // Importar disciplinas em lote (batches de 10, sem .select(), com timeout)
+  // Importar disciplinas — inserts individuais em paralelo (grupos de 5)
   const importarDisciplinas = useCallback(async (listaDisciplinas) => {
     if (!user || !supabase) return { error: 'Não autenticado' }
 
@@ -203,33 +203,32 @@ export function useNotas() {
         created_at: new Date().toISOString()
       }))
 
-      const BATCH_SIZE = 10
-      const TIMEOUT_MS = 30000
+      const PARALLEL = 5
+      let erros = 0
 
-      for (let i = 0; i < disciplinasComUser.length; i += BATCH_SIZE) {
-        const batch = disciplinasComUser.slice(i, i + BATCH_SIZE)
-        const batchNum = Math.floor(i / BATCH_SIZE) + 1
-        console.log(`[import] batch ${batchNum}: inserindo ${batch.length} disciplinas...`)
+      for (let i = 0; i < disciplinasComUser.length; i += PARALLEL) {
+        const grupo = disciplinasComUser.slice(i, i + PARALLEL)
 
-        const insertPromise = supabase
-          .from('disciplinas')
-          .insert(batch)
-
-        const timeoutPromise = new Promise((_, reject) =>
-          setTimeout(() => reject(new Error('Timeout ao salvar disciplinas')), TIMEOUT_MS)
+        const resultados = await Promise.all(
+          grupo.map(d =>
+            supabase.from('disciplinas').insert([d]).select().single()
+          )
         )
 
-        const { error } = await Promise.race([insertPromise, timeoutPromise])
-
-        if (error) {
-          console.error(`[import] batch ${batchNum} erro:`, error)
-          return { error: humanizeSupabaseError(error) }
+        for (const r of resultados) {
+          if (r.error) {
+            console.error('[import] erro individual:', r.error)
+            erros++
+          }
         }
-        console.log(`[import] batch ${batchNum} ok`)
       }
 
       // Recarregar todas as disciplinas do banco
       await loadDisciplinas()
+
+      if (erros > 0) {
+        return { error: `${erros} disciplina(s) falharam ao salvar.` }
+      }
       return { data: true }
     } catch (err) {
       console.error('[import] erro geral:', err)
