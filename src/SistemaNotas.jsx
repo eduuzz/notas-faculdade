@@ -1156,15 +1156,6 @@ export default function SistemaNotas({ onOpenAdmin }) {
                   <Plus size={16} /><span className="text-xs sm:text-sm">Adicionar</span>
                 </GradientButton>
               </div>
-              {/* Indicador de limite para plano básico/gratuito */}
-              {getLimiteDisciplinas() !== Infinity && (
-                <div className="text-xs text-[var(--text-muted)]">
-                  {disciplinas.length}/{getLimiteDisciplinas()} disciplinas
-                  {disciplinas.length >= getLimiteDisciplinas() && (
-                    <span className="text-amber-400 ml-2">• Limite atingido</span>
-                  )}
-                </div>
-              )}
             </div>
 
             {/* Toggle buttons */}
