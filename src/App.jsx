@@ -130,9 +130,17 @@ class ErrorBoundary extends React.Component {
               <AlertTriangle size={36} className="text-red-400" />
             </div>
             <h1 className="text-xl font-semibold mb-2">Algo deu errado</h1>
-            <p className="text-[var(--text-secondary)] text-sm mb-6">
+            <p className="text-[var(--text-secondary)] text-sm mb-4">
               Ocorreu um erro inesperado. Tente recarregar a página.
             </p>
+            <details className="text-left mb-6 bg-red-500/5 border border-red-500/20 rounded-xl p-3">
+              <summary className="text-xs text-red-400 cursor-pointer">Detalhes do erro</summary>
+              <pre className="mt-2 text-xs text-red-300 whitespace-pre-wrap break-all max-h-40 overflow-auto">
+                {this.state.error?.toString()}
+                {'\n'}
+                {this.state.error?.stack}
+              </pre>
+            </details>
             <button
               onClick={() => {
                 if ('caches' in window) {
