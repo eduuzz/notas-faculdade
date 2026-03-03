@@ -191,39 +191,7 @@ export function useNotas() {
     return true
   }, [loadDisciplinas])
 
-  // Insert direto via fetch (supabase client .insert() trava sem enviar POST)
-  const insertDirect = useCallback(async (row, timeoutMs = 15000) => {
-    const { data: { session } } = await supabase.auth.getSession()
-    if (!session) return { error: 'Sessão expirada' }
-
-    const url = `${supabase.supabaseUrl}/rest/v1/disciplinas`
-    const controller = new AbortController()
-    const timeoutId = setTimeout(() => controller.abort(), timeoutMs)
-    try {
-      const res = await fetch(url, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'apikey': supabase.supabaseKey,
-          'Authorization': `Bearer ${session.access_token}`,
-          'Prefer': 'return=minimal',
-        },
-        body: JSON.stringify(row),
-        signal: controller.signal,
-      })
-      clearTimeout(timeoutId)
-      if (!res.ok) {
-        const body = await res.text()
-        return { error: `${res.status}: ${body}` }
-      }
-      return { data: true }
-    } catch (err) {
-      clearTimeout(timeoutId)
-      return { error: err.name === 'AbortError' ? 'timeout' : err.message }
-    }
-  }, [])
-
-  // Importar disciplinas — individual com progresso (batch trava no Supabase free tier)
+  // Importar disciplinas via fetch direto (supabase client .insert() trava)
   const importarDisciplinas = useCallback(async (listaDisciplinas, onProgress) => {
     if (!user || !supabase) return { error: 'Não autenticado' }
 
@@ -232,6 +200,19 @@ export function useNotas() {
     let inseridos = 0
     let erros = 0
     try {
+      // Pegar sessão UMA vez antes de tudo
+      console.log('[import] obtendo sessão...')
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) {
+        console.error('[import] sem sessão!')
+        return { error: 'Sessão expirada. Faça login novamente.' }
+      }
+      console.log('[import] sessão ok, token:', session.access_token.slice(0, 20) + '...')
+
+      const baseUrl = supabase.supabaseUrl
+      const apiKey = supabase.supabaseKey
+      const url = `${baseUrl}/rest/v1/disciplinas`
+
       const disciplinasComUser = listaDisciplinas.map(d => ({
         ...d,
         user_id: user.id,
@@ -239,19 +220,45 @@ export function useNotas() {
       }))
 
       console.log(`[import] iniciando ${total} disciplinas, user_id: ${user.id}`)
+      console.log('[import] url:', url)
       console.log('[import] exemplo:', JSON.stringify(disciplinasComUser[0]))
 
-      // Inserts em grupos pequenos com timeout e progresso
+      // Inserts em grupos pequenos com progresso
       const PARALLEL = 5
       for (let i = 0; i < disciplinasComUser.length; i += PARALLEL) {
         const grupo = disciplinasComUser.slice(i, i + PARALLEL)
         const resultados = await Promise.all(
-          grupo.map(d => insertDirect(d, 15000))
+          grupo.map(async (d) => {
+            const controller = new AbortController()
+            const timeoutId = setTimeout(() => controller.abort(), 15000)
+            try {
+              const res = await fetch(url, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'apikey': apiKey,
+                  'Authorization': `Bearer ${session.access_token}`,
+                  'Prefer': 'return=minimal',
+                },
+                body: JSON.stringify(d),
+                signal: controller.signal,
+              })
+              clearTimeout(timeoutId)
+              if (!res.ok) {
+                const body = await res.text()
+                return { error: `${res.status}: ${body}` }
+              }
+              return { data: true }
+            } catch (err) {
+              clearTimeout(timeoutId)
+              return { error: err.name === 'AbortError' ? 'timeout' : err.message }
+            }
+          })
         )
         for (const r of resultados) {
           if (r.error) {
             erros++
-            console.error('[import] erro insert:', r.error?.message || r.error)
+            console.error('[import] erro insert:', r.error)
           } else inseridos++
         }
         console.log(`[import] progresso: ${inseridos}/${total} ok, ${erros} erros`)
@@ -272,7 +279,7 @@ export function useNotas() {
     } finally {
       setSyncing(false)
     }
-  }, [user, loadDisciplinas, insertDirect])
+  }, [user, loadDisciplinas])
 
   return {
     disciplinas,
