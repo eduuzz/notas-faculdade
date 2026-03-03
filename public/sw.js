@@ -1,4 +1,4 @@
-const CACHE_NAME = 'notas-faculdade-v2';
+const CACHE_NAME = 'notas-faculdade-v3';
 const urlsToCache = [
   '/',
   '/index.html',
@@ -17,7 +17,7 @@ self.addEventListener('install', (event) => {
   self.skipWaiting();
 });
 
-// Ativação - limpa caches antigos
+// Ativação - limpa caches antigos e notifica clients
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((cacheNames) => {
@@ -29,6 +29,13 @@ self.addEventListener('activate', (event) => {
           }
         })
       );
+    }).then(() => {
+      // Notificar todas as abas que há uma nova versão
+      return self.clients.matchAll({ type: 'window' }).then((clients) => {
+        clients.forEach((client) => {
+          client.postMessage({ type: 'SW_UPDATED' });
+        });
+      });
     })
   );
   self.clients.claim();
