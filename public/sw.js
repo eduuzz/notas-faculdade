@@ -1,4 +1,4 @@
-const CACHE_NAME = 'notas-faculdade-v1';
+const CACHE_NAME = 'notas-faculdade-v2';
 const urlsToCache = [
   '/',
   '/index.html',

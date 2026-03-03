@@ -2,7 +2,7 @@ import React, { useState, useEffect, Suspense } from 'react'
 import { AuthProvider, useAuth } from './AuthContext'
 import { ToastProvider } from './ToastContext'
 import { ThemeProvider } from './ThemeContext'
-import { RefreshCw } from 'lucide-react'
+import { RefreshCw, AlertTriangle } from 'lucide-react'
 import { supabase } from './supabaseClient'
 
 const SistemaNotas = React.lazy(() => import('./SistemaNotas'))
@@ -53,12 +53,16 @@ function AppContent() {
       setCheckingRecovery(false);
     };
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (event === 'PASSWORD_RECOVERY') {
-        setIsRecoveryMode(true);
-        setCheckingRecovery(false);
-      }
-    });
+    let subscription;
+    if (supabase) {
+      const { data } = supabase.auth.onAuthStateChange((event, session) => {
+        if (event === 'PASSWORD_RECOVERY') {
+          setIsRecoveryMode(true);
+          setCheckingRecovery(false);
+        }
+      });
+      subscription = data.subscription;
+    }
 
     checkRecoveryMode();
 
@@ -105,15 +109,60 @@ function AppContent() {
   );
 }
 
+// Error Boundary para capturar erros de render
+class ErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+  static getDerivedStateFromError(error) {
+    return { hasError: true, error };
+  }
+  componentDidCatch(error, info) {
+    console.error('App Error:', error, info);
+  }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="min-h-screen bg-[var(--bg-root)] text-[var(--text-primary)] flex items-center justify-center p-4">
+          <div className="text-center max-w-md">
+            <div className="inline-flex items-center justify-center w-20 h-20 rounded-[22px] bg-red-500/20 border border-red-500/30 mb-6">
+              <AlertTriangle size={36} className="text-red-400" />
+            </div>
+            <h1 className="text-xl font-semibold mb-2">Algo deu errado</h1>
+            <p className="text-[var(--text-secondary)] text-sm mb-6">
+              Ocorreu um erro inesperado. Tente recarregar a página.
+            </p>
+            <button
+              onClick={() => {
+                if ('caches' in window) {
+                  caches.keys().then(names => names.forEach(name => caches.delete(name)));
+                }
+                window.location.reload();
+              }}
+              className="px-6 py-3 rounded-2xl bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 font-semibold shadow-lg shadow-violet-500/25 transition-all"
+            >
+              Recarregar
+            </button>
+          </div>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
 function App() {
   return (
-    <ThemeProvider>
-      <AuthProvider>
-        <ToastProvider>
-          <AppContent />
-        </ToastProvider>
-      </AuthProvider>
-    </ThemeProvider>
+    <ErrorBoundary>
+      <ThemeProvider>
+        <AuthProvider>
+          <ToastProvider>
+            <AppContent />
+          </ToastProvider>
+        </AuthProvider>
+      </ThemeProvider>
+    </ErrorBoundary>
   )
 }
 
