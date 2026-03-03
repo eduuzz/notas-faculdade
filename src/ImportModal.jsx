@@ -688,7 +688,9 @@ export default function ImportModal({ onClose, onImport, onUpdate, disciplinasEx
     try {
       if (disciplinasParaImportar.length > 0) {
         setImportProgress({ current: 0, total, step: `Importando ${disciplinasParaImportar.length} cadeira(s)...` });
-        await onImport(disciplinasParaImportar);
+        await onImport(disciplinasParaImportar, (inseridos, totalInsert) => {
+          setImportProgress(prev => ({ ...prev, current: inseridos, step: `Importando ${inseridos}/${totalInsert} cadeira(s)...` }));
+        });
         setImportProgress(prev => ({ ...prev, current: disciplinasParaImportar.length, step: 'Cadeiras importadas!' }));
       }
       if (atualizacoes.length > 0 && onUpdate) {

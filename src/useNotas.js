@@ -191,11 +191,13 @@ export function useNotas() {
     return true
   }, [loadDisciplinas])
 
-  // Importar disciplinas — todos de uma vez (rápido) com fallback individual
-  const importarDisciplinas = useCallback(async (listaDisciplinas) => {
+  // Importar disciplinas — batch rápido com fallback individual + progresso
+  const importarDisciplinas = useCallback(async (listaDisciplinas, onProgress) => {
     if (!user || !supabase) return { error: 'Não autenticado' }
 
     setSyncing(true)
+    const total = listaDisciplinas.length
+    let inseridos = 0
     try {
       const disciplinasComUser = listaDisciplinas.map(d => ({
         ...d,
@@ -211,7 +213,7 @@ export function useNotas() {
       if (error) {
         console.warn('[import] batch falhou, tentando individual:', error)
 
-        // Fallback: inserts individuais em paralelo
+        // Fallback: inserts individuais em paralelo com progresso
         let erros = 0
         const PARALLEL = 10
         for (let i = 0; i < disciplinasComUser.length; i += PARALLEL) {
@@ -221,12 +223,17 @@ export function useNotas() {
           )
           for (const r of resultados) {
             if (r.error) erros++
+            else inseridos++
           }
+          onProgress?.(inseridos, total)
         }
         if (erros > 0) {
           await loadDisciplinas()
           return { error: `${erros} disciplina(s) falharam ao salvar.` }
         }
+      } else {
+        // Batch deu certo — progresso direto para 100%
+        onProgress?.(total, total)
       }
 
       await loadDisciplinas()

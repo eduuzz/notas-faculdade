@@ -226,9 +226,9 @@ export default function SistemaNotas({ onOpenAdmin }) {
     setShowAddMultiplas(false);
   };
 
-  const handleImportarDisciplinas = async (disciplinasImport) => {
+  const handleImportarDisciplinas = async (disciplinasImport, onProgress) => {
     try {
-      const result = await importarDisciplinas(disciplinasImport);
+      const result = await importarDisciplinas(disciplinasImport, onProgress);
       if (result?.error) {
         console.error('Erro ao importar disciplinas:', result.error);
         toast.error(typeof result.error === 'string' ? result.error : 'Erro ao importar disciplinas.');
