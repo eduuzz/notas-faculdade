@@ -5,6 +5,19 @@ const AuthContext = createContext({});
 
 export const useAuth = () => useContext(AuthContext);
 
+// Retry com exponential backoff
+const retryAsync = async (fn, { maxRetries = 3, baseDelay = 500 } = {}) => {
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      return await fn();
+    } catch (err) {
+      if (attempt === maxRetries) throw err;
+      const delay = baseDelay * Math.pow(2, attempt);
+      await new Promise(r => setTimeout(r, delay));
+    }
+  }
+};
+
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [userName, setUserName] = useState(null);
@@ -17,20 +30,26 @@ export const AuthProvider = ({ children }) => {
   const verificarAutorizacao = useCallback(async (email) => {
     if (!email || !supabase) return false;
     try {
-      const { data, error } = await supabase
-        .from('usuarios_autorizados')
-        .select('id, nome, curso, plano')
-        .eq('email', email.toLowerCase())
-        .eq('ativo', true)
-        .single();
-      if (!error && data) {
-        setUserName(data.nome || null);
-        setUserCurso(data.curso || null);
-        setIsNewUser(!data.curso);
+      const result = await retryAsync(async () => {
+        const { data, error } = await supabase
+          .from('usuarios_autorizados')
+          .select('id, nome, curso, plano')
+          .eq('email', email.toLowerCase())
+          .eq('ativo', true)
+          .single();
+        if (error) throw error;
+        return data;
+      }, { maxRetries: 2, baseDelay: 500 });
+
+      if (result) {
+        setUserName(result.nome || null);
+        setUserCurso(result.curso || null);
+        setIsNewUser(!result.curso);
         return true;
       }
       return false;
     } catch (err) {
+      console.warn('verificarAutorizacao falhou após retries:', err.message);
       return false;
     }
   }, []);
@@ -38,18 +57,23 @@ export const AuthProvider = ({ children }) => {
   // Auto-create user in usuarios_autorizados if not exists
   const autoCreateUser = useCallback(async (email) => {
     if (!email || !supabase) return false;
-    const { error: insertError } = await supabase
-      .from('usuarios_autorizados')
-      .insert([{
-        email: email.toLowerCase(),
-        ativo: true,
-        nome: null,
-        curso: null,
-      }]);
-    if (!insertError) {
+    try {
+      await retryAsync(async () => {
+        const { error: insertError } = await supabase
+          .from('usuarios_autorizados')
+          .insert([{
+            email: email.toLowerCase(),
+            ativo: true,
+            nome: null,
+            curso: null,
+          }]);
+        if (insertError) throw insertError;
+      }, { maxRetries: 2, baseDelay: 500 });
       return await verificarAutorizacao(email);
+    } catch (err) {
+      console.warn('autoCreateUser falhou após retries:', err.message);
+      return false;
     }
-    return false;
   }, [verificarAutorizacao]);
 
   // Função para atualizar o curso do usuário
@@ -108,18 +132,22 @@ export const AuthProvider = ({ children }) => {
 
     let mounted = true;
 
-    // Timeout de segurança - 5 segundos
+    // Timeout de segurança - 8 segundos (ampliado para acomodar retries)
     const timeout = setTimeout(() => {
       if (mounted && loading) {
         console.warn('Auth timeout - forçando fim do loading');
         setLoading(false);
+        isInitialLoad.current = false;
       }
-    }, 5000);
+    }, 8000);
 
-    // Carregar sessão existente
+    // Carregar sessão existente (com retry)
     const loadSession = async () => {
       try {
-        const { data: { session } } = await supabase.auth.getSession();
+        const { data: { session } } = await retryAsync(
+          () => supabase.auth.getSession(),
+          { maxRetries: 2, baseDelay: 800 }
+        );
 
         if (mounted) {
           if (session?.user) {
@@ -141,8 +169,9 @@ export const AuthProvider = ({ children }) => {
           isInitialLoad.current = false;
         }
       } catch (err) {
-        console.error('Erro ao carregar sessão:', err);
+        console.error('Erro ao carregar sessão após retries:', err);
         if (mounted) {
+          setAuthError('Erro de conexão. Recarregue a página.');
           setLoading(false);
           isInitialLoad.current = false;
         }

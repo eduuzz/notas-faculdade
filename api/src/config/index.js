@@ -6,4 +6,5 @@ export const config = {
   supabaseServiceKey: process.env.SUPABASE_SERVICE_KEY || '',
   portalBaseUrl: process.env.PORTAL_BASE_URL || 'https://portal.asav.org.br',
   corsOrigin: process.env.CORS_ORIGIN || 'http://localhost:5173',
+  anthropicApiKey: process.env.ANTHROPIC_API_KEY || '',
 };

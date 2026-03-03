@@ -25,105 +25,52 @@ export default function ImportModal({ onClose, onImport, onUpdate, disciplinasEx
   const [buscandoPortal, setBuscandoPortal] = useState(false);
   const [erroPortal, setErroPortal] = useState(null);
   const [importando, setImportando] = useState(false);
+  const [importProgress, setImportProgress] = useState({ current: 0, total: 0, step: '' });
 
-  // Análise inteligente com Claude API
+  // Análise inteligente com IA (via backend)
   const analisarComIA = useCallback(async (textoParaAnalisar) => {
     setProcessandoIA(true);
     setErroPdf(null);
 
     try {
-      const response = await fetch('https://api.anthropic.com/v1/messages', {
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+      let token = null;
+      if (supabase) {
+        const { data: { session } } = await supabase.auth.getSession();
+        token = session?.access_token;
+      }
+
+      const response = await fetch(`${apiUrl}/api/analyze/analyze-pdf`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
-        body: JSON.stringify({
-          model: 'claude-sonnet-4-20250514',
-          max_tokens: 8000,
-          messages: [
-            {
-              role: 'user',
-              content: `Analise este texto de grade curricular universitária e extraia as disciplinas.
-
-ESTRUTURA DO PDF:
-- "Seq." = Semestre (1-8 para obrigatórias, 9+ ou "Trilha X" para optativas/trilhas)
-- "N." = Código da disciplina (número de 5 dígitos, ex: 60963)
-- "Atividades Acadêmicas" = Nome da disciplina
-- "Cred." = Créditos
-- "Horas-Aula" = Carga horária principal (usar este valor)
-- "Horas Práticas" = ignorar para carga horária
-- "Horas de Estágio" = ignorar
-- "Pré-requisitos" = códigos das disciplinas necessárias antes
-- "Correquisitos" = códigos das disciplinas que devem ser cursadas junto
-- "Obs." = ignorar
-
-REGRAS IMPORTANTES:
-1. Extrair APENAS disciplinas reais (que tem código de 5 dígitos)
-2. O período/semestre vem da coluna "Seq." (1-8 = semestre regular, outros = optativas/trilhas)
-3. Trilhas como "Trilha Empreendedorismo", "Trilha Mestrado", etc. devem ter periodo = 9
-4. Disciplinas optativas sem semestre definido devem ter periodo = 0
-5. NÃO duplicar disciplinas (mesmo código = mesma disciplina)
-6. Ignorar cabeçalhos, totais, observações e textos que não são disciplinas
-
-Retorne APENAS um JSON válido:
-{
-  "disciplinas": [
-    {
-      "codigo": "60963",
-      "nome": "Raciocínio Lógico",
-      "creditos": 4,
-      "cargaHoraria": 60,
-      "periodo": 1
-    }
-  ]
-}
-
-IMPORTANTE: Retorne SOMENTE o JSON, sem explicações.
-
-Texto do PDF:
-${textoParaAnalisar.substring(0, 20000)}`
-            }
-          ]
-        })
+        body: JSON.stringify({ texto: textoParaAnalisar.substring(0, 20000) }),
       });
 
       if (!response.ok) {
-        throw new Error('Erro na API');
+        const errData = await response.json().catch(() => ({}));
+        throw new Error(errData?.error?.message || `Erro HTTP ${response.status}`);
       }
 
       const data = await response.json();
-      const conteudo = data.content[0].text;
 
-      const jsonMatch = conteudo.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        const resultado = JSON.parse(jsonMatch[0]);
-        if (resultado.disciplinas && Array.isArray(resultado.disciplinas)) {
-          const codigosVistos = new Set();
-          const disciplinasProcessadas = resultado.disciplinas
-            .filter(d => {
-              if (!d.codigo || codigosVistos.has(d.codigo)) return false;
-              codigosVistos.add(d.codigo);
-              return true;
-            })
-            .map(d => ({
-              codigo: d.codigo,
-              nome: d.nome,
-              creditos: d.creditos || 4,
-              cargaHoraria: d.cargaHoraria || 60,
-              periodo: d.periodo || 1,
-              fonte: 'ia'
-            }));
+      if (data.disciplinas && Array.isArray(data.disciplinas)) {
+        const disciplinasProcessadas = data.disciplinas.map(d => ({
+          ...d,
+          fonte: 'ia'
+        }));
 
-          setDisciplinasPreview(disciplinasProcessadas.sort((a, b) => 
-            a.periodo - b.periodo || a.nome.localeCompare(b.nome)
-          ));
-          return true;
-        }
+        setDisciplinasPreview(disciplinasProcessadas.sort((a, b) =>
+          a.periodo - b.periodo || a.nome.localeCompare(b.nome)
+        ));
+        return true;
       }
       throw new Error('Formato inválido');
     } catch (error) {
       console.error('Erro na análise IA:', error);
-      setErroPdf('A análise inteligente falhou. Tente novamente ou use a aba "Portal Auto" para importar automaticamente.');
+      setErroPdf(error.message || 'A análise inteligente falhou. Tente a aba "Portal Auto".');
       return false;
     } finally {
       setProcessandoIA(false);
@@ -735,16 +682,23 @@ ${textoParaAnalisar.substring(0, 20000)}`
     const temAlgo = disciplinasParaImportar.length > 0 || atualizacoes.length > 0;
     if (!temAlgo) return;
 
+    const total = disciplinasParaImportar.length + atualizacoes.length;
     setImportando(true);
+    setImportProgress({ current: 0, total, step: 'Preparando...' });
     try {
       if (disciplinasParaImportar.length > 0) {
+        setImportProgress({ current: 0, total, step: `Importando ${disciplinasParaImportar.length} cadeira(s)...` });
         await onImport(disciplinasParaImportar);
+        setImportProgress(prev => ({ ...prev, current: disciplinasParaImportar.length, step: 'Cadeiras importadas!' }));
       }
       if (atualizacoes.length > 0 && onUpdate) {
+        setImportProgress(prev => ({ ...prev, step: `Atualizando ${atualizacoes.length} nota(s)...` }));
         await onUpdate(atualizacoes);
+        setImportProgress({ current: total, total, step: 'Concluído!' });
       }
     } finally {
       setImportando(false);
+      setImportProgress({ current: 0, total: 0, step: '' });
     }
     onClose();
   };
@@ -1234,6 +1188,21 @@ ${textoParaAnalisar.substring(0, 20000)}`
           )}
         </div>
 
+        {/* Progress bar */}
+        {importando && importProgress.total > 0 && (
+          <div className="px-6 pt-4">
+            <div className="w-full bg-[var(--bg-input)] rounded-full h-2 overflow-hidden">
+              <div
+                className="h-full bg-gradient-to-r from-amber-500 to-orange-500 rounded-full transition-all duration-500"
+                style={{ width: `${Math.max(5, (importProgress.current / importProgress.total) * 100)}%` }}
+              />
+            </div>
+            <p className="text-xs text-[var(--text-muted)] text-center mt-1">
+              {importProgress.current}/{importProgress.total} — {importProgress.step}
+            </p>
+          </div>
+        )}
+
         {/* Footer */}
         <div className="p-6 border-t border-[var(--border-input)] flex gap-3">
           <button
@@ -1248,7 +1217,7 @@ ${textoParaAnalisar.substring(0, 20000)}`
             className="flex-1 py-3 rounded-xl bg-gradient-to-r from-amber-500 to-orange-600 text-[var(--text-primary)] font-medium hover:scale-[1.02] transition-all disabled:opacity-50 disabled:hover:scale-100 flex items-center justify-center gap-2"
           >
             {importando ? (
-              <><Loader2 size={18} className="animate-spin" /> Salvando...</>
+              <><Loader2 size={18} className="animate-spin" /> {importProgress.step || 'Salvando...'}</>
             ) : (
               <>{disciplinasNovas.length > 0 && disciplinasAtualizadas.length > 0
                 ? `Importar ${disciplinasNovas.length} + Atualizar ${disciplinasAtualizadas.length}`

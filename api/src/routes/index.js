@@ -5,6 +5,7 @@ import authRoutes from './auth.routes.js';
 import notasRoutes from './notas.routes.js';
 import historicoRoutes from './historico.routes.js';
 import cadeirasRoutes from './cadeiras.routes.js';
+import analyzeRoutes from './analyze.routes.js';
 
 const router = Router();
 
@@ -18,5 +19,8 @@ router.use('/portal', requireAuth, portalLimiter, authRoutes);
 router.use('/portal', requireAuth, portalLimiter, notasRoutes);
 router.use('/portal', requireAuth, portalLimiter, historicoRoutes);
 router.use('/portal', requireAuth, portalLimiter, cadeirasRoutes);
+
+// Rota de análise com IA (protegida + rate limit)
+router.use('/analyze', requireAuth, portalLimiter, analyzeRoutes);
 
 export default router;
