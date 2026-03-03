@@ -465,12 +465,26 @@ export default function SistemaNotas({ onOpenAdmin }) {
       if (result.error) {
         console.error('Erro ao importar disciplinas:', result.error);
         toast.error('Erro ao importar disciplinas. Tente novamente.');
+        return;
       }
+      toast.success(`${disciplinasImport.length} disciplina(s) importada(s).`);
     } catch (error) {
       console.error('Erro ao importar disciplinas:', error);
       toast.error('Erro ao importar disciplinas. Tente novamente.');
     }
     setShowImportModal(false);
+  };
+
+  const handleAtualizarNotas = async (atualizacoes) => {
+    let ok = 0;
+    let falhas = 0;
+    for (const { id, updates } of atualizacoes) {
+      const result = await atualizarDisciplina(id, updates);
+      if (result.error) falhas++;
+      else ok++;
+    }
+    if (ok > 0) toast.success(`${ok} nota(s) atualizada(s).`);
+    if (falhas > 0) toast.error(`${falhas} atualização(ões) falharam.`);
   };
 
   const handleRemoverDisciplina = async (id) => { await removerDisciplina(id); setShowDeleteMenu(null); };
@@ -2427,7 +2441,7 @@ export default function SistemaNotas({ onOpenAdmin }) {
           </div>
         )}
 
-        {showImportModal && (<ImportModal onClose={() => setShowImportModal(false)} onImport={handleImportarDisciplinas} disciplinasExistentes={disciplinas} />)}
+        {showImportModal && (<ImportModal onClose={() => setShowImportModal(false)} onImport={handleImportarDisciplinas} onUpdate={handleAtualizarNotas} disciplinasExistentes={disciplinas} />)}
 
         {/* Modal Boas-vindas - Novo Usuário */}
         {showWelcomeModal && (

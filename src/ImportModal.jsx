@@ -2,7 +2,7 @@ import React, { useState, useCallback, useRef } from 'react';
 import { X, Upload, FileText, AlertCircle, CheckCircle, ChevronDown, ChevronUp, Info, File, Loader2, Eye, EyeOff, Sparkles, Zap, Globe, RefreshCw } from 'lucide-react';
 import { supabase } from './supabaseClient';
 
-export default function ImportModal({ onClose, onImport, disciplinasExistentes = [] }) {
+export default function ImportModal({ onClose, onImport, onUpdate, disciplinasExistentes = [] }) {
   const [modo, setModo] = useState('texto');
   const [texto, setTexto] = useState('');
   const [disciplinasPreview, setDisciplinasPreview] = useState([]);
@@ -649,9 +649,22 @@ ${textoParaAnalisar.substring(0, 20000)}`
   }, [texto, analisarComIA, parseTextoManual]);
 
   const verificarDuplicata = (d) => {
-    return disciplinasExistentes.some(existente => 
+    return disciplinasExistentes.some(existente =>
       existente.nome.toLowerCase().trim() === d.nome.toLowerCase().trim()
     );
+  };
+
+  const detectarMudancas = (d) => {
+    const existente = disciplinasExistentes.find(e =>
+      e.nome.toLowerCase().trim() === d.nome.toLowerCase().trim()
+    );
+    if (!existente) return null;
+    const mudancas = [];
+    if (d.notaFinal != null && d.notaFinal !== existente.notaFinal) mudancas.push({ campo: 'Final', de: existente.notaFinal, para: d.notaFinal });
+    if (d.ga != null && d.ga !== existente.ga) mudancas.push({ campo: 'GA', de: existente.ga, para: d.ga });
+    if (d.gb != null && d.gb !== existente.gb) mudancas.push({ campo: 'GB', de: existente.gb, para: d.gb });
+    if (d.status && d.status !== existente.status) mudancas.push({ campo: 'Status', de: existente.status, para: d.status });
+    return mudancas.length > 0 ? { existente, mudancas } : null;
   };
 
   // Função para obter nome do período
@@ -691,7 +704,6 @@ ${textoParaAnalisar.substring(0, 20000)}`
         notaMinima: 6.0,
         tipo: d.fonte === 'portal' ? (d.tipo || 'obrigatoria') : 'obrigatoria',
         faltas: d.fonte === 'portal' ? (d.faltas ?? 0) : 0,
-        // Portal: preserva status e notas reais; PDF/texto: inicia como NAO_INICIADA
         status: d.fonte === 'portal' ? (d.status || 'NAO_INICIADA') : 'NAO_INICIADA',
         ga: d.fonte === 'portal' ? (d.ga ?? null) : null,
         gb: d.fonte === 'portal' ? (d.gb ?? null) : null,
@@ -700,19 +712,42 @@ ${textoParaAnalisar.substring(0, 20000)}`
         observacao: '',
       }));
 
-    if (disciplinasParaImportar.length > 0) {
-      setImportando(true);
-      try {
+    // Montar atualizações para disciplinas com notas alteradas
+    const atualizacoes = disciplinasFiltradas
+      .filter(d => verificarDuplicata(d) && detectarMudancas(d))
+      .map(d => {
+        const info = detectarMudancas(d);
+        const updates = {};
+        for (const m of info.mudancas) {
+          if (m.campo === 'GA') updates.ga = m.para;
+          if (m.campo === 'GB') updates.gb = m.para;
+          if (m.campo === 'Final') updates.notaFinal = m.para;
+          if (m.campo === 'Status') updates.status = m.para;
+        }
+        return { id: info.existente.id, updates };
+      });
+
+    const temAlgo = disciplinasParaImportar.length > 0 || atualizacoes.length > 0;
+    if (!temAlgo) return;
+
+    setImportando(true);
+    try {
+      if (disciplinasParaImportar.length > 0) {
         await onImport(disciplinasParaImportar);
-      } finally {
-        setImportando(false);
       }
-      onClose();
+      if (atualizacoes.length > 0 && onUpdate) {
+        await onUpdate(atualizacoes);
+      }
+    } finally {
+      setImportando(false);
     }
+    onClose();
   };
 
   const disciplinasNovas = disciplinasFiltradas.filter(d => !verificarDuplicata(d));
   const disciplinasDuplicadas = disciplinasFiltradas.filter(d => verificarDuplicata(d));
+  const disciplinasAtualizadas = disciplinasDuplicadas.filter(d => detectarMudancas(d));
+  const disciplinasSemMudanca = disciplinasDuplicadas.filter(d => !detectarMudancas(d));
   
   const disciplinasPorPeriodo = disciplinasFiltradas.reduce((acc, d) => {
     const p = d.periodo || 1;
@@ -1089,14 +1124,18 @@ ${textoParaAnalisar.substring(0, 20000)}`
               </div>
 
               {/* Resumo da seleção */}
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-3 gap-3">
                 <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-xl p-3 text-center">
                   <p className="text-2xl font-bold text-emerald-400">{disciplinasNovas.length}</p>
-                  <p className="text-xs text-slate-400">Serão importadas</p>
+                  <p className="text-xs text-slate-400">Novas</p>
                 </div>
-                <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-3 text-center">
-                  <p className="text-2xl font-bold text-amber-400">{disciplinasDuplicadas.length}</p>
-                  <p className="text-xs text-slate-400">Já existem</p>
+                <div className="bg-blue-500/10 border border-blue-500/30 rounded-xl p-3 text-center">
+                  <p className="text-2xl font-bold text-blue-400">{disciplinasAtualizadas.length}</p>
+                  <p className="text-xs text-slate-400">Notas alteradas</p>
+                </div>
+                <div className="bg-slate-500/10 border border-slate-500/30 rounded-xl p-3 text-center">
+                  <p className="text-2xl font-bold text-slate-400">{disciplinasSemMudanca.length}</p>
+                  <p className="text-xs text-slate-400">Sem mudança</p>
                 </div>
               </div>
               
@@ -1119,13 +1158,16 @@ ${textoParaAnalisar.substring(0, 20000)}`
                 <div className="max-h-48 overflow-y-auto space-y-2 pr-2">
                   {disciplinasFiltradas.map((d, i) => {
                     const isDuplicada = verificarDuplicata(d);
+                    const mudancas = isDuplicada ? detectarMudancas(d) : null;
                     return (
                       <div
                         key={i}
                         className={`p-3 rounded-xl border ${
-                          isDuplicada 
-                            ? 'bg-amber-500/10 border-amber-500/30 opacity-60' 
-                            : 'bg-white/5 border-white/10'
+                          mudancas
+                            ? 'bg-blue-500/10 border-blue-500/30'
+                            : isDuplicada
+                              ? 'bg-slate-500/10 border-slate-500/30 opacity-50'
+                              : 'bg-white/5 border-white/10'
                         }`}
                       >
                         <div className="flex items-start justify-between">
@@ -1137,15 +1179,29 @@ ${textoParaAnalisar.substring(0, 20000)}`
                                 </span>
                               )}
                               <p className="text-white font-medium text-sm truncate">{d.nome}</p>
-                              {isDuplicada && (
-                                <span className="text-xs px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-400">
-                                  Já existe
+                              {mudancas && (
+                                <span className="text-xs px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-400">
+                                  Nota atualizada
+                                </span>
+                              )}
+                              {isDuplicada && !mudancas && (
+                                <span className="text-xs px-2 py-0.5 rounded-full bg-slate-500/20 text-slate-400">
+                                  Sem mudança
                                 </span>
                               )}
                             </div>
+                            {mudancas && (
+                              <div className="flex items-center gap-2 mt-1 flex-wrap">
+                                {mudancas.mudancas.map((m, j) => (
+                                  <span key={j} className="text-xs px-1.5 py-0.5 rounded bg-blue-500/15 text-blue-300">
+                                    {m.campo}: {m.de ?? '—'} → {m.para}
+                                  </span>
+                                ))}
+                              </div>
+                            )}
                             <div className="flex items-center gap-3 mt-1 text-xs text-slate-500">
                               <span className={`px-1.5 py-0.5 rounded ${
-                                d.tipo === 'obrigatoria' 
+                                d.tipo === 'obrigatoria'
                                   ? 'bg-emerald-500/20 text-emerald-400'
                                   : d.tipo === 'trilha'
                                     ? 'bg-violet-500/20 text-violet-400'
@@ -1183,13 +1239,18 @@ ${textoParaAnalisar.substring(0, 20000)}`
           </button>
           <button
             onClick={confirmarImportacao}
-            disabled={disciplinasNovas.length === 0 || isProcessando}
+            disabled={(disciplinasNovas.length === 0 && disciplinasAtualizadas.length === 0) || isProcessando}
             className="flex-1 py-3 rounded-xl bg-gradient-to-r from-amber-500 to-orange-600 text-white font-medium hover:scale-[1.02] transition-all disabled:opacity-50 disabled:hover:scale-100 flex items-center justify-center gap-2"
           >
             {importando ? (
               <><Loader2 size={18} className="animate-spin" /> Salvando...</>
             ) : (
-              <>Importar {disciplinasNovas.length} Cadeiras</>
+              <>{disciplinasNovas.length > 0 && disciplinasAtualizadas.length > 0
+                ? `Importar ${disciplinasNovas.length} + Atualizar ${disciplinasAtualizadas.length}`
+                : disciplinasAtualizadas.length > 0
+                  ? `Atualizar ${disciplinasAtualizadas.length} Notas`
+                  : `Importar ${disciplinasNovas.length} Cadeiras`
+              }</>
             )}
           </button>
         </div>
