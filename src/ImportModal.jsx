@@ -3,7 +3,7 @@ import { X, Upload, FileText, AlertCircle, CheckCircle, ChevronDown, ChevronUp, 
 import { supabase } from './supabaseClient';
 
 export default function ImportModal({ onClose, onImport, onUpdate, disciplinasExistentes = [] }) {
-  const [modo, setModo] = useState('texto');
+  const [modo, setModo] = useState('portal');
   const [texto, setTexto] = useState('');
   const [disciplinasPreview, setDisciplinasPreview] = useState([]);
   const [expandido, setExpandido] = useState(false);
@@ -785,10 +785,21 @@ ${textoParaAnalisar.substring(0, 20000)}`
         {/* Tabs */}
         <div className="flex gap-2 p-3 sm:p-4 border-b border-[var(--border-input)]">
           <button
+            onClick={() => { setModo('portal'); setDisciplinasPreview([]); setErroPortal(null); }}
+            className={`flex-1 py-2.5 px-2 sm:px-4 rounded-xl text-xs sm:text-sm font-medium transition-all flex items-center justify-center gap-1.5 sm:gap-2 ${
+              modo === 'portal'
+                ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/30'
+                : 'bg-[var(--bg-input)] text-[var(--text-secondary)] border border-[var(--border-input)] hover:bg-[var(--bg-hover)]'
+            }`}
+          >
+            <Globe size={16} />
+            Portal<span className="hidden sm:inline"> Auto</span>
+          </button>
+          <button
             onClick={() => { setModo('texto'); setDisciplinasPreview([]); }}
             className={`flex-1 py-2.5 px-2 sm:px-4 rounded-xl text-xs sm:text-sm font-medium transition-all flex items-center justify-center gap-1.5 sm:gap-2 ${
-              modo === 'texto' 
-                ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30' 
+              modo === 'texto'
+                ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
                 : 'bg-[var(--bg-input)] text-[var(--text-secondary)] border border-[var(--border-input)] hover:bg-[var(--bg-hover)]'
             }`}
           >
@@ -805,17 +816,6 @@ ${textoParaAnalisar.substring(0, 20000)}`
           >
             <File size={16} />
             <span className="hidden sm:inline">Upload </span>PDF
-          </button>
-          <button
-            onClick={() => { setModo('portal'); setDisciplinasPreview([]); setErroPortal(null); }}
-            className={`flex-1 py-2.5 px-2 sm:px-4 rounded-xl text-xs sm:text-sm font-medium transition-all flex items-center justify-center gap-1.5 sm:gap-2 ${
-              modo === 'portal'
-                ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/30'
-                : 'bg-[var(--bg-input)] text-[var(--text-secondary)] border border-[var(--border-input)] hover:bg-[var(--bg-hover)]'
-            }`}
-          >
-            <Globe size={16} />
-            Portal<span className="hidden sm:inline"> Auto</span>
           </button>
         </div>
 

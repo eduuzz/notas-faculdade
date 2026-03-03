@@ -191,7 +191,7 @@ export function useNotas() {
     return true
   }, [loadDisciplinas])
 
-  // Importar disciplinas — inserts individuais em paralelo (grupos de 5)
+  // Importar disciplinas — todos de uma vez (rápido) com fallback individual
   const importarDisciplinas = useCallback(async (listaDisciplinas) => {
     if (!user || !supabase) return { error: 'Não autenticado' }
 
@@ -203,32 +203,33 @@ export function useNotas() {
         created_at: new Date().toISOString()
       }))
 
-      const PARALLEL = 5
-      let erros = 0
+      // Tentar insert em lote (rápido)
+      const { error } = await supabase
+        .from('disciplinas')
+        .insert(disciplinasComUser)
 
-      for (let i = 0; i < disciplinasComUser.length; i += PARALLEL) {
-        const grupo = disciplinasComUser.slice(i, i + PARALLEL)
+      if (error) {
+        console.warn('[import] batch falhou, tentando individual:', error)
 
-        const resultados = await Promise.all(
-          grupo.map(d =>
-            supabase.from('disciplinas').insert([d]).select().single()
+        // Fallback: inserts individuais em paralelo
+        let erros = 0
+        const PARALLEL = 10
+        for (let i = 0; i < disciplinasComUser.length; i += PARALLEL) {
+          const grupo = disciplinasComUser.slice(i, i + PARALLEL)
+          const resultados = await Promise.all(
+            grupo.map(d => supabase.from('disciplinas').insert([d]))
           )
-        )
-
-        for (const r of resultados) {
-          if (r.error) {
-            console.error('[import] erro individual:', r.error)
-            erros++
+          for (const r of resultados) {
+            if (r.error) erros++
           }
+        }
+        if (erros > 0) {
+          await loadDisciplinas()
+          return { error: `${erros} disciplina(s) falharam ao salvar.` }
         }
       }
 
-      // Recarregar todas as disciplinas do banco
       await loadDisciplinas()
-
-      if (erros > 0) {
-        return { error: `${erros} disciplina(s) falharam ao salvar.` }
-      }
       return { data: true }
     } catch (err) {
       console.error('[import] erro geral:', err)
