@@ -743,39 +743,39 @@ ${textoParaAnalisar.substring(0, 20000)}`
         </div>
 
         {/* Tabs */}
-        <div className="flex gap-2 p-4 border-b border-white/10">
+        <div className="flex gap-2 p-3 sm:p-4 border-b border-white/10">
           <button
             onClick={() => { setModo('texto'); setDisciplinasPreview([]); }}
-            className={`flex-1 py-2.5 px-4 rounded-xl text-sm font-medium transition-all flex items-center justify-center gap-2 ${
+            className={`flex-1 py-2.5 px-2 sm:px-4 rounded-xl text-xs sm:text-sm font-medium transition-all flex items-center justify-center gap-1.5 sm:gap-2 ${
               modo === 'texto' 
                 ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30' 
                 : 'bg-white/5 text-slate-400 border border-white/10 hover:bg-white/10'
             }`}
           >
-            <FileText size={18} />
-            Colar Texto
+            <FileText size={16} />
+            <span className="hidden sm:inline">Colar </span>Texto
           </button>
           <button
             onClick={() => { setModo('pdf'); setDisciplinasPreview([]); setErroPdf(null); }}
-            className={`flex-1 py-2.5 px-4 rounded-xl text-sm font-medium transition-all flex items-center justify-center gap-2 ${
+            className={`flex-1 py-2.5 px-2 sm:px-4 rounded-xl text-xs sm:text-sm font-medium transition-all flex items-center justify-center gap-1.5 sm:gap-2 ${
               modo === 'pdf'
                 ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
                 : 'bg-white/5 text-slate-400 border border-white/10 hover:bg-white/10'
             }`}
           >
-            <File size={18} />
-            Upload PDF
+            <File size={16} />
+            <span className="hidden sm:inline">Upload </span>PDF
           </button>
           <button
             onClick={() => { setModo('portal'); setDisciplinasPreview([]); setErroPortal(null); }}
-            className={`flex-1 py-2.5 px-4 rounded-xl text-sm font-medium transition-all flex items-center justify-center gap-2 ${
+            className={`flex-1 py-2.5 px-2 sm:px-4 rounded-xl text-xs sm:text-sm font-medium transition-all flex items-center justify-center gap-1.5 sm:gap-2 ${
               modo === 'portal'
                 ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/30'
                 : 'bg-white/5 text-slate-400 border border-white/10 hover:bg-white/10'
             }`}
           >
-            <Globe size={18} />
-            Portal Auto
+            <Globe size={16} />
+            Portal<span className="hidden sm:inline"> Auto</span>
           </button>
         </div>
 
@@ -831,7 +831,7 @@ ${textoParaAnalisar.substring(0, 20000)}`
             <div className="space-y-4">
               <div
                 onClick={() => !isProcessando && fileInputRef.current?.click()}
-                className={`border-2 border-dashed rounded-2xl p-8 text-center cursor-pointer transition-all ${
+                className={`border-2 border-dashed rounded-2xl p-4 sm:p-8 text-center cursor-pointer transition-all ${
                   isProcessando 
                     ? 'border-violet-500/50 bg-violet-500/10 cursor-wait' 
                     : arquivoPdf && disciplinasPreview.length > 0

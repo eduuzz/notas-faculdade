@@ -1315,7 +1315,7 @@ export default function SistemaNotas({ onOpenAdmin }) {
                 <button 
                   key={tab.id} 
                   onClick={() => bloqueado ? setShowUpgradeModal(true) : setActiveTab(tab.id)} 
-                  className={`relative px-4 sm:px-6 py-3 rounded-xl text-sm font-medium transition-all duration-300 whitespace-nowrap ${
+                  className={`relative px-3 sm:px-6 py-3 rounded-xl text-sm font-medium transition-all duration-300 whitespace-nowrap ${
                     activeTab === tab.id 
                       ? tab.id === 'planejar' 
                         ? 'bg-cyan-500/20 text-cyan-300 shadow-lg' 
@@ -1325,8 +1325,9 @@ export default function SistemaNotas({ onOpenAdmin }) {
                         : 'text-slate-400 hover:text-white'
                   } ${bloqueado ? 'opacity-60' : ''}`}
                 >
+                  <tab.icon size={16} className="sm:hidden" />
                   <span className="hidden sm:inline">{tab.label}</span>
-                  <tab.icon size={18} className="sm:hidden" />
+                  <span className="sm:hidden text-xs">{tab.label.split(' ')[1]}</span>
                   {bloqueado && <Lock size={12} className="absolute -top-1 -right-1 text-amber-400" />}
                 </button>
               );
@@ -1338,21 +1339,22 @@ export default function SistemaNotas({ onOpenAdmin }) {
         {activeTab === 'grade' && (
           <div className="space-y-6">
             {/* Stats */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-4">
               {[
                 { label: 'Aprovadas', value: estatisticas.aprovadas, icon: CheckCircle, gradient: 'from-emerald-500 to-green-600', shadow: 'shadow-emerald-500/30' },
                 { label: 'Em Curso', value: estatisticas.emCurso, icon: Clock, gradient: 'from-blue-500 to-indigo-600', shadow: 'shadow-blue-500/30' },
                 { label: 'Progresso', value: `${estatisticas.progresso.toFixed(0)}%`, icon: TrendingUp, gradient: 'from-violet-500 to-purple-600', shadow: 'shadow-violet-500/30' },
                 { label: 'Média', value: estatisticas.mediaGeral.toFixed(1), icon: Award, gradient: 'from-amber-500 to-orange-600', shadow: 'shadow-amber-500/30' },
               ].map((stat, i) => (
-                <GlassCard key={i} className="p-5" hover={false}>
+                <GlassCard key={i} className="p-3 sm:p-5" hover={false}>
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-slate-500 text-sm mb-1">{stat.label}</p>
-                      <p className="text-3xl font-semibold">{stat.value}</p>
+                      <p className="text-slate-500 text-xs sm:text-sm mb-1">{stat.label}</p>
+                      <p className="text-2xl sm:text-3xl font-semibold">{stat.value}</p>
                     </div>
-                    <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${stat.gradient} flex items-center justify-center shadow-lg ${stat.shadow}`}>
-                      <stat.icon size={24} className="text-white" />
+                    <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-gradient-to-br ${stat.gradient} flex items-center justify-center shadow-lg ${stat.shadow}`}>
+                      <stat.icon size={20} className="text-white sm:hidden" />
+                      <stat.icon size={24} className="text-white hidden sm:block" />
                     </div>
                   </div>
                 </GlassCard>
@@ -1378,16 +1380,16 @@ export default function SistemaNotas({ onOpenAdmin }) {
                   onClick={() => temPermissao('exportarPdf') ? exportarPDF() : setShowUpgradeModal(true)}
                   className={!temPermissao('exportarPdf') ? 'relative' : ''}
                 >
-                  <Download size={18} />
-                  <span className="hidden sm:inline">PDF</span>
+                  <Download size={16} />
+                  <span className="text-xs sm:text-sm">PDF</span>
                   {!temPermissao('exportarPdf') && <Lock size={12} className="absolute -top-1 -right-1 text-amber-400" />}
                 </GradientButton>
-                <GradientButton variant="amber" onClick={() => !planoExpirado && setShowImportModal(true)} disabled={planoExpirado}><UploadIcon size={18} /><span className="hidden sm:inline">Importar</span></GradientButton>
+                <GradientButton variant="amber" onClick={() => !planoExpirado && setShowImportModal(true)} disabled={planoExpirado}><UploadIcon size={16} /><span className="text-xs sm:text-sm">Importar</span></GradientButton>
                 <GradientButton 
                   onClick={() => !planoExpirado && podeAdicionarDisciplina(disciplinas.length) ? setShowAddDisciplina(true) : setShowUpgradeModal(true)}
                   disabled={planoExpirado}
                 >
-                  <Plus size={18} /><span className="hidden sm:inline">Adicionar Cadeira</span>
+                  <Plus size={16} /><span className="text-xs sm:text-sm">Adicionar</span>
                 </GradientButton>
               </div>
               {/* Indicador de limite para plano básico/gratuito */}
@@ -1539,7 +1541,7 @@ export default function SistemaNotas({ onOpenAdmin }) {
                                     ) : (disc.ga !== null || disc.gb !== null || disc.notaFinal !== null) ? (
                                       <div className="flex items-center gap-4">
                                         {/* GA e GB */}
-                                        <div className="hidden sm:flex items-center gap-3 text-sm">
+                                        <div className="flex items-center gap-3 text-sm">
                                           <div className="text-center">
                                             <p className="text-slate-500 text-xs mb-0.5">GA</p>
                                             <p className="font-medium text-slate-300">{disc.ga !== null ? disc.ga.toFixed(1) : '-'}</p>
@@ -1552,7 +1554,7 @@ export default function SistemaNotas({ onOpenAdmin }) {
                                         {/* Nota Final */}
                                         {disc.notaFinal !== null && (
                                           <div className="text-right">
-                                            <p className="text-2xl font-semibold">{disc.notaFinal.toFixed(1)}</p>
+                                            <p className="text-xl sm:text-2xl font-semibold">{disc.notaFinal.toFixed(1)}</p>
                                             <p className="text-xs text-slate-500">Final</p>
                                           </div>
                                         )}
@@ -1906,17 +1908,17 @@ export default function SistemaNotas({ onOpenAdmin }) {
                         </div>
                         <span className={`px-3 py-1.5 rounded-xl text-sm font-semibold ${status.bg} ${status.text} border ${status.border}`}>{status.label}</span>
                       </div>
-                      <div className="grid grid-cols-3 gap-4">
-                        <div className="text-center p-3 rounded-xl bg-white/5">
-                          <p className="text-2xl font-semibold">{disc.ga ?? '-'}</p>
+                      <div className="grid grid-cols-3 gap-2 sm:gap-4">
+                        <div className="text-center p-2 sm:p-3 rounded-xl bg-white/5">
+                          <p className="text-lg sm:text-2xl font-semibold">{disc.ga ?? '-'}</p>
                           <p className="text-xs text-slate-500">Grau A</p>
                         </div>
-                        <div className="text-center p-3 rounded-xl bg-white/5">
-                          <p className="text-2xl font-semibold">{disc.gb ?? '-'}</p>
+                        <div className="text-center p-2 sm:p-3 rounded-xl bg-white/5">
+                          <p className="text-lg sm:text-2xl font-semibold">{disc.gb ?? '-'}</p>
                           <p className="text-xs text-slate-500">Grau B</p>
                         </div>
-                        <div className="text-center p-3 rounded-xl bg-white/5">
-                          <p className="text-2xl font-semibold">{disc.notaFinal ?? '-'}</p>
+                        <div className="text-center p-2 sm:p-3 rounded-xl bg-white/5">
+                          <p className="text-lg sm:text-2xl font-semibold">{disc.notaFinal ?? '-'}</p>
                           <p className="text-xs text-slate-500">Final</p>
                         </div>
                       </div>
@@ -2096,7 +2098,7 @@ export default function SistemaNotas({ onOpenAdmin }) {
                   <h3 className="text-xl font-semibold">Previsão de Formatura</h3>
                 </div>
                 
-                <div className="grid md:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-4">
                   <div className="text-center p-5 rounded-2xl bg-gradient-to-br from-violet-500/10 to-indigo-500/10 border border-violet-500/20">
                     <div className="text-4xl font-bold text-violet-400 mb-1">{previsaoFormatura}</div>
                     <div className="text-slate-400 text-sm">Conclusão Prevista</div>
@@ -2113,7 +2115,7 @@ export default function SistemaNotas({ onOpenAdmin }) {
               </GlassCard>
               
               {/* Planejamento */}
-              <div className="grid md:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
                 {/* Lista Editável */}
                 <GlassCard className="p-6" hover={false}>
                   <div className="flex items-center justify-between mb-4">
