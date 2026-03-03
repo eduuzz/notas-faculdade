@@ -241,7 +241,7 @@ export function useNotas() {
     return true
   }, [loadDisciplinas])
 
-  // Importar disciplinas em lote
+  // Importar disciplinas em lote (batches de 20 para evitar timeout)
   const importarDisciplinas = useCallback(async (listaDisciplinas) => {
     if (!user || !supabase) return { error: 'Não autenticado' }
 
@@ -253,18 +253,25 @@ export function useNotas() {
         created_at: new Date().toISOString()
       }))
 
-      const { data, error } = await supabase
-        .from('disciplinas')
-        .insert(disciplinasComUser)
-        .select()
+      const BATCH_SIZE = 20
+      const allData = []
 
-      if (error) {
-        console.error('Erro ao importar:', error)
-        return { error: humanizeSupabaseError(error) }
+      for (let i = 0; i < disciplinasComUser.length; i += BATCH_SIZE) {
+        const batch = disciplinasComUser.slice(i, i + BATCH_SIZE)
+        const { data, error } = await supabase
+          .from('disciplinas')
+          .insert(batch)
+          .select()
+
+        if (error) {
+          console.error(`Erro ao importar batch ${i / BATCH_SIZE + 1}:`, error)
+          return { error: humanizeSupabaseError(error) }
+        }
+        if (data) allData.push(...data)
       }
 
-      setDisciplinasState(prev => [...prev, ...data])
-      return { data }
+      setDisciplinasState(prev => [...prev, ...allData])
+      return { data: allData }
     } finally {
       setSyncing(false)
     }
