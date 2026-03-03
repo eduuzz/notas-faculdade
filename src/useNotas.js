@@ -271,7 +271,8 @@ export function useNotas() {
         console.warn(`[import] ${erros}/${total} falharam`)
       }
 
-      await loadDisciplinas()
+      // Reload não-bloqueante (supabase client pode travar no .select())
+      loadDisciplinas().catch(() => {})
       return erros > 0
         ? { error: `${inseridos} importada(s), ${erros} falharam.` }
         : { data: true }
