@@ -191,7 +191,7 @@ export function useNotas() {
     return true
   }, [loadDisciplinas])
 
-  // Importar disciplinas em lote (batches de 20 para evitar timeout)
+  // Importar disciplinas em lote (batches de 10, sem .select(), com timeout)
   const importarDisciplinas = useCallback(async (listaDisciplinas) => {
     if (!user || !supabase) return { error: 'Não autenticado' }
 
@@ -203,29 +203,41 @@ export function useNotas() {
         created_at: new Date().toISOString()
       }))
 
-      const BATCH_SIZE = 20
-      const allData = []
+      const BATCH_SIZE = 10
+      const TIMEOUT_MS = 30000
 
       for (let i = 0; i < disciplinasComUser.length; i += BATCH_SIZE) {
         const batch = disciplinasComUser.slice(i, i + BATCH_SIZE)
-        const { data, error } = await supabase
+        const batchNum = Math.floor(i / BATCH_SIZE) + 1
+        console.log(`[import] batch ${batchNum}: inserindo ${batch.length} disciplinas...`)
+
+        const insertPromise = supabase
           .from('disciplinas')
           .insert(batch)
-          .select()
+
+        const timeoutPromise = new Promise((_, reject) =>
+          setTimeout(() => reject(new Error('Timeout ao salvar disciplinas')), TIMEOUT_MS)
+        )
+
+        const { error } = await Promise.race([insertPromise, timeoutPromise])
 
         if (error) {
-          console.error(`Erro ao importar batch ${i / BATCH_SIZE + 1}:`, error)
+          console.error(`[import] batch ${batchNum} erro:`, error)
           return { error: humanizeSupabaseError(error) }
         }
-        if (data) allData.push(...data)
+        console.log(`[import] batch ${batchNum} ok`)
       }
 
-      setDisciplinasState(prev => [...prev, ...allData])
-      return { data: allData }
+      // Recarregar todas as disciplinas do banco
+      await loadDisciplinas()
+      return { data: true }
+    } catch (err) {
+      console.error('[import] erro geral:', err)
+      return { error: err.message || 'Erro ao importar disciplinas' }
     } finally {
       setSyncing(false)
     }
-  }, [user])
+  }, [user, loadDisciplinas])
 
   return {
     disciplinas,

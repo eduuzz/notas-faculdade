@@ -272,9 +272,9 @@ export default function SistemaNotas({ onOpenAdmin }) {
   const handleImportarDisciplinas = async (disciplinasImport) => {
     try {
       const result = await importarDisciplinas(disciplinasImport);
-      if (result.error) {
+      if (result?.error) {
         console.error('Erro ao importar disciplinas:', result.error);
-        toast.error('Erro ao importar disciplinas. Tente novamente.');
+        toast.error(typeof result.error === 'string' ? result.error : 'Erro ao importar disciplinas.');
         return;
       }
       toast.success(`${disciplinasImport.length} disciplina(s) importada(s).`);
@@ -282,7 +282,6 @@ export default function SistemaNotas({ onOpenAdmin }) {
       console.error('Erro ao importar disciplinas:', error);
       toast.error('Erro ao importar disciplinas. Tente novamente.');
     }
-    setShowImportModal(false);
   };
 
   const handleAtualizarNotas = async (atualizacoes) => {
