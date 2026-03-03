@@ -191,14 +191,36 @@ export function useNotas() {
     return true
   }, [loadDisciplinas])
 
-  // Insert com timeout para evitar travamento
-  const insertWithTimeout = useCallback((rows, timeoutMs = 15000) => {
-    return Promise.race([
-      supabase.from('disciplinas').insert(rows),
-      new Promise((_, reject) =>
-        setTimeout(() => reject(new Error('timeout')), timeoutMs)
-      )
-    ])
+  // Insert direto via fetch (supabase client .insert() trava sem enviar POST)
+  const insertDirect = useCallback(async (row, timeoutMs = 15000) => {
+    const { data: { session } } = await supabase.auth.getSession()
+    if (!session) return { error: 'Sessão expirada' }
+
+    const url = `${supabase.supabaseUrl}/rest/v1/disciplinas`
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), timeoutMs)
+    try {
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': supabase.supabaseKey,
+          'Authorization': `Bearer ${session.access_token}`,
+          'Prefer': 'return=minimal',
+        },
+        body: JSON.stringify(row),
+        signal: controller.signal,
+      })
+      clearTimeout(timeoutId)
+      if (!res.ok) {
+        const body = await res.text()
+        return { error: `${res.status}: ${body}` }
+      }
+      return { data: true }
+    } catch (err) {
+      clearTimeout(timeoutId)
+      return { error: err.name === 'AbortError' ? 'timeout' : err.message }
+    }
   }, [])
 
   // Importar disciplinas — individual com progresso (batch trava no Supabase free tier)
@@ -224,7 +246,7 @@ export function useNotas() {
       for (let i = 0; i < disciplinasComUser.length; i += PARALLEL) {
         const grupo = disciplinasComUser.slice(i, i + PARALLEL)
         const resultados = await Promise.all(
-          grupo.map(d => insertWithTimeout([d], 10000).catch(err => ({ error: err })))
+          grupo.map(d => insertDirect(d, 15000))
         )
         for (const r of resultados) {
           if (r.error) {
@@ -250,7 +272,7 @@ export function useNotas() {
     } finally {
       setSyncing(false)
     }
-  }, [user, loadDisciplinas, insertWithTimeout])
+  }, [user, loadDisciplinas, insertDirect])
 
   return {
     disciplinas,
