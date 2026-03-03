@@ -216,6 +216,9 @@ export function useNotas() {
         created_at: new Date().toISOString()
       }))
 
+      console.log(`[import] iniciando ${total} disciplinas, user_id: ${user.id}`)
+      console.log('[import] exemplo:', JSON.stringify(disciplinasComUser[0]))
+
       // Inserts em grupos pequenos com timeout e progresso
       const PARALLEL = 5
       for (let i = 0; i < disciplinasComUser.length; i += PARALLEL) {
@@ -224,9 +227,12 @@ export function useNotas() {
           grupo.map(d => insertWithTimeout([d], 10000).catch(err => ({ error: err })))
         )
         for (const r of resultados) {
-          if (r.error) erros++
-          else inseridos++
+          if (r.error) {
+            erros++
+            console.error('[import] erro insert:', r.error?.message || r.error)
+          } else inseridos++
         }
+        console.log(`[import] progresso: ${inseridos}/${total} ok, ${erros} erros`)
         onProgress?.(inseridos, total)
       }
 
