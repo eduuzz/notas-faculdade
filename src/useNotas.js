@@ -191,13 +191,24 @@ export function useNotas() {
     return true
   }, [loadDisciplinas])
 
-  // Importar disciplinas — batch rápido com fallback individual + progresso
+  // Insert com timeout para evitar travamento
+  const insertWithTimeout = useCallback((rows, timeoutMs = 15000) => {
+    return Promise.race([
+      supabase.from('disciplinas').insert(rows),
+      new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('timeout')), timeoutMs)
+      )
+    ])
+  }, [])
+
+  // Importar disciplinas — individual com progresso (batch trava no Supabase free tier)
   const importarDisciplinas = useCallback(async (listaDisciplinas, onProgress) => {
     if (!user || !supabase) return { error: 'Não autenticado' }
 
     setSyncing(true)
     const total = listaDisciplinas.length
     let inseridos = 0
+    let erros = 0
     try {
       const disciplinasComUser = listaDisciplinas.map(d => ({
         ...d,
@@ -205,46 +216,35 @@ export function useNotas() {
         created_at: new Date().toISOString()
       }))
 
-      // Tentar insert em lote (rápido)
-      const { error } = await supabase
-        .from('disciplinas')
-        .insert(disciplinasComUser)
-
-      if (error) {
-        console.warn('[import] batch falhou, tentando individual:', error)
-
-        // Fallback: inserts individuais em paralelo com progresso
-        let erros = 0
-        const PARALLEL = 10
-        for (let i = 0; i < disciplinasComUser.length; i += PARALLEL) {
-          const grupo = disciplinasComUser.slice(i, i + PARALLEL)
-          const resultados = await Promise.all(
-            grupo.map(d => supabase.from('disciplinas').insert([d]))
-          )
-          for (const r of resultados) {
-            if (r.error) erros++
-            else inseridos++
-          }
-          onProgress?.(inseridos, total)
+      // Inserts em grupos pequenos com timeout e progresso
+      const PARALLEL = 5
+      for (let i = 0; i < disciplinasComUser.length; i += PARALLEL) {
+        const grupo = disciplinasComUser.slice(i, i + PARALLEL)
+        const resultados = await Promise.all(
+          grupo.map(d => insertWithTimeout([d], 10000).catch(err => ({ error: err })))
+        )
+        for (const r of resultados) {
+          if (r.error) erros++
+          else inseridos++
         }
-        if (erros > 0) {
-          await loadDisciplinas()
-          return { error: `${erros} disciplina(s) falharam ao salvar.` }
-        }
-      } else {
-        // Batch deu certo — progresso direto para 100%
-        onProgress?.(total, total)
+        onProgress?.(inseridos, total)
+      }
+
+      if (erros > 0) {
+        console.warn(`[import] ${erros}/${total} falharam`)
       }
 
       await loadDisciplinas()
-      return { data: true }
+      return erros > 0
+        ? { error: `${inseridos} importada(s), ${erros} falharam.` }
+        : { data: true }
     } catch (err) {
       console.error('[import] erro geral:', err)
       return { error: err.message || 'Erro ao importar disciplinas' }
     } finally {
       setSyncing(false)
     }
-  }, [user, loadDisciplinas])
+  }, [user, loadDisciplinas, insertWithTimeout])
 
   return {
     disciplinas,
