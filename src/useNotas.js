@@ -200,14 +200,16 @@ export function useNotas() {
     let inseridos = 0
     let erros = 0
     try {
-      // Pegar sessão UMA vez antes de tudo
-      console.log('[import] obtendo sessão...')
-      const { data: { session } } = await supabase.auth.getSession()
-      if (!session) {
-        console.error('[import] sem sessão!')
+      // Pegar token direto do localStorage (getSession() trava)
+      const ref = supabase.supabaseUrl.match(/https:\/\/([^.]+)/)?.[1]
+      const stored = localStorage.getItem(`sb-${ref}-auth-token`)
+      const sessionData = stored ? JSON.parse(stored) : null
+      const accessToken = sessionData?.access_token
+      if (!accessToken) {
+        console.error('[import] sem token no localStorage!')
         return { error: 'Sessão expirada. Faça login novamente.' }
       }
-      console.log('[import] sessão ok, token:', session.access_token.slice(0, 20) + '...')
+      console.log('[import] token ok:', accessToken.slice(0, 20) + '...')
 
       const baseUrl = supabase.supabaseUrl
       const apiKey = supabase.supabaseKey
@@ -237,7 +239,7 @@ export function useNotas() {
                 headers: {
                   'Content-Type': 'application/json',
                   'apikey': apiKey,
-                  'Authorization': `Bearer ${session.access_token}`,
+                  'Authorization': `Bearer ${accessToken}`,
                   'Prefer': 'return=minimal',
                 },
                 body: JSON.stringify(d),
