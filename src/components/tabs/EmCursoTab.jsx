@@ -31,13 +31,13 @@ export default function EmCursoTab({ disciplinas, setShowSimulador, startEditNot
           return (
             <GlassCard key={disc.id} className="group" hover={false}>
               <div className={`absolute left-0 top-0 bottom-0 w-1 ${status.bar}`} />
-              <div className="p-5 pl-6">
-                <div className="flex items-center justify-between mb-4">
-                  <div>
-                    <h4 className="font-medium text-lg">{disc.nome}</h4>
-                    <p className="text-sm text-[var(--text-muted)]">{disc.periodo}º Semestre • {disc.creditos} créditos</p>
+              <div className="p-3 sm:p-5 pl-4 sm:pl-6">
+                <div className="flex items-center justify-between mb-3 sm:mb-4">
+                  <div className="min-w-0 flex-1 mr-2">
+                    <h4 className="font-medium text-base sm:text-lg">{disc.nome}</h4>
+                    <p className="text-xs sm:text-sm text-[var(--text-muted)]">{disc.periodo}º Semestre • {disc.creditos} créditos</p>
                   </div>
-                  <span className={`px-3 py-1.5 rounded-xl text-sm font-semibold ${status.bg} ${status.text} border ${status.border}`}>{status.label}</span>
+                  <span className={`px-2 py-1 sm:px-3 sm:py-1.5 rounded-xl text-xs sm:text-sm font-semibold shrink-0 ${status.bg} ${status.text} border ${status.border}`}>{status.label}</span>
                 </div>
                 <div className="grid grid-cols-3 gap-2 sm:gap-4">
                   <div className="text-center p-2 sm:p-3 rounded-xl bg-[var(--bg-input)]">

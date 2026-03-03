@@ -100,15 +100,15 @@ export default function GradeTab({
 
           return (
             <div key={periodo} className="space-y-3">
-              <GlassCard className="p-4" onClick={() => togglePeriodo(periodo)}>
+              <GlassCard className="p-3 sm:p-4" onClick={() => togglePeriodo(periodo)}>
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-violet-500/20 to-indigo-500/20 flex items-center justify-center border border-violet-500/30">
-                      <span className="text-xl font-bold text-violet-400">{periodo}</span>
+                  <div className="flex items-center gap-3 sm:gap-4">
+                    <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-gradient-to-br from-violet-500/20 to-indigo-500/20 flex items-center justify-center border border-violet-500/30">
+                      <span className="text-lg sm:text-xl font-bold text-violet-400">{periodo}</span>
                     </div>
                     <div>
-                      <h3 className="font-semibold text-lg">{periodo}º Semestre</h3>
-                      <p className="text-sm text-[var(--text-muted)]">{aprovadas} de {totalObrig} concluídas</p>
+                      <h3 className="font-semibold text-base sm:text-lg">{periodo}º Semestre</h3>
+                      <p className="text-xs sm:text-sm text-[var(--text-muted)]">{aprovadas} de {totalObrig} concluídas</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-4">
@@ -124,7 +124,7 @@ export default function GradeTab({
               </GlassCard>
 
               {expandedPeriodos[periodo] && (
-                <div className={`space-y-2 ${modoCompacto ? '' : 'pl-4'}`}>
+                <div className={`space-y-2 ${modoCompacto ? '' : 'sm:pl-4'}`}>
                   {optativas.length > 0 && (
                     <div className="flex gap-2 mb-2">
                       <button
@@ -150,11 +150,11 @@ export default function GradeTab({
                       <table className="w-full">
                         <thead>
                           <tr className="border-b border-[var(--border-input)]">
-                            <th className="text-left p-3 text-[var(--text-secondary)] font-medium text-sm">Disciplina</th>
-                            <th className="text-center p-3 text-[var(--text-secondary)] font-medium text-sm hidden sm:table-cell">Cr</th>
-                            <th className="text-center p-3 text-[var(--text-secondary)] font-medium text-sm">Status</th>
-                            <th className="text-center p-3 text-[var(--text-secondary)] font-medium text-sm">Nota</th>
-                            <th className="text-center p-3 text-[var(--text-secondary)] font-medium text-sm w-28">Ações</th>
+                            <th className="text-left p-2 sm:p-3 text-[var(--text-secondary)] font-medium text-xs sm:text-sm">Disciplina</th>
+                            <th className="text-center p-2 sm:p-3 text-[var(--text-secondary)] font-medium text-xs sm:text-sm hidden sm:table-cell">Cr</th>
+                            <th className="text-center p-2 sm:p-3 text-[var(--text-secondary)] font-medium text-xs sm:text-sm">Status</th>
+                            <th className="text-center p-2 sm:p-3 text-[var(--text-secondary)] font-medium text-xs sm:text-sm">Nota</th>
+                            <th className="text-center p-2 sm:p-3 text-[var(--text-secondary)] font-medium text-xs sm:text-sm w-20 sm:w-28">Ações</th>
                           </tr>
                         </thead>
                         <tbody>
@@ -162,10 +162,10 @@ export default function GradeTab({
                             const status = STATUS[disc.status];
                             return (
                               <tr key={disc.id} className="border-b border-white/5 hover:bg-white/[0.03]">
-                                <td className="p-3"><span className="font-medium">{disc.nome}</span>{disc.tipo === 'optativa' && <span className="ml-2 px-1.5 py-0.5 rounded text-[10px] font-medium bg-amber-500/20 text-amber-400 border border-amber-500/30">OPT</span>}</td>
-                                <td className="p-3 text-center text-[var(--text-secondary)] hidden sm:table-cell">{disc.creditos}</td>
-                                <td className="p-3 text-center"><span className={`px-2 py-1 rounded-lg text-xs font-medium ${status.bg} ${status.text} border ${status.border}`}>{status.label}</span></td>
-                                <td className="p-3 text-center font-semibold">{disc.notaFinal ? disc.notaFinal.toFixed(1) : '-'}</td>
+                                <td className="p-2 sm:p-3"><span className="font-medium text-xs sm:text-sm max-w-[150px] sm:max-w-none inline-block truncate sm:truncate-none align-middle">{disc.nome}</span>{disc.tipo === 'optativa' && <span className="ml-1 sm:ml-2 px-1 py-0.5 rounded text-[10px] font-medium bg-amber-500/20 text-amber-400 border border-amber-500/30">OPT</span>}</td>
+                                <td className="p-2 sm:p-3 text-center text-[var(--text-secondary)] text-xs sm:text-sm hidden sm:table-cell">{disc.creditos}</td>
+                                <td className="p-2 sm:p-3 text-center"><span className={`px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-lg text-[10px] sm:text-xs font-medium ${status.bg} ${status.text} border ${status.border}`}>{status.label}</span></td>
+                                <td className="p-2 sm:p-3 text-center font-semibold text-xs sm:text-sm">{disc.notaFinal ? disc.notaFinal.toFixed(1) : '-'}</td>
                                 <td className="p-3 text-center">
                                   <div className="flex items-center justify-center gap-1">
                                     {disc.status === 'NAO_INICIADA' ? (
@@ -188,43 +188,43 @@ export default function GradeTab({
                       return (
                         <GlassCard key={disc.id} className="group">
                           <div className={`absolute left-0 top-0 bottom-0 w-1 ${status.bar}`} />
-                          <div className="flex items-center justify-between p-5 pl-6">
+                          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between p-3 sm:p-5 pl-4 sm:pl-6">
                             <div className="flex-1 min-w-0">
-                              <div className="flex items-center gap-3 mb-1.5 flex-wrap">
-                                <h4 className="font-medium text-[var(--text-primary)] group-hover:text-violet-300 transition-colors truncate">{disc.nome}</h4>
+                              <div className="flex items-center gap-2 sm:gap-3 mb-1 sm:mb-1.5 flex-wrap">
+                                <h4 className="font-medium text-sm sm:text-base text-[var(--text-primary)] group-hover:text-violet-300 transition-colors">{disc.nome}</h4>
                                 {disc.tipo === 'optativa' && <span className="px-1.5 py-0.5 rounded-lg text-[10px] font-medium bg-amber-500/20 text-amber-400 border border-amber-500/30">OPT</span>}
-                                <span className={`px-2.5 py-1 rounded-lg text-xs font-semibold ${status.bg} ${status.text} border ${status.border}`}>{status.label}</span>
+                                <span className={`px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-lg text-[10px] sm:text-xs font-semibold ${status.bg} ${status.text} border ${status.border}`}>{status.label}</span>
                               </div>
-                              <p className="text-sm text-[var(--text-muted)]">{disc.creditos} créditos • {disc.cargaHoraria}h{disc.semestreCursado && ` • ${disc.semestreCursado}`}</p>
+                              <p className="text-xs sm:text-sm text-[var(--text-muted)]">{disc.creditos} créditos • {disc.cargaHoraria}h{disc.semestreCursado && ` • ${disc.semestreCursado}`}</p>
                             </div>
-                            <div className="flex items-center gap-4">
+                            <div className="flex items-center gap-2 sm:gap-4 mt-2 sm:mt-0 self-end sm:self-auto">
                               {disc.status === 'NAO_INICIADA' ? (
-                                <button onClick={() => setShowIniciarModal(disc.id)} className="px-4 py-2 rounded-xl bg-[var(--bg-input)] border border-[var(--border-input)] text-sm font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-hover)] transition-all">Iniciar</button>
+                                <button onClick={() => setShowIniciarModal(disc.id)} className="px-3 py-1.5 sm:px-4 sm:py-2 rounded-xl bg-[var(--bg-input)] border border-[var(--border-input)] text-xs sm:text-sm font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-hover)] transition-all">Iniciar</button>
                               ) : (disc.ga !== null || disc.gb !== null || disc.notaFinal !== null) ? (
-                                <div className="flex items-center gap-4">
-                                  <div className="flex items-center gap-3 text-sm">
+                                <div className="flex items-center gap-2 sm:gap-4">
+                                  <div className="flex items-center gap-2 sm:gap-3 text-xs sm:text-sm">
                                     <div className="text-center">
-                                      <p className="text-[var(--text-muted)] text-xs mb-0.5">GA</p>
+                                      <p className="text-[var(--text-muted)] text-[10px] sm:text-xs mb-0.5">GA</p>
                                       <p className="font-medium text-[var(--text-secondary)]">{disc.ga !== null ? disc.ga.toFixed(1) : '-'}</p>
                                     </div>
                                     <div className="text-center">
-                                      <p className="text-[var(--text-muted)] text-xs mb-0.5">GB</p>
+                                      <p className="text-[var(--text-muted)] text-[10px] sm:text-xs mb-0.5">GB</p>
                                       <p className="font-medium text-[var(--text-secondary)]">{disc.gb !== null ? disc.gb.toFixed(1) : '-'}</p>
                                     </div>
                                   </div>
                                   {disc.notaFinal !== null && (
                                     <div className="text-right">
-                                      <p className="text-xl sm:text-2xl font-semibold">{disc.notaFinal.toFixed(1)}</p>
-                                      <p className="text-xs text-[var(--text-muted)]">Final</p>
+                                      <p className="text-lg sm:text-2xl font-semibold">{disc.notaFinal.toFixed(1)}</p>
+                                      <p className="text-[10px] sm:text-xs text-[var(--text-muted)]">Final</p>
                                     </div>
                                   )}
                                 </div>
                               ) : null}
                               <div className="flex items-center gap-1">
                                 {disc.status !== 'NAO_INICIADA' && (
-                                  <button onClick={() => startEditNotas(disc)} className="p-2 rounded-xl hover:bg-[var(--bg-hover)] text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-all"><Edit2 size={16} /></button>
+                                  <button onClick={() => startEditNotas(disc)} className="p-1.5 sm:p-2 rounded-xl hover:bg-[var(--bg-hover)] text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-all"><Edit2 size={14} /></button>
                                 )}
-                                <button onClick={() => setShowDeleteMenu(disc.id)} className="p-2 rounded-xl hover:bg-red-500/20 text-[var(--text-muted)] hover:text-red-400 transition-all"><Trash2 size={16} /></button>
+                                <button onClick={() => setShowDeleteMenu(disc.id)} className="p-1.5 sm:p-2 rounded-xl hover:bg-red-500/20 text-[var(--text-muted)] hover:text-red-400 transition-all"><Trash2 size={14} /></button>
                               </div>
                             </div>
                           </div>
