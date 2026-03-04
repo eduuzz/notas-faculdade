@@ -11,8 +11,7 @@ const ResetPassword = React.lazy(() => import('./ResetPassword'))
 const AdminPanel = React.lazy(() => import('./AdminPanel'))
 const SharedGrade = React.lazy(() => import('./SharedGrade'))
 
-// Email do administrador
-const ADMIN_EMAIL = 'eproencad@gmail.com';
+import { ADMIN_EMAIL } from './supabaseClient';
 
 // Spinner de carregamento reutilizável
 function LoadingSpinner() {

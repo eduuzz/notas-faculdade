@@ -206,10 +206,8 @@ export function useNotas() {
       const sessionData = stored ? JSON.parse(stored) : null
       const accessToken = sessionData?.access_token
       if (!accessToken) {
-        console.error('[import] sem token no localStorage!')
         return { error: 'Sessão expirada. Faça login novamente.' }
       }
-      console.log('[import] token ok:', accessToken.slice(0, 20) + '...')
 
       const baseUrl = supabase.supabaseUrl
       const apiKey = supabase.supabaseKey

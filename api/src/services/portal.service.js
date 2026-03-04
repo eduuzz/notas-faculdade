@@ -165,11 +165,11 @@ async function withPortalSession(ra, senha, navigations) {
     await dismissModal(page);
     await page.waitForLoadState('networkidle', { timeout: 10000 }).catch(() => {});
 
-    logger.info('Login bem-sucedido no portal', { ra });
+    logger.info('Login bem-sucedido no portal');
 
     // ── Navegar para cada rota e capturar respostas ──
     for (const { route, preferPeriod = null, waitFor = null } of navigations) {
-      logger.info(`Navegando para #/${route}`, { ra });
+      logger.info(`Navegando para #/${route}`);
       await page
         .goto(`${PORTAL_SPA}/#/${route}`, { timeout: 20000 })
         .catch(() => {});
@@ -200,7 +200,6 @@ async function withPortalSession(ra, senha, navigations) {
     await Promise.allSettled(pendingResponses);
 
     logger.info('Coleta concluída', {
-      ra,
       endpoints: Object.keys(captured).length,
       paths: Object.keys(captured),
     });

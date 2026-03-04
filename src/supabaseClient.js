@@ -3,8 +3,8 @@ import { createClient } from '@supabase/supabase-js'
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || ''
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || ''
 
-// Email do administrador (único que pode editar)
-export const ADMIN_EMAIL = 'eproencad@gmail.com'
+// Email do administrador (via variável de ambiente)
+export const ADMIN_EMAIL = import.meta.env.VITE_ADMIN_EMAIL || ''
 
 export const supabase = supabaseUrl && supabaseAnonKey 
   ? createClient(supabaseUrl, supabaseAnonKey)

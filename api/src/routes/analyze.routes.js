@@ -53,9 +53,15 @@ router.post('/analyze-pdf', async (req, res, next) => {
   try {
     const { texto } = req.body;
 
-    if (!texto || !texto.trim()) {
+    if (!texto || typeof texto !== 'string' || !texto.trim()) {
       return res.status(400).json({
         error: { message: 'Texto é obrigatório' },
+      });
+    }
+
+    if (texto.length > 50000) {
+      return res.status(400).json({
+        error: { message: 'Texto excede o tamanho máximo permitido' },
       });
     }
 
@@ -87,7 +93,14 @@ router.post('/analyze-pdf', async (req, res, next) => {
       });
     }
 
-    const resultado = JSON.parse(jsonMatch[0]);
+    let resultado;
+    try {
+      resultado = JSON.parse(jsonMatch[0]);
+    } catch {
+      return res.status(422).json({
+        error: { message: 'IA retornou JSON malformado' },
+      });
+    }
 
     if (!resultado.disciplinas || !Array.isArray(resultado.disciplinas)) {
       return res.status(422).json({

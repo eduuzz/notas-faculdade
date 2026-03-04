@@ -18,7 +18,13 @@ router.post('/historico', async (req, res, next) => {
       });
     }
 
-    const result = await PortalService.fetchHistorico(ra, senha);
+    if (typeof ra !== 'string' || typeof senha !== 'string' || ra.length > 50 || senha.length > 100) {
+      return res.status(400).json({
+        error: { message: 'Formato de credenciais inválido' },
+      });
+    }
+
+    const result = await PortalService.fetchHistorico(ra.trim(), senha);
 
     res.json({
       success: true,

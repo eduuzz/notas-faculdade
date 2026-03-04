@@ -32,16 +32,22 @@ export class PortalTimeoutError extends PortalError {
 
 export function errorHandler(err, req, res, next) {
   const statusCode = err.statusCode || 500;
-  const message = err.message || 'Erro interno do servidor';
+  const isKnownError = err instanceof PortalError;
 
-  if (!(err instanceof PortalError)) {
-    console.error('[ERROR]', err);
+  // Log no servidor (sem expor stack completo)
+  if (!isKnownError) {
+    console.error('[ERROR]', err.message);
   }
+
+  // Erros 500 não expõem detalhes internos ao cliente
+  const clientMessage = isKnownError || statusCode < 500
+    ? err.message
+    : 'Erro interno do servidor';
 
   res.status(statusCode).json({
     error: {
-      type: err.name || 'Error',
-      message,
+      type: isKnownError ? err.name : 'Error',
+      message: clientMessage,
       code: statusCode,
     },
   });

@@ -3,7 +3,7 @@ import { Shield, ArrowLeft, RefreshCw, Check, X, Eye, Search, UserPlus, Trash2, 
 import { useAuth } from './AuthContext';
 import { supabase } from './supabaseClient';
 
-const ADMIN_EMAIL = 'eproencad@gmail.com';
+import { ADMIN_EMAIL } from './supabaseClient';
 
 export default function AdminPanel({ onClose }) {
   const { user } = useAuth();

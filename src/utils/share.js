@@ -22,14 +22,14 @@ export async function getOrCreateShareToken(userId) {
 
   // Criar novo token
   const token = generateToken();
-  const authToken = localStorage.getItem('sb-auth-token') ||
-    localStorage.getItem(Object.keys(localStorage).find(k => k.includes('auth-token')) || '');
-
-  let parsedToken = authToken;
+  const ref = supabase.supabaseUrl.match(/https:\/\/([^.]+)/)?.[1];
+  const stored = ref ? localStorage.getItem(`sb-${ref}-auth-token`) : null;
+  let parsedToken = null;
   try {
-    const parsed = JSON.parse(authToken);
-    parsedToken = parsed?.access_token || authToken;
+    const parsed = JSON.parse(stored);
+    parsedToken = parsed?.access_token;
   } catch {}
+  if (!parsedToken) throw new Error('Sessão expirada. Faça login novamente.');
 
   const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL || supabase.supabaseUrl}/rest/v1/shared_grades`, {
     method: 'POST',
