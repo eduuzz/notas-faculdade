@@ -1,5 +1,5 @@
 const variants = {
-  primary: 'bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 shadow-lg shadow-violet-500/25 hover:shadow-violet-500/40',
+  primary: '',
   success: 'bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-500 hover:to-green-500 shadow-lg shadow-emerald-500/25',
   danger: 'bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 shadow-lg shadow-red-500/25',
   secondary: 'bg-[var(--bg-input)] hover:bg-[var(--bg-hover)] border border-[var(--border-input)]',
@@ -24,6 +24,7 @@ export default function GradientButton({ children, onClick, disabled, variant = 
         disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100
         ${variants[variant]} ${sizes[size]} ${className}
       `}
+      style={variant === 'primary' ? { background: 'linear-gradient(to right, var(--accent-600), var(--accent-500))', boxShadow: '0 10px 15px -3px var(--accent-ring)', color: 'white' } : {}}
     >
       {children}
     </button>

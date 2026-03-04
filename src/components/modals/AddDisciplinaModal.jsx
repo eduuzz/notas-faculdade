@@ -28,7 +28,7 @@ export default function AddDisciplinaModal({
             <button
               onClick={() => setModoAdicionar('uma')}
               className={`flex-1 py-2 px-4 rounded-xl text-sm font-medium transition-all ${
-                modoAdicionar === 'uma' ? 'bg-violet-500/20 text-violet-300 border border-violet-500/30' : 'bg-[var(--bg-input)] text-[var(--text-secondary)] border border-[var(--border-input)] hover:bg-[var(--bg-hover)]'
+                modoAdicionar === 'uma' ? 'bg-[var(--accent-bg10)] text-[var(--accent-400)] border border-[var(--accent-ring)]' : 'bg-[var(--bg-input)] text-[var(--text-secondary)] border border-[var(--border-input)] hover:bg-[var(--bg-hover)]'
               }`}
             >
               Uma Cadeira
@@ -36,7 +36,7 @@ export default function AddDisciplinaModal({
             <button
               onClick={() => setModoAdicionar('varias')}
               className={`flex-1 py-2 px-4 rounded-xl text-sm font-medium transition-all ${
-                modoAdicionar === 'varias' ? 'bg-violet-500/20 text-violet-300 border border-violet-500/30' : 'bg-[var(--bg-input)] text-[var(--text-secondary)] border border-[var(--border-input)] hover:bg-[var(--bg-hover)]'
+                modoAdicionar === 'varias' ? 'bg-[var(--accent-bg10)] text-[var(--accent-400)] border border-[var(--accent-ring)]' : 'bg-[var(--bg-input)] text-[var(--text-secondary)] border border-[var(--border-input)] hover:bg-[var(--bg-hover)]'
               }`}
             >
               Várias Cadeiras
@@ -51,7 +51,7 @@ export default function AddDisciplinaModal({
                   type="text"
                   value={novaDisciplina.nome}
                   onChange={(e) => setNovaDisciplina({ ...novaDisciplina, nome: e.target.value.slice(0, 100) })}
-                  className="w-full px-4 py-3 rounded-xl bg-[var(--bg-input)] border border-[var(--border-input)] text-[var(--text-primary)] focus:outline-none focus:border-violet-500/50"
+                  className="w-full px-4 py-3 rounded-xl bg-[var(--bg-input)] border border-[var(--border-input)] text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent-500)]"
                   placeholder="Ex: Cálculo I"
                   maxLength={100}
                 />

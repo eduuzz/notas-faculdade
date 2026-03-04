@@ -19,11 +19,11 @@ function LoadingSpinner() {
   return (
     <div className="min-h-screen bg-[var(--bg-root)] text-[var(--text-primary)] flex items-center justify-center">
       <div className="fixed inset-0 overflow-hidden pointer-events-none dark:block hidden">
-        <div className="absolute top-[-20%] right-[-10%] w-[600px] h-[600px] bg-violet-600/10 rounded-full blur-[120px]" />
-        <div className="absolute bottom-[-20%] left-[-10%] w-[500px] h-[500px] bg-blue-600/10 rounded-full blur-[100px]" />
+        <div className="absolute top-[-20%] right-[-10%] w-[600px] h-[600px] rounded-full blur-[120px]" style={{ background: 'var(--accent-glow1)' }} />
+        <div className="absolute bottom-[-20%] left-[-10%] w-[500px] h-[500px] rounded-full blur-[100px]" style={{ background: 'var(--accent-glow2)' }} />
       </div>
       <div className="relative z-10 text-center">
-        <div className="w-20 h-20 rounded-[22px] bg-gradient-to-br from-violet-500 to-indigo-600 flex items-center justify-center shadow-xl shadow-violet-500/30 mx-auto mb-4">
+        <div className="w-20 h-20 rounded-[22px] flex items-center justify-center shadow-xl mx-auto mb-4" style={{ background: 'linear-gradient(to bottom right, var(--accent-500), var(--accent-600))', boxShadow: '0 20px 25px -5px var(--accent-ring)' }}>
           <RefreshCw size={36} className="text-white animate-spin" />
         </div>
         <p className="text-[var(--text-secondary)]">Carregando...</p>
@@ -159,7 +159,8 @@ class ErrorBoundary extends React.Component {
                 }
                 window.location.reload();
               }}
-              className="px-6 py-3 rounded-2xl bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 font-semibold shadow-lg shadow-violet-500/25 transition-all"
+              className="px-6 py-3 rounded-2xl font-semibold shadow-lg transition-all text-white"
+              style={{ background: 'linear-gradient(to right, var(--accent-600), var(--accent-500))', boxShadow: '0 10px 15px -3px var(--accent-ring)' }}
             >
               Recarregar
             </button>

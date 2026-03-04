@@ -66,9 +66,9 @@ export default function ResetPassword({ onComplete }) {
       <div className="min-h-screen bg-[var(--bg-root)] text-[var(--text-primary)] flex items-center justify-center p-4">
         {/* Background Effects */}
         <div className="fixed inset-0 overflow-hidden pointer-events-none dark:block hidden">
-          <div className="absolute top-[-20%] right-[-10%] w-[600px] h-[600px] bg-violet-600/10 rounded-full blur-[120px]" />
-          <div className="absolute bottom-[-20%] left-[-10%] w-[500px] h-[500px] bg-blue-600/10 rounded-full blur-[100px]" />
-          <div className="absolute top-[40%] left-[50%] w-[300px] h-[300px] bg-fuchsia-600/5 rounded-full blur-[80px]" />
+          <div className="absolute top-[-20%] right-[-10%] w-[600px] h-[600px] bg-[var(--accent-glow1)] rounded-full blur-[120px]" />
+          <div className="absolute bottom-[-20%] left-[-10%] w-[500px] h-[500px] bg-[var(--accent-glow2)] rounded-full blur-[100px]" />
+          <div className="absolute top-[40%] left-[50%] w-[300px] h-[300px] bg-[var(--accent-bg10)] rounded-full blur-[80px]" />
         </div>
 
         {/* Card */}
@@ -83,7 +83,8 @@ export default function ResetPassword({ onComplete }) {
             </p>
             <button
               onClick={() => onComplete ? onComplete() : window.location.href = '/'}
-              className="inline-block w-full py-4 rounded-2xl bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 font-semibold shadow-lg shadow-violet-500/25 hover:shadow-violet-500/40 transition-all duration-300 hover:scale-[1.02] active:scale-[0.98]"
+              className="inline-block w-full py-4 rounded-2xl font-semibold shadow-lg transition-all duration-300 hover:scale-[1.02] active:scale-[0.98] text-white"
+              style={{ background: 'linear-gradient(to right, var(--accent-600), var(--accent-500))', boxShadow: '0 10px 15px -3px var(--accent-ring)' }}
             >
               Acessar o Sistema
             </button>
@@ -97,9 +98,9 @@ export default function ResetPassword({ onComplete }) {
     <div className="min-h-screen bg-[var(--bg-root)] text-[var(--text-primary)] flex items-center justify-center p-4">
       {/* Background Effects */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none dark:block hidden">
-        <div className="absolute top-[-20%] right-[-10%] w-[600px] h-[600px] bg-violet-600/10 rounded-full blur-[120px]" />
-        <div className="absolute bottom-[-20%] left-[-10%] w-[500px] h-[500px] bg-blue-600/10 rounded-full blur-[100px]" />
-        <div className="absolute top-[40%] left-[50%] w-[300px] h-[300px] bg-fuchsia-600/5 rounded-full blur-[80px]" />
+        <div className="absolute top-[-20%] right-[-10%] w-[600px] h-[600px] bg-[var(--accent-glow1)] rounded-full blur-[120px]" />
+        <div className="absolute bottom-[-20%] left-[-10%] w-[500px] h-[500px] bg-[var(--accent-glow2)] rounded-full blur-[100px]" />
+        <div className="absolute top-[40%] left-[50%] w-[300px] h-[300px] bg-[var(--accent-bg10)] rounded-full blur-[80px]" />
       </div>
 
       {/* Card */}
@@ -107,7 +108,7 @@ export default function ResetPassword({ onComplete }) {
         <div className="relative overflow-hidden rounded-3xl bg-[var(--bg-card)] dark:backdrop-blur-xl border border-[var(--border-card)] shadow-[var(--shadow-card)] p-8">
           {/* Logo */}
           <div className="text-center mb-8">
-            <div className="inline-flex items-center justify-center w-20 h-20 rounded-[22px] bg-gradient-to-br from-violet-500 to-indigo-600 shadow-xl shadow-violet-500/30 mb-4">
+            <div className="inline-flex items-center justify-center w-20 h-20 rounded-[22px] shadow-xl mb-4" style={{ background: 'linear-gradient(to bottom right, var(--accent-500), var(--accent-600))', boxShadow: '0 20px 25px -5px var(--accent-ring)' }}>
               <GraduationCap size={40} className="text-white" />
             </div>
             <h1 className="text-2xl font-semibold tracking-tight">Nova Senha</h1>
@@ -134,7 +135,7 @@ export default function ResetPassword({ onComplete }) {
                   type={showPassword ? 'text' : 'password'}
                   value={formData.password}
                   onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                  className="w-full pl-12 pr-12 py-3.5 rounded-2xl bg-[var(--bg-input)] border border-[var(--border-input)] text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none focus:border-violet-500/50 focus:bg-white/[0.07] transition-all duration-300"
+                  className="w-full pl-12 pr-12 py-3.5 rounded-2xl bg-[var(--bg-input)] border border-[var(--border-input)] text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none focus:border-[var(--accent-500)] focus:bg-white/[0.07] transition-all duration-300"
                   placeholder="Mínimo 6 caracteres"
                   required
                   minLength={6}
@@ -157,7 +158,7 @@ export default function ResetPassword({ onComplete }) {
                   type={showPassword ? 'text' : 'password'}
                   value={formData.confirmPassword}
                   onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
-                  className="w-full pl-12 pr-4 py-3.5 rounded-2xl bg-[var(--bg-input)] border border-[var(--border-input)] text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none focus:border-violet-500/50 focus:bg-white/[0.07] transition-all duration-300"
+                  className="w-full pl-12 pr-4 py-3.5 rounded-2xl bg-[var(--bg-input)] border border-[var(--border-input)] text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none focus:border-[var(--accent-500)] focus:bg-white/[0.07] transition-all duration-300"
                   placeholder="Repita a senha"
                   required
                 />
@@ -185,7 +186,8 @@ export default function ResetPassword({ onComplete }) {
             <button
               type="submit"
               disabled={loading || error.includes('Link inválido')}
-              className="w-full py-4 rounded-2xl bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 font-semibold shadow-lg shadow-violet-500/25 hover:shadow-violet-500/40 transition-all duration-300 hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:hover:scale-100"
+              className="w-full py-4 rounded-2xl font-semibold shadow-lg transition-all duration-300 hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:hover:scale-100 text-white"
+              style={{ background: 'linear-gradient(to right, var(--accent-600), var(--accent-500))', boxShadow: '0 10px 15px -3px var(--accent-ring)' }}
             >
               {loading ? 'Salvando...' : 'Salvar Nova Senha'}
             </button>
@@ -195,7 +197,9 @@ export default function ResetPassword({ onComplete }) {
           <div className="mt-6 text-center">
             <a
               href="/"
-              className="text-[var(--text-secondary)] hover:text-violet-400 text-sm transition-colors"
+              className="text-[var(--text-secondary)] text-sm transition-colors"
+              onMouseEnter={(e) => e.target.style.color = 'var(--accent-400)'}
+              onMouseLeave={(e) => e.target.style.color = ''}
             >
               ← Voltar ao login
             </a>

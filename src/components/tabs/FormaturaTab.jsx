@@ -117,15 +117,15 @@ export default function FormaturaTab({
       {/* Card Principal - Previsão */}
       <GlassCard className="p-6" hover={false}>
         <div className="flex items-center gap-3 mb-6">
-          <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-violet-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-violet-500/30">
+          <div className="w-12 h-12 rounded-xl flex items-center justify-center shadow-lg" style={{ background: 'linear-gradient(to bottom right, var(--accent-500), var(--accent-600))', boxShadow: '0 10px 15px -3px var(--accent-ring)' }}>
             <GraduationCap size={24} className="text-white" />
           </div>
           <h3 className="text-xl font-semibold">Previsão de Formatura</h3>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-4">
-          <div className="text-center p-5 rounded-2xl bg-gradient-to-br from-violet-500/10 to-indigo-500/10 border border-violet-500/20">
-            <div className="text-4xl font-bold text-violet-400 mb-1">{previsaoFormatura}</div>
+          <div className="text-center p-5 rounded-2xl border" style={{ background: 'linear-gradient(to bottom right, var(--accent-bg10), var(--accent-bg10))', borderColor: 'var(--accent-ring)' }}>
+            <div className="text-4xl font-bold mb-1" style={{ color: 'var(--accent-400)' }}>{previsaoFormatura}</div>
             <div className="text-[var(--text-secondary)] text-sm">Conclusão Prevista</div>
           </div>
           <div className="text-center p-5 rounded-2xl bg-gradient-to-br from-amber-500/10 to-orange-500/10 border border-amber-500/20">
@@ -148,7 +148,7 @@ export default function FormaturaTab({
               <Edit2 size={20} className="text-[var(--text-secondary)]" />
               Planejamento por Semestre
             </h3>
-            <button onClick={resetarPlanejamento} className="text-xs text-[var(--text-secondary)] hover:text-violet-400 flex items-center gap-1 px-3 py-1.5 rounded-lg hover:bg-[var(--bg-input)] transition-all">
+            <button onClick={resetarPlanejamento} className="text-xs text-[var(--text-secondary)] flex items-center gap-1 px-3 py-1.5 rounded-lg hover:bg-[var(--bg-input)] transition-all" onMouseEnter={(e) => e.currentTarget.style.color = 'var(--accent-400)'} onMouseLeave={(e) => e.currentTarget.style.color = ''}>
               <RefreshCw size={14} />Resetar
             </button>
           </div>
@@ -159,12 +159,12 @@ export default function FormaturaTab({
               return (
                 <div key={index} className={`flex items-center gap-3 p-3 rounded-xl ${isAtual ? 'bg-blue-500/10 border border-blue-500/30' : 'bg-[var(--bg-input)] border border-[var(--border-input)]'}`}>
                   <div className="flex items-center gap-1">
-                    <input type="text" value={sem.periodo} onChange={e => atualizarPeriodo(index, e.target.value)} className={`w-20 px-2 py-1.5 bg-[var(--bg-input)] rounded-lg text-center text-sm font-medium border border-[var(--border-input)] focus:border-violet-500 focus:outline-none ${isAtual ? 'text-blue-400' : 'text-[var(--text-secondary)]'}`} />
+                    <input type="text" value={sem.periodo} onChange={e => atualizarPeriodo(index, e.target.value)} className={`w-20 px-2 py-1.5 bg-[var(--bg-input)] rounded-lg text-center text-sm font-medium border border-[var(--border-input)] focus:border-[var(--accent-500)] focus:outline-none ${isAtual ? 'text-blue-400' : 'text-[var(--text-secondary)]'}`} />
                     {isAtual && <span className="text-xs text-blue-400">(atual)</span>}
                   </div>
                   <div className="flex items-center gap-2 flex-1">
                     <button onClick={() => atualizarQuantidade(index, sem.quantidade - 1)} disabled={sem.quantidade <= 0} className="w-8 h-8 rounded-lg bg-[var(--bg-input)] hover:bg-[var(--bg-hover)] border border-[var(--border-input)] flex items-center justify-center text-lg font-bold disabled:opacity-30 transition-all">-</button>
-                    <input type="number" value={sem.quantidade} onChange={e => atualizarQuantidade(index, parseInt(e.target.value) || 0)} className="w-14 px-2 py-1.5 bg-[var(--bg-input)] rounded-lg text-center font-bold text-lg border border-[var(--border-input)] focus:border-violet-500 focus:outline-none" min="0" max="10" />
+                    <input type="number" value={sem.quantidade} onChange={e => atualizarQuantidade(index, parseInt(e.target.value) || 0)} className="w-14 px-2 py-1.5 bg-[var(--bg-input)] rounded-lg text-center font-bold text-lg border border-[var(--border-input)] focus:border-[var(--accent-500)] focus:outline-none" min="0" max="10" />
                     <button onClick={() => atualizarQuantidade(index, sem.quantidade + 1)} disabled={sem.quantidade >= 10} className="w-8 h-8 rounded-lg bg-[var(--bg-input)] hover:bg-[var(--bg-hover)] border border-[var(--border-input)] flex items-center justify-center text-lg font-bold disabled:opacity-30 transition-all">+</button>
                   </div>
                   {planejamentoSemestres.length > 1 && (
@@ -175,7 +175,7 @@ export default function FormaturaTab({
             })}
           </div>
 
-          <button onClick={adicionarSemestre} className="mt-4 w-full py-3 border-2 border-dashed border-[var(--border-input)] hover:border-violet-500/50 rounded-xl text-[var(--text-secondary)] hover:text-violet-400 flex items-center justify-center gap-2 transition-all">
+          <button onClick={adicionarSemestre} className="mt-4 w-full py-3 border-2 border-dashed border-[var(--border-input)] rounded-xl text-[var(--text-secondary)] flex items-center justify-center gap-2 transition-all" onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'var(--accent-ring)'; e.currentTarget.style.color = 'var(--accent-400)'; }} onMouseLeave={(e) => { e.currentTarget.style.borderColor = ''; e.currentTarget.style.color = ''; }}>
             <Plus size={18} />Adicionar Semestre
           </button>
         </GlassCard>
@@ -218,10 +218,10 @@ export default function FormaturaTab({
                   );
                 })}
                 <tr className="bg-[var(--bg-input)] font-bold">
-                  <td className="py-3 px-3 text-violet-400">Total Planejado</td>
-                  <td className="text-center py-3 px-3 text-violet-400">{totalPlanejado}</td>
+                  <td className="py-3 px-3" style={{ color: 'var(--accent-400)' }}>Total Planejado</td>
+                  <td className="text-center py-3 px-3" style={{ color: 'var(--accent-400)' }}>{totalPlanejado}</td>
                   <td className="text-center py-3 px-3">{disciplinasAprovadas + totalPlanejado}</td>
-                  <td className="text-right py-3 px-3 text-violet-400">{totalDisciplinas > 0 ? (((disciplinasAprovadas + totalPlanejado) / totalDisciplinas) * 100).toFixed(0) : 0}%</td>
+                  <td className="text-right py-3 px-3" style={{ color: 'var(--accent-400)' }}>{totalDisciplinas > 0 ? (((disciplinasAprovadas + totalPlanejado) / totalDisciplinas) * 100).toFixed(0) : 0}%</td>
                 </tr>
               </tbody>
             </table>
@@ -251,7 +251,7 @@ export default function FormaturaTab({
       {/* Dica */}
       <GlassCard className="p-4" hover={false}>
         <div className="flex items-start gap-3">
-          <AlertCircle className="text-violet-400 shrink-0 mt-0.5" size={20} />
+          <AlertCircle className="shrink-0 mt-0.5" size={20} style={{ color: 'var(--accent-400)' }} />
           <div className="text-sm text-[var(--text-secondary)]">
             <strong className="text-[var(--text-secondary)]">Dica:</strong> Ajuste a quantidade de disciplinas por semestre usando os botões + e -.
             O sistema calcula automaticamente sua previsão de formatura baseado no planejamento.

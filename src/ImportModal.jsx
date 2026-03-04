@@ -796,7 +796,8 @@ export default function ImportModal({ onClose, onImport, onUpdate, disciplinasEx
                 <button
                   onClick={() => analisarTexto(true)}
                   disabled={!texto.trim() || isProcessando}
-                  className="flex-1 py-3 rounded-xl bg-gradient-to-r from-violet-500 to-purple-600 text-[var(--text-primary)] font-medium hover:scale-[1.02] transition-all disabled:opacity-50 disabled:hover:scale-100 flex items-center justify-center gap-2"
+                  className="flex-1 py-3 rounded-xl text-white font-medium hover:scale-[1.02] transition-all disabled:opacity-50 disabled:hover:scale-100 flex items-center justify-center gap-2"
+                  style={{ background: 'linear-gradient(to right, var(--accent-500), var(--accent-600))' }}
                 >
                   {processandoIA ? (
                     <><Loader2 size={18} className="animate-spin" /> Analisando...</>
@@ -814,9 +815,9 @@ export default function ImportModal({ onClose, onImport, onUpdate, disciplinasEx
                 </button>
               </div>
 
-              <div className="bg-violet-500/10 border border-violet-500/30 rounded-xl p-3 flex items-start gap-2">
-                <Sparkles size={16} className="text-violet-400 mt-0.5 flex-shrink-0" />
-                <p className="text-violet-300 text-xs">
+              <div className="rounded-xl p-3 flex items-start gap-2" style={{ background: 'var(--accent-bg10)', border: '1px solid var(--accent-ring)' }}>
+                <Sparkles size={16} className="mt-0.5 flex-shrink-0" style={{ color: 'var(--accent-400)' }} />
+                <p className="text-xs" style={{ color: 'var(--accent-400)' }}>
                   <strong>IA ativada:</strong> O Claude analisa o texto e extrai as disciplinas automaticamente.
                 </p>
               </div>
@@ -828,8 +829,8 @@ export default function ImportModal({ onClose, onImport, onUpdate, disciplinasEx
               <div
                 onClick={() => !isProcessando && fileInputRef.current?.click()}
                 className={`border-2 border-dashed rounded-2xl p-4 sm:p-8 text-center cursor-pointer transition-all ${
-                  isProcessando 
-                    ? 'border-violet-500/50 bg-violet-500/10 cursor-wait' 
+                  isProcessando
+                    ? 'border-[var(--accent-ring)] bg-[var(--accent-bg10)] cursor-wait'
                     : arquivoPdf && disciplinasPreview.length > 0
                       ? 'border-emerald-500/50 bg-emerald-500/10' 
                       : 'border-white/20 hover:border-amber-500/50 hover:bg-amber-500/5'
@@ -850,8 +851,8 @@ export default function ImportModal({ onClose, onImport, onUpdate, disciplinasEx
                   </div>
                 ) : processandoIA ? (
                   <div className="flex flex-col items-center gap-3">
-                    <Sparkles size={40} className="text-violet-400 animate-pulse" />
-                    <p className="text-violet-300 font-medium">IA analisando disciplinas...</p>
+                    <Sparkles size={40} className="animate-pulse" style={{ color: 'var(--accent-400)' }} />
+                    <p className="font-medium" style={{ color: 'var(--accent-400)' }}>IA analisando disciplinas...</p>
                   </div>
                 ) : arquivoPdf && disciplinasPreview.length > 0 ? (
                   <div className="flex flex-col items-center gap-3">
@@ -903,7 +904,8 @@ export default function ImportModal({ onClose, onImport, onUpdate, disciplinasEx
                         <button
                           onClick={() => analisarComIA(textoExtraidoPdf)}
                           disabled={processandoIA}
-                          className="text-xs text-violet-400 hover:text-violet-300 flex items-center gap-1"
+                          className="text-xs flex items-center gap-1"
+                          style={{ color: 'var(--accent-400)' }}
                         >
                           <Sparkles size={12} /> Reanalisar com IA
                         </button>
@@ -1008,7 +1010,7 @@ export default function ImportModal({ onClose, onImport, onUpdate, disciplinasEx
                 <h3 className="text-lg font-semibold text-[var(--text-primary)] flex items-center gap-2">
                   {disciplinasPreview.length} cadeiras encontradas
                   {disciplinasPreview[0]?.fonte === 'ia' && (
-                    <span className="text-xs px-2 py-0.5 rounded-full bg-violet-500/20 text-violet-300 border border-violet-500/30">
+                    <span className="text-xs px-2 py-0.5 rounded-full border" style={{ background: 'var(--accent-bg10)', color: 'var(--accent-400)', borderColor: 'var(--accent-ring)' }}>
                       <Sparkles size={10} className="inline mr-1" />via IA
                     </span>
                   )}
@@ -1049,18 +1051,19 @@ export default function ImportModal({ onClose, onImport, onUpdate, disciplinasEx
                   </label>
                   
                   <label className={`flex items-center gap-2 px-3 py-2 rounded-lg cursor-pointer transition-all ${
-                    filtroTrilhas 
-                      ? 'bg-violet-500/20 border border-violet-500/50' 
+                    filtroTrilhas
+                      ? 'border'
                       : 'bg-[var(--bg-input)] border border-[var(--border-input)] hover:bg-[var(--bg-hover)]'
-                  }`}>
+                  }`} style={filtroTrilhas ? { background: 'var(--accent-bg10)', borderColor: 'var(--accent-ring)' } : {}}>
                     <input
                       type="checkbox"
                       checked={filtroTrilhas}
                       onChange={(e) => setFiltroTrilhas(e.target.checked)}
-                      className="w-4 h-4 rounded accent-violet-500"
+                      className="w-4 h-4 rounded"
+                      style={{ accentColor: 'var(--accent-500)' }}
                     />
                     <span className="text-sm text-[var(--text-primary)]">Trilhas</span>
-                    <span className="text-xs px-1.5 py-0.5 rounded bg-violet-500/30 text-violet-300">
+                    <span className="text-xs px-1.5 py-0.5 rounded" style={{ background: 'var(--accent-bg10)', color: 'var(--accent-400)' }}>
                       {contagens.trilhas}
                     </span>
                   </label>
@@ -1107,7 +1110,7 @@ export default function ImportModal({ onClose, onImport, onUpdate, disciplinasEx
                     Number(p) <= 10 
                       ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30'
                       : Number(p) <= 14
-                        ? 'bg-violet-500/20 text-violet-300 border-violet-500/30'
+                        ? 'bg-[var(--accent-bg10)] text-[var(--accent-400)] border-[var(--accent-ring)]'
                         : 'bg-amber-500/20 text-amber-300 border-amber-500/30'
                   }`}>
                     {getNomePeriodo(Number(p))}: {disciplinasPorPeriodo[p].length}
@@ -1165,7 +1168,7 @@ export default function ImportModal({ onClose, onImport, onUpdate, disciplinasEx
                                 d.tipo === 'obrigatoria'
                                   ? 'bg-emerald-500/20 text-emerald-400'
                                   : d.tipo === 'trilha'
-                                    ? 'bg-violet-500/20 text-violet-400'
+                                    ? 'bg-[var(--accent-bg10)] text-[var(--accent-400)]'
                                     : 'bg-amber-500/20 text-amber-400'
                               }`}>
                                 {getNomePeriodo(d.periodo)}

@@ -41,7 +41,7 @@ export default function SharedGrade({ token }) {
     return (
       <div className="min-h-screen bg-[#09090b] text-white flex items-center justify-center">
         <div className="text-center">
-          <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-violet-500 to-indigo-600 flex items-center justify-center mx-auto mb-4 animate-pulse">
+          <div className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4 animate-pulse" style={{ background: 'linear-gradient(to bottom right, var(--accent-500), var(--accent-600))' }}>
             <GraduationCap size={32} className="text-white" />
           </div>
           <p className="text-slate-400">Carregando grade...</p>
@@ -69,7 +69,7 @@ export default function SharedGrade({ token }) {
       <div className="max-w-4xl mx-auto px-4 py-8">
         {/* Header */}
         <div className="flex items-center gap-4 mb-8">
-          <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-violet-500 to-indigo-600 flex items-center justify-center shadow-xl shadow-violet-500/30">
+          <div className="w-14 h-14 rounded-2xl flex items-center justify-center shadow-xl" style={{ background: 'linear-gradient(to bottom right, var(--accent-500), var(--accent-600))', boxShadow: '0 20px 25px -5px var(--accent-ring)' }}>
             <GraduationCap size={28} className="text-white" />
           </div>
           <div>
@@ -83,7 +83,7 @@ export default function SharedGrade({ token }) {
           {[
             { label: 'Aprovadas', value: stats.aprovadas, icon: CheckCircle, color: 'from-emerald-500 to-green-600' },
             { label: 'Em Curso', value: stats.emCurso, icon: Clock, color: 'from-blue-500 to-indigo-600' },
-            { label: 'Progresso', value: `${stats.progresso.toFixed(0)}%`, icon: TrendingUp, color: 'from-violet-500 to-purple-600' },
+            { label: 'Progresso', value: `${stats.progresso.toFixed(0)}%`, icon: TrendingUp, accentGradient: true },
             { label: 'Media', value: stats.media.toFixed(1), icon: Award, color: 'from-amber-500 to-orange-600' },
           ].map((s, i) => (
             <div key={i} className="p-4 rounded-2xl bg-white/[0.03] border border-white/10">
@@ -92,7 +92,7 @@ export default function SharedGrade({ token }) {
                   <p className="text-slate-400 text-xs mb-1">{s.label}</p>
                   <p className="text-2xl font-semibold">{s.value}</p>
                 </div>
-                <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${s.color} flex items-center justify-center`}>
+                <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${s.accentGradient ? '' : `bg-gradient-to-br ${s.color}`}`} style={s.accentGradient ? { background: 'linear-gradient(to bottom right, var(--accent-500), var(--accent-600))' } : {}}>
                   <s.icon size={20} className="text-white" />
                 </div>
               </div>

@@ -42,7 +42,7 @@ export default function DashboardTab({ dadosGrafico, dadosPorPeriodo, estatistic
           <div className="text-center p-4 rounded-xl bg-[var(--bg-input)]"><p className="text-3xl font-bold text-red-400">{estatisticas.reprovadas}</p><p className="text-sm text-[var(--text-muted)]">Reprovadas</p></div>
         </div>
         <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="p-4 rounded-xl bg-gradient-to-br from-violet-500/10 to-indigo-500/10 border border-violet-500/20"><p className="text-[var(--text-secondary)] text-sm mb-1">Total de Créditos</p><p className="text-2xl font-bold">{estatisticas.creditosConcluidos}/{estatisticas.creditosTotal}</p></div>
+          <div className="p-4 rounded-xl border" style={{ background: 'linear-gradient(to bottom right, var(--accent-bg10), var(--accent-bg10))', borderColor: 'var(--accent-ring)' }}><p className="text-[var(--text-secondary)] text-sm mb-1">Total de Créditos</p><p className="text-2xl font-bold">{estatisticas.creditosConcluidos}/{estatisticas.creditosTotal}</p></div>
           <div className="p-4 rounded-xl bg-gradient-to-br from-amber-500/10 to-orange-500/10 border border-amber-500/20"><p className="text-[var(--text-secondary)] text-sm mb-1">Média Geral</p><p className="text-2xl font-bold">{estatisticas.mediaGeral.toFixed(2)}</p></div>
           <div className="p-4 rounded-xl bg-gradient-to-br from-emerald-500/10 to-green-500/10 border border-emerald-500/20"><p className="text-[var(--text-secondary)] text-sm mb-1">Progresso</p><p className="text-2xl font-bold">{estatisticas.progresso.toFixed(1)}%</p></div>
         </div>

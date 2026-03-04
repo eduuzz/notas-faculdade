@@ -31,7 +31,7 @@ export default function GradeTab({
         {[
           { label: 'Aprovadas', value: estatisticas.aprovadas, icon: CheckCircle, gradient: 'from-emerald-500 to-green-600', shadow: 'shadow-emerald-500/30' },
           { label: 'Em Curso', value: estatisticas.emCurso, icon: Clock, gradient: 'from-blue-500 to-indigo-600', shadow: 'shadow-blue-500/30' },
-          { label: 'Progresso', value: `${estatisticas.progresso.toFixed(0)}%`, icon: TrendingUp, gradient: 'from-violet-500 to-purple-600', shadow: 'shadow-violet-500/30' },
+          { label: 'Progresso', value: `${estatisticas.progresso.toFixed(0)}%`, icon: TrendingUp, accentGradient: true },
           { label: 'Média', value: estatisticas.mediaGeral.toFixed(1), icon: Award, gradient: 'from-amber-500 to-orange-600', shadow: 'shadow-amber-500/30' },
         ].map((stat, i) => (
           <GlassCard key={i} className="p-3 sm:p-5" hover={false}>
@@ -40,7 +40,7 @@ export default function GradeTab({
                 <p className="text-[var(--text-muted)] text-xs sm:text-sm mb-1">{stat.label}</p>
                 <p className="text-2xl sm:text-3xl font-semibold">{stat.value}</p>
               </div>
-              <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-gradient-to-br ${stat.gradient} flex items-center justify-center shadow-lg ${stat.shadow}`}>
+              <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-xl flex items-center justify-center shadow-lg ${stat.accentGradient ? '' : `bg-gradient-to-br ${stat.gradient} ${stat.shadow}`}`} style={stat.accentGradient ? { background: 'linear-gradient(to bottom right, var(--accent-500), var(--accent-600))', boxShadow: '0 10px 15px -3px var(--accent-ring)' } : {}}>
                 <stat.icon size={20} className="text-white sm:hidden" />
                 <stat.icon size={24} className="text-white hidden sm:block" />
               </div>
@@ -53,7 +53,7 @@ export default function GradeTab({
       <div className="flex flex-col sm:flex-row gap-4">
         <div className="flex-1 relative">
           <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" />
-          <input type="text" placeholder="Buscar disciplina..." value={busca} onChange={(e) => setBusca(e.target.value)} className="w-full pl-12 pr-4 py-3.5 rounded-2xl bg-[var(--bg-input)] border border-[var(--border-input)] text-white placeholder-[var(--text-muted)] focus:outline-none focus:border-violet-500/50 transition-all" />
+          <input type="text" placeholder="Buscar disciplina..." value={busca} onChange={(e) => setBusca(e.target.value)} className="w-full pl-12 pr-4 py-3.5 rounded-2xl bg-[var(--bg-input)] border border-[var(--border-input)] text-white placeholder-[var(--text-muted)] focus:outline-none focus:border-[var(--accent-500)] transition-all" />
         </div>
         <select value={filtroStatus} onChange={(e) => setFiltroStatus(e.target.value)} className="px-4 py-3.5 rounded-2xl bg-[var(--bg-input)] border border-[var(--border-input)] text-[var(--text-primary)] focus:outline-none cursor-pointer">
           <option value="TODOS" className="bg-slate-800">Todos</option>
@@ -131,7 +131,7 @@ export default function GradeTab({
                     <div className="flex gap-2 mb-2">
                       <button
                         onClick={(e) => { e.stopPropagation(); setAbaSemestre(prev => ({ ...prev, [periodo]: 'obrigatorias' })); }}
-                        className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${abaAtiva === 'obrigatorias' ? 'bg-violet-500/20 text-violet-300 border border-violet-500/30' : 'bg-[var(--bg-input)] text-[var(--text-secondary)] border border-[var(--border-input)] hover:bg-[var(--bg-hover)]'}`}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${abaAtiva === 'obrigatorias' ? 'bg-[var(--accent-bg10)] text-[var(--accent-400)] border border-[var(--accent-ring)]' : 'bg-[var(--bg-input)] text-[var(--text-secondary)] border border-[var(--border-input)] hover:bg-[var(--bg-hover)]'}`}
                       >
                         Obrigatórias ({obrigatorias.length})
                       </button>
@@ -195,7 +195,7 @@ export default function GradeTab({
                           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between p-3 sm:p-5 pl-4 sm:pl-6">
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center gap-2 sm:gap-3 mb-1 sm:mb-1.5 flex-wrap">
-                                <h4 className="font-medium text-sm sm:text-base text-[var(--text-primary)] group-hover:text-violet-300 transition-colors">{disc.nome}</h4>
+                                <h4 className="font-medium text-sm sm:text-base text-[var(--text-primary)] group-hover:text-[var(--accent-400)] transition-colors">{disc.nome}</h4>
                                 {disc.tipo === 'optativa' && <span className="px-1.5 py-0.5 rounded-lg text-[10px] font-medium bg-amber-500/20 text-amber-400 border border-amber-500/30">OPT</span>}
                                 <span className={`px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-lg text-[10px] sm:text-xs font-semibold ${status.bg} ${status.text} border ${status.border}`}>{status.label}</span>
                               </div>
@@ -258,7 +258,9 @@ export default function GradeTab({
           <span className="text-sm text-[var(--text-muted)]">{numSemestres} semestres</span>
           <button
             onClick={addSemestre}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all bg-[var(--bg-input)] border border-[var(--border-input)] text-[var(--text-secondary)] hover:bg-violet-500/10 hover:text-violet-400 hover:border-violet-500/30"
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all bg-[var(--bg-input)] border border-[var(--border-input)] text-[var(--text-secondary)]"
+            onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--accent-bg10)'; e.currentTarget.style.color = 'var(--accent-400)'; e.currentTarget.style.borderColor = 'var(--accent-ring)'; }}
+            onMouseLeave={(e) => { e.currentTarget.style.background = ''; e.currentTarget.style.color = ''; e.currentTarget.style.borderColor = ''; }}
             title="Adicionar semestre"
           >
             <Plus size={16} />

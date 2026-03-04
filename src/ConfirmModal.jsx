@@ -3,7 +3,7 @@ import { AlertTriangle } from 'lucide-react';
 export default function ConfirmModal({ title, message, onConfirm, onCancel, confirmLabel = 'Confirmar', cancelLabel = 'Cancelar', variant = 'default' }) {
   const btnClass = variant === 'danger'
     ? 'bg-gradient-to-r from-red-600 to-red-500 hover:from-red-500 hover:to-red-400'
-    : 'bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500';
+    : '';
 
   return (
     <div className="fixed inset-0 bg-[var(--bg-modal-overlay)] backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={onCancel}>
@@ -30,6 +30,7 @@ export default function ConfirmModal({ title, message, onConfirm, onCancel, conf
           <button
             onClick={onConfirm}
             className={`px-4 py-2 rounded-xl text-sm text-white font-medium transition-all ${btnClass}`}
+            style={variant !== 'danger' ? { background: 'linear-gradient(to right, var(--accent-600), var(--accent-500))' } : {}}
           >
             {confirmLabel}
           </button>

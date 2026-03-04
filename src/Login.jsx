@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { GraduationCap, Mail, Lock, Eye, EyeOff, AlertCircle, ArrowLeft, CheckCircle } from 'lucide-react';
+import { Mail, Lock, Eye, EyeOff, AlertCircle, ArrowLeft, CheckCircle } from 'lucide-react';
 import { useAuth } from './AuthContext';
 import { supabase } from './supabaseClient';
 
@@ -100,9 +100,9 @@ export default function Login() {
   // Background component
   const Background = () => (
     <div className="fixed inset-0 overflow-hidden pointer-events-none dark:block hidden">
-      <div className="absolute top-[-20%] right-[-10%] w-[600px] h-[600px] bg-violet-600/10 rounded-full blur-[120px]" />
-      <div className="absolute bottom-[-20%] left-[-10%] w-[500px] h-[500px] bg-blue-600/10 rounded-full blur-[100px]" />
-      <div className="absolute top-[40%] left-[50%] w-[300px] h-[300px] bg-fuchsia-600/5 rounded-full blur-[80px]" />
+      <div className="absolute top-[-20%] right-[-10%] w-[600px] h-[600px] rounded-full blur-[120px]" style={{ background: 'var(--accent-glow1)' }} />
+      <div className="absolute bottom-[-20%] left-[-10%] w-[500px] h-[500px] rounded-full blur-[100px]" style={{ background: 'var(--accent-glow2)' }} />
+      <div className="absolute top-[40%] left-[50%] w-[300px] h-[300px] rounded-full blur-[80px]" style={{ background: 'var(--accent-bg10)' }} />
     </div>
   );
 
@@ -122,9 +122,7 @@ export default function Login() {
             </button>
 
             <div className="text-center mb-8">
-              <div className="inline-flex items-center justify-center w-20 h-20 rounded-[22px] bg-gradient-to-br from-violet-500 to-indigo-600 shadow-xl shadow-violet-500/30 mb-4">
-                <GraduationCap size={40} className="text-white" />
-              </div>
+              <img src="/icon-192.png" alt="Semestry" className="w-14 h-14 rounded-[18px] mx-auto mb-4" style={{ filter: 'var(--accent-icon-filter)' }} />
               <h1 className="text-2xl font-semibold tracking-tight">Recuperar Senha</h1>
               <p className="text-[var(--text-muted)] text-sm mt-1">
                 Digite seu email para receber o link de recuperação
@@ -154,7 +152,10 @@ export default function Login() {
                     type="email"
                     value={formData.email}
                     onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                    className="w-full pl-12 pr-4 py-3.5 rounded-2xl bg-[var(--bg-input)] border border-[var(--border-input)] text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none focus:border-violet-500/50"
+                    className="w-full pl-12 pr-4 py-3 rounded-xl bg-[var(--bg-input)] border border-[var(--border-input)] text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none transition-all"
+                    style={{ borderColor: undefined }}
+                    onFocus={(e) => e.target.style.borderColor = 'var(--accent-500)'}
+                    onBlur={(e) => e.target.style.borderColor = ''}
                     placeholder="seu@email.com"
                     required
                   />
@@ -164,7 +165,8 @@ export default function Login() {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full py-4 rounded-2xl bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 font-semibold shadow-lg shadow-violet-500/25 transition-all duration-300 hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50"
+                className="w-full py-4 rounded-2xl font-semibold shadow-lg transition-all duration-300 hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 text-white"
+                style={{ background: 'linear-gradient(to right, var(--accent-600), var(--accent-500))', boxShadow: '0 10px 15px -3px var(--accent-ring)' }}
               >
                 {loading ? 'Enviando...' : 'Enviar Link de Recuperação'}
               </button>
@@ -184,13 +186,11 @@ export default function Login() {
     <div className="min-h-screen bg-[var(--bg-root)] text-[var(--text-primary)] flex items-center justify-center p-4">
       <Background />
       <div className="relative z-10 w-full max-w-md">
-        <div className="relative overflow-hidden rounded-3xl bg-[var(--bg-card)] dark:backdrop-blur-xl border border-[var(--border-card)] shadow-[var(--shadow-card)] p-8">
-          <div className="text-center mb-8">
-            <div className="inline-flex items-center justify-center w-20 h-20 rounded-[22px] bg-gradient-to-br from-violet-500 to-indigo-600 shadow-xl shadow-violet-500/30 mb-4">
-              <GraduationCap size={40} className="text-white" />
-            </div>
-            <h1 className="text-2xl font-semibold tracking-tight">Semestry</h1>
-            <p className="text-[var(--text-muted)] text-sm mt-1">
+        <div className="relative overflow-hidden rounded-3xl bg-[var(--bg-card)] dark:backdrop-blur-xl border border-[var(--border-card)] shadow-[var(--shadow-card)] p-6">
+          <div className="text-center mb-5">
+            <img src="/icon-192.png" alt="Semestry" className="w-10 h-10 rounded-[12px] mx-auto mb-2" style={{ filter: 'var(--accent-icon-filter)' }} />
+            <h1 className="text-xl font-semibold tracking-tight">Semestry</h1>
+            <p className="text-[var(--text-muted)] text-sm">
               {isLogin ? 'Entre na sua conta' : 'Crie sua conta'}
             </p>
           </div>
@@ -209,7 +209,7 @@ export default function Login() {
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-3">
             <div>
               <label className="text-sm text-[var(--text-secondary)] block mb-2">Email</label>
               <div className="relative">
@@ -218,7 +218,10 @@ export default function Login() {
                   type="email"
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  className="w-full pl-12 pr-4 py-3.5 rounded-2xl bg-[var(--bg-input)] border border-[var(--border-input)] text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none focus:border-violet-500/50"
+                  className="w-full pl-12 pr-4 py-3 rounded-xl bg-[var(--bg-input)] border border-[var(--border-input)] text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none transition-all"
+                  style={{ borderColor: undefined }}
+                  onFocus={(e) => e.target.style.borderColor = 'var(--accent-500)'}
+                  onBlur={(e) => e.target.style.borderColor = ''}
                   placeholder="seu@email.com"
                   required
                 />
@@ -232,7 +235,10 @@ export default function Login() {
                   <button
                     type="button"
                     onClick={() => { setIsForgotPassword(true); setError(''); setSuccess(''); }}
-                    className="text-xs text-violet-400 hover:text-violet-300 transition-colors"
+                    className="text-xs transition-colors"
+                    style={{ color: 'var(--accent-400)' }}
+                    onMouseEnter={(e) => e.target.style.opacity = '0.8'}
+                    onMouseLeave={(e) => e.target.style.opacity = '1'}
                   >
                     Esqueci minha senha
                   </button>
@@ -244,7 +250,10 @@ export default function Login() {
                   type={showPassword ? 'text' : 'password'}
                   value={formData.password}
                   onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                  className="w-full pl-12 pr-12 py-3.5 rounded-2xl bg-[var(--bg-input)] border border-[var(--border-input)] text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none focus:border-violet-500/50"
+                  className="w-full pl-12 pr-12 py-3 rounded-xl bg-[var(--bg-input)] border border-[var(--border-input)] text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none transition-all"
+                  style={{ borderColor: undefined }}
+                  onFocus={(e) => e.target.style.borderColor = 'var(--accent-500)'}
+                  onBlur={(e) => e.target.style.borderColor = ''}
                   placeholder="Sua senha"
                   required
                 />
@@ -267,7 +276,10 @@ export default function Login() {
                     type={showPassword ? 'text' : 'password'}
                     value={formData.confirmPassword}
                     onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
-                    className="w-full pl-12 pr-4 py-3.5 rounded-2xl bg-[var(--bg-input)] border border-[var(--border-input)] text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none focus:border-violet-500/50"
+                    className="w-full pl-12 pr-4 py-3 rounded-xl bg-[var(--bg-input)] border border-[var(--border-input)] text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none transition-all"
+                    style={{ borderColor: undefined }}
+                    onFocus={(e) => e.target.style.borderColor = 'var(--accent-500)'}
+                    onBlur={(e) => e.target.style.borderColor = ''}
                     placeholder="Confirme sua senha"
                     required
                   />
@@ -278,13 +290,14 @@ export default function Login() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-4 rounded-2xl bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 font-semibold shadow-lg shadow-violet-500/25 transition-all duration-300 hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50"
+              className="w-full py-3 rounded-xl font-semibold shadow-lg transition-all duration-300 hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 text-white"
+              style={{ background: 'linear-gradient(to right, var(--accent-600), var(--accent-500))', boxShadow: '0 10px 15px -3px var(--accent-ring)' }}
             >
               {loading ? 'Carregando...' : (isLogin ? 'Entrar' : 'Cadastrar')}
             </button>
           </form>
 
-          <div className="flex items-center gap-4 my-6">
+          <div className="flex items-center gap-4 my-4">
             <div className="flex-1 h-px bg-white/10" />
             <span className="text-sm text-[var(--text-muted)]">ou</span>
             <div className="flex-1 h-px bg-white/10" />
@@ -293,7 +306,7 @@ export default function Login() {
           <button
             onClick={handleGoogleLogin}
             disabled={loading}
-            className="w-full py-4 rounded-2xl bg-white hover:bg-slate-100 text-slate-800 font-semibold flex items-center justify-center gap-3 transition-all duration-300 hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50"
+            className="w-full py-3 rounded-xl bg-white hover:bg-slate-100 text-slate-800 font-semibold flex items-center justify-center gap-3 transition-all duration-300 hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50"
           >
             <svg className="w-5 h-5" viewBox="0 0 24 24">
               <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
@@ -304,7 +317,7 @@ export default function Login() {
             Entrar com Google
           </button>
 
-          <div className="mt-6 text-center">
+          <div className="mt-4 text-center">
             <p className="text-[var(--text-secondary)] text-sm">
               {isLogin ? 'Não tem conta?' : 'Já tem conta?'}{' '}
               <button
@@ -313,7 +326,8 @@ export default function Login() {
                   setError('');
                   setSuccess('');
                 }}
-                className="text-violet-400 hover:text-violet-300 font-medium transition-colors"
+                className="font-medium transition-colors"
+                style={{ color: 'var(--accent-400)' }}
               >
                 {isLogin ? 'Criar conta' : 'Fazer login'}
               </button>

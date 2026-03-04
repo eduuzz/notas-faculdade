@@ -139,7 +139,7 @@ export default function PlanejadorMatricula({ disciplinas = [], onClose }) {
           {/* Header */}
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-4">
-              <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-violet-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-violet-500/30">
+              <div className="w-12 h-12 rounded-2xl flex items-center justify-center shadow-lg" style={{ background: 'linear-gradient(to bottom right, var(--accent-500), var(--accent-600))', boxShadow: '0 10px 15px -3px var(--accent-ring)' }}>
                 <Calendar size={24} className="text-white" />
               </div>
               <div>
@@ -198,7 +198,7 @@ export default function PlanejadorMatricula({ disciplinas = [], onClose }) {
                 {/* Header da Grade */}
                 <div className="flex items-center justify-between p-4 border-b border-white/10">
                   <h2 className="text-lg font-semibold text-white flex items-center gap-2">
-                    <Clock size={20} className="text-violet-400" />
+                    <Clock size={20} style={{ color: 'var(--accent-400)' }} />
                     Quadro de Horários
                   </h2>
                   <div className="flex items-center gap-2">
@@ -207,7 +207,8 @@ export default function PlanejadorMatricula({ disciplinas = [], onClose }) {
                         type="checkbox"
                         checked={mostrarSabado}
                         onChange={(e) => setMostrarSabado(e.target.checked)}
-                        className="w-4 h-4 rounded bg-white/10 border-white/20 text-violet-500 focus:ring-violet-500"
+                        className="w-4 h-4 rounded bg-white/10 border-white/20"
+                        style={{ accentColor: 'var(--accent-500)' }}
                       />
                       Exibir Sábado
                     </label>
@@ -259,7 +260,9 @@ export default function PlanejadorMatricula({ disciplinas = [], onClose }) {
                                 ) : (
                                   <button
                                     onClick={() => setDisciplinaSelecionada({ dia: dia.id, horario: horario.id })}
-                                    className="w-full min-h-[60px] rounded-lg border-2 border-dashed border-white/10 hover:border-violet-500/50 hover:bg-violet-500/10 transition-all flex items-center justify-center"
+                                    className="w-full min-h-[60px] rounded-lg border-2 border-dashed border-white/10 transition-all flex items-center justify-center"
+                                    onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'var(--accent-ring)'; e.currentTarget.style.background = 'var(--accent-bg10)'; }}
+                                    onMouseLeave={(e) => { e.currentTarget.style.borderColor = ''; e.currentTarget.style.background = ''; }}
                                   >
                                     <Plus size={20} className="text-slate-600" />
                                   </button>
@@ -338,7 +341,7 @@ export default function PlanejadorMatricula({ disciplinas = [], onClose }) {
                                   disabled={!disciplinaSelecionada}
                                   className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
                                     disciplinaSelecionada
-                                      ? 'bg-violet-500/20 text-violet-300 hover:bg-violet-500/30'
+                                      ? 'bg-[var(--accent-bg10)] text-[var(--accent-400)]'
                                       : 'bg-white/5 text-slate-500 cursor-not-allowed'
                                   }`}
                                 >
@@ -375,7 +378,7 @@ export default function PlanejadorMatricula({ disciplinas = [], onClose }) {
                       type="number"
                       value={creditosLimite.min}
                       onChange={(e) => setCreditosLimite(prev => ({ ...prev, min: parseInt(e.target.value) || 0 }))}
-                      className="w-full mt-1 px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm focus:outline-none focus:border-violet-500"
+                      className="w-full mt-1 px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm focus:outline-none focus:border-[var(--accent-500)]"
                     />
                   </div>
                   <div>
@@ -384,7 +387,7 @@ export default function PlanejadorMatricula({ disciplinas = [], onClose }) {
                       type="number"
                       value={creditosLimite.max}
                       onChange={(e) => setCreditosLimite(prev => ({ ...prev, max: parseInt(e.target.value) || 0 }))}
-                      className="w-full mt-1 px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm focus:outline-none focus:border-violet-500"
+                      className="w-full mt-1 px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm focus:outline-none focus:border-[var(--accent-500)]"
                     />
                   </div>
                 </div>
@@ -392,20 +395,20 @@ export default function PlanejadorMatricula({ disciplinas = [], onClose }) {
 
               {/* Alerta de seleção */}
               {disciplinaSelecionada && (
-                <div className="bg-violet-500/20 border border-violet-500/30 rounded-2xl p-4">
-                  <div className="flex items-center gap-2 text-violet-300">
+                <div className="rounded-2xl p-4 border" style={{ background: 'var(--accent-bg10)', borderColor: 'var(--accent-ring)' }}>
+                  <div className="flex items-center gap-2" style={{ color: 'var(--accent-400)' }}>
                     <AlertCircle size={18} />
                     <span className="text-sm font-medium">Horário selecionado</span>
                   </div>
-                  <p className="text-violet-200/70 text-xs mt-1">
+                  <p className="text-xs mt-1" style={{ color: 'var(--accent-400)', opacity: 0.7 }}>
                     {DIAS_SEMANA.find(d => d.id === disciplinaSelecionada.dia)?.label} - {HORARIOS.find(h => h.id === disciplinaSelecionada.horario)?.label}
                   </p>
-                  <p className="text-violet-200/70 text-xs mt-1">
+                  <p className="text-xs mt-1" style={{ color: 'var(--accent-400)', opacity: 0.7 }}>
                     Clique em uma disciplina para adicionar
                   </p>
                   <button
                     onClick={() => setDisciplinaSelecionada(null)}
-                    className="mt-2 text-xs text-violet-400 hover:text-violet-300"
+                    className="mt-2 text-xs" style={{ color: 'var(--accent-400)' }}
                   >
                     Cancelar seleção
                   </button>

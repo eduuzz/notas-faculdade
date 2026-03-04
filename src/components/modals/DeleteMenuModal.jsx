@@ -17,7 +17,7 @@ export default function DeleteMenuModal({ disc, onClose, onReset, onToggleTipo, 
               <RotateCcw size={18} /><div><div className="font-medium">Resetar andamento</div><div className="text-xs text-[var(--text-muted)]">Volta para "Pendente"</div></div>
             </button>
           )}
-          <button onClick={onToggleTipo} className="w-full flex items-center gap-3 px-4 py-4 text-left text-violet-400 hover:bg-[var(--bg-input)] transition-colors border-t border-[var(--border-input)]">
+          <button onClick={onToggleTipo} className="w-full flex items-center gap-3 px-4 py-4 text-left hover:bg-[var(--bg-input)] transition-colors border-t border-[var(--border-input)]" style={{ color: 'var(--accent-400)' }}>
             <RefreshCw size={18} /><div><div className="font-medium">{disc.tipo === 'optativa' ? 'Marcar como obrigatória' : 'Marcar como optativa'}</div><div className="text-xs text-[var(--text-muted)]">Altera classificação da disciplina</div></div>
           </button>
 

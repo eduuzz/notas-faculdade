@@ -6,6 +6,7 @@ import { useTheme } from './ThemeContext';
 import ConfirmModal from './ConfirmModal';
 import { useToast } from './ToastContext';
 import SkeletonLoader from './components/ui/SkeletonLoader';
+
 import { exportarPDF as exportarPDFUtil } from './utils/exportPDF';
 import { checkReminders } from './utils/notifications';
 
@@ -449,9 +450,7 @@ export default function SistemaNotas({ onOpenAdmin }) {
         <header className="mb-10">
           <div className="flex items-center justify-between flex-wrap gap-4">
             <div className="flex items-center gap-4">
-              <div className="w-14 h-14 rounded-[18px] flex items-center justify-center shadow-xl" style={{ background: 'linear-gradient(to bottom right, var(--accent-500), var(--accent-600))', boxShadow: '0 10px 25px -5px var(--accent-ring)' }}>
-                <GraduationCap size={28} className="text-white" />
-              </div>
+              <img src="/icon-192.png" alt="Semestry" className="w-14 h-14 rounded-[18px]" style={{ filter: 'var(--accent-icon-filter)' }} />
               <div>
                 <h1 className="text-2xl font-semibold tracking-tight">Semestry</h1>
                 <p className="text-[var(--text-muted)] text-sm">Gerencie suas disciplinas</p>
