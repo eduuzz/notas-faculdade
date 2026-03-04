@@ -255,7 +255,7 @@ export default function SistemaNotas({ onOpenAdmin }) {
     const porPeriodo = {};
     periodos.forEach(p => { porPeriodo[p] = disciplinasFiltradas.filter(d => d.periodo === p); });
     return porPeriodo;
-  }, [disciplinasFiltradas]);
+  }, [disciplinasFiltradas, periodos]);
 
   const addSemestre = useCallback(() => {
     setNumSemestres(prev => {
