@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Settings, Save, Download, Upload as UploadIcon, Trash2, AlertCircle, Database, RefreshCw, Bell, Palette } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Settings, Save, Download, Upload as UploadIcon, Trash2, AlertCircle, Database, RefreshCw, Bell, Palette, X } from 'lucide-react';
 import { useTheme, ACCENT_PRESETS } from '../../ThemeContext';
 import { getNotificationSettings, setNotificationSettings, requestNotificationPermission } from '../../utils/notifications';
 
@@ -14,12 +14,17 @@ export default function SettingsModal({
   const { accentColor, setAccentColor } = useTheme();
   const [notifSettings, setNotifSettings] = useState(() => getNotificationSettings());
 
+  useEffect(() => {
+    document.body.style.overflow = 'hidden';
+    return () => { document.body.style.overflow = ''; };
+  }, []);
+
   const handleToggleReminders = async () => {
     const newEnabled = !notifSettings.enabled;
     if (newEnabled) {
       const perm = await requestNotificationPermission();
       if (perm === 'denied') {
-        toast.error('Permissao de notificacoes negada no navegador.');
+        toast.error('Permissão de notificações negada no navegador.');
         return;
       }
     }
@@ -58,7 +63,7 @@ export default function SettingsModal({
       const file = e.target.files[0];
       if (!file) return;
       if (file.size > 5 * 1024 * 1024) {
-        toast.error('Arquivo muito grande. Maximo: 5MB.');
+        toast.error('Arquivo muito grande. Máximo: 5MB.');
         return;
       }
       try {
@@ -67,7 +72,7 @@ export default function SettingsModal({
         if (dados.disciplinas && Array.isArray(dados.disciplinas)) {
           setConfirmState({
             title: 'Importar Backup',
-            message: `Importar ${dados.disciplinas.length} disciplinas? Isso substituira os dados atuais.`,
+            message: `Importar ${dados.disciplinas.length} disciplinas? Isso substituirá os dados atuais.`,
             confirmLabel: 'Importar',
             variant: 'danger',
             onConfirm: () => {
@@ -78,10 +83,10 @@ export default function SettingsModal({
             onCancel: () => setConfirmState(null)
           });
         } else {
-          toast.error('Arquivo invalido. O formato esperado e um backup JSON deste app.');
+          toast.error('Arquivo inválido. O formato esperado é um backup JSON deste app.');
         }
       } catch (err) {
-        toast.error('Erro ao ler o arquivo. Verifique se e um JSON valido.');
+        toast.error('Erro ao ler o arquivo. Verifique se é um JSON válido.');
       }
     };
     input.click();
@@ -89,134 +94,161 @@ export default function SettingsModal({
 
   return (
     <div className="fixed inset-0 bg-[var(--bg-modal-overlay)] backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={(e) => e.target === e.currentTarget && onClose()}>
-      <div className="bg-[var(--bg-modal)] border border-[var(--border-input)] rounded-3xl p-8 max-w-md w-full shadow-2xl max-h-[90vh] overflow-y-auto">
-        <div className="flex items-center gap-4 mb-6">
-          <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-slate-600 to-slate-700 flex items-center justify-center">
-            <Settings size={28} className="text-white" />
-          </div>
-          <div>
-            <h2 className="text-xl font-bold text-[var(--text-primary)]">Configuracoes</h2>
-            <p className="text-[var(--text-secondary)] text-sm">Edite suas informacoes</p>
-          </div>
-        </div>
+      <div className="bg-[var(--bg-modal)] border border-[var(--border-input)] rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
 
-        <div className="space-y-4 mb-6">
-          <div>
-            <label className="text-sm text-[var(--text-secondary)] block mb-2">Email</label>
-            <div className="w-full px-4 py-3 rounded-xl bg-[var(--bg-input)] border border-[var(--border-input)] text-[var(--text-muted)]">
-              {user?.email}
+        {/* Header */}
+        <div className="flex items-center justify-between p-5 pb-4 border-b border-[var(--border-input)]">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: 'var(--accent-bg10)' }}>
+              <Settings size={20} style={{ color: 'var(--accent-400)' }} />
             </div>
-          </div>
-          <div>
-            <label className="text-sm text-[var(--text-secondary)] block mb-2">Nome</label>
-            <input type="text" value={settingsNome} onChange={(e) => setSettingsNome(e.target.value.slice(0, 80))} className="w-full px-4 py-3 rounded-xl bg-[var(--bg-input)] border border-[var(--border-input)] text-[var(--text-primary)] focus:outline-none focus:border-violet-500 transition-colors" placeholder="Seu nome" maxLength={80} />
-          </div>
-          <div>
-            <label className="text-sm text-[var(--text-secondary)] block mb-2">Curso</label>
-            <input type="text" value={settingsCurso} onChange={(e) => setSettingsCurso(e.target.value.slice(0, 100))} className="w-full px-4 py-3 rounded-xl bg-[var(--bg-input)] border border-[var(--border-input)] text-[var(--text-primary)] focus:outline-none focus:border-violet-500 transition-colors" placeholder="Ex: Ciencia da Computacao" maxLength={100} />
-          </div>
-        </div>
-
-        {/* Cor do Tema */}
-        <div className="mb-6 p-4 rounded-xl bg-[var(--bg-input)] border border-[var(--border-input)]">
-          <div className="flex items-center gap-3 mb-3">
-            <Palette size={20} style={{ color: 'var(--accent-400)' }} />
-            <h4 className="font-medium text-[var(--text-primary)]">Cor do Tema</h4>
-          </div>
-          <div className="flex gap-3 flex-wrap">
-            {Object.entries(ACCENT_PRESETS).map(([key, preset]) => (
-              <button
-                key={key}
-                onClick={() => setAccentColor(key)}
-                className="w-10 h-10 rounded-xl transition-all hover:scale-105"
-                style={{
-                  background: preset[500],
-                  boxShadow: accentColor === key ? `0 0 0 2px var(--bg-modal), 0 0 0 4px ${preset[500]}` : 'none',
-                  transform: accentColor === key ? 'scale(1.1)' : undefined,
-                }}
-                title={preset.name}
-              />
-            ))}
-          </div>
-        </div>
-
-        {/* Lembretes */}
-        <div className="mb-6 p-4 rounded-xl bg-[var(--bg-input)] border border-[var(--border-input)]">
-          <div className="flex items-center gap-3 mb-3">
-            <Bell size={20} style={{ color: 'var(--accent-400)' }} />
-            <h4 className="font-medium text-[var(--text-primary)]">Lembretes</h4>
-          </div>
-          <div className="flex items-center justify-between mb-3">
-            <span className="text-sm text-[var(--text-secondary)]">Ativar lembretes</span>
-            <button
-              onClick={handleToggleReminders}
-              className={`w-11 h-6 rounded-full transition-all relative ${notifSettings.enabled ? 'bg-emerald-500' : 'bg-slate-600'}`}
-            >
-              <div className={`w-5 h-5 rounded-full bg-white absolute top-0.5 transition-transform ${notifSettings.enabled ? 'translate-x-[22px]' : 'translate-x-0.5'}`} />
-            </button>
-          </div>
-          {notifSettings.enabled && (
             <div>
-              <label className="text-xs text-[var(--text-muted)] block mb-2">Lembrar a cada</label>
-              <select
-                value={notifSettings.intervalDays}
-                onChange={(e) => handleIntervalChange(parseInt(e.target.value))}
-                className="w-full px-3 py-2 rounded-lg bg-[var(--bg-modal)] border border-[var(--border-input)] text-[var(--text-primary)] text-sm focus:outline-none cursor-pointer"
-              >
-                <option value="3">3 dias</option>
-                <option value="7">7 dias</option>
-                <option value="14">14 dias</option>
-                <option value="30">30 dias</option>
-              </select>
+              <h2 className="text-lg font-bold text-[var(--text-primary)]">Configurações</h2>
+              <p className="text-[var(--text-muted)] text-xs">Personalize sua experiência</p>
             </div>
-          )}
+          </div>
+          <button onClick={onClose} className="w-8 h-8 rounded-lg flex items-center justify-center text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-hover)] transition-colors">
+            <X size={18} />
+          </button>
         </div>
 
-        <div className="mb-6 p-4 rounded-xl bg-[var(--bg-input)] border border-[var(--border-input)]">
-          <div className="flex items-center gap-3 mb-3">
-            <Database size={20} className="text-amber-400" />
-            <h4 className="font-medium text-[var(--text-primary)]">Backup de Dados</h4>
+        {/* Body */}
+        <div className="p-5">
+          {/* Perfil + Tema lado a lado */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+
+            {/* Perfil */}
+            <div className="p-4 rounded-xl bg-[var(--bg-input)] border border-[var(--border-input)]">
+              <h4 className="font-medium text-[var(--text-primary)] text-sm mb-3">Perfil</h4>
+              <div className="space-y-2.5">
+                <div>
+                  <label className="text-xs text-[var(--text-muted)] block mb-1">Email</label>
+                  <div className="w-full px-3 py-2 rounded-lg bg-[var(--bg-modal)] border border-[var(--border-input)] text-[var(--text-muted)] text-sm truncate">
+                    {user?.email}
+                  </div>
+                </div>
+                <div>
+                  <label className="text-xs text-[var(--text-muted)] block mb-1">Nome</label>
+                  <input type="text" value={settingsNome} onChange={(e) => setSettingsNome(e.target.value.slice(0, 80))} className="w-full px-3 py-2 rounded-lg bg-[var(--bg-modal)] border border-[var(--border-input)] text-[var(--text-primary)] text-sm focus:outline-none transition-colors" style={{ borderColor: undefined }} onFocus={(e) => e.target.style.borderColor = 'var(--accent-500)'} onBlur={(e) => e.target.style.borderColor = ''} placeholder="Seu nome" maxLength={80} />
+                </div>
+                <div>
+                  <label className="text-xs text-[var(--text-muted)] block mb-1">Curso</label>
+                  <input type="text" value={settingsCurso} onChange={(e) => setSettingsCurso(e.target.value.slice(0, 100))} className="w-full px-3 py-2 rounded-lg bg-[var(--bg-modal)] border border-[var(--border-input)] text-[var(--text-primary)] text-sm focus:outline-none transition-colors" onFocus={(e) => e.target.style.borderColor = 'var(--accent-500)'} onBlur={(e) => e.target.style.borderColor = ''} placeholder="Ex: Ciência da Computação" maxLength={100} />
+                </div>
+              </div>
+            </div>
+
+            {/* Tema + Lembretes */}
+            <div className="space-y-4">
+              {/* Cor do Tema */}
+              <div className="p-4 rounded-xl bg-[var(--bg-input)] border border-[var(--border-input)]">
+                <div className="flex items-center gap-2 mb-3">
+                  <Palette size={16} style={{ color: 'var(--accent-400)' }} />
+                  <h4 className="font-medium text-[var(--text-primary)] text-sm">Cor do Tema</h4>
+                </div>
+                <div className="flex gap-2.5 flex-wrap">
+                  {Object.entries(ACCENT_PRESETS).map(([key, preset]) => (
+                    <button
+                      key={key}
+                      onClick={() => setAccentColor(key)}
+                      className="w-9 h-9 rounded-lg transition-all hover:scale-105"
+                      style={{
+                        background: preset[500],
+                        boxShadow: accentColor === key ? `0 0 0 2px var(--bg-modal), 0 0 0 3px ${preset[500]}` : 'none',
+                        transform: accentColor === key ? 'scale(1.1)' : undefined,
+                      }}
+                      title={preset.name}
+                    />
+                  ))}
+                </div>
+              </div>
+
+              {/* Lembretes */}
+              <div className="p-4 rounded-xl bg-[var(--bg-input)] border border-[var(--border-input)]">
+                <div className="flex items-center gap-2 mb-3">
+                  <Bell size={16} style={{ color: 'var(--accent-400)' }} />
+                  <h4 className="font-medium text-[var(--text-primary)] text-sm">Lembretes</h4>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-[var(--text-secondary)]">Ativar lembretes</span>
+                  <button
+                    onClick={handleToggleReminders}
+                    className="w-10 h-5.5 rounded-full transition-all relative"
+                    style={{ background: notifSettings.enabled ? 'var(--accent-500)' : '#475569', width: '40px', height: '22px' }}
+                  >
+                    <div className="w-4 h-4 rounded-full bg-white absolute top-[3px] transition-transform" style={{ transform: notifSettings.enabled ? 'translateX(21px)' : 'translateX(3px)' }} />
+                  </button>
+                </div>
+                {notifSettings.enabled && (
+                  <div className="mt-2.5">
+                    <select
+                      value={notifSettings.intervalDays}
+                      onChange={(e) => handleIntervalChange(parseInt(e.target.value))}
+                      className="w-full px-3 py-1.5 rounded-lg bg-[var(--bg-modal)] border border-[var(--border-input)] text-[var(--text-primary)] text-xs focus:outline-none cursor-pointer"
+                    >
+                      <option value="3">A cada 3 dias</option>
+                      <option value="7">A cada 7 dias</option>
+                      <option value="14">A cada 14 dias</option>
+                      <option value="30">A cada 30 dias</option>
+                    </select>
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
-          <p className="text-[var(--text-secondary)] text-sm mb-3">
-            Exporte seus dados para backup ou importe de outro dispositivo.
-          </p>
-          <div className="flex gap-2">
-            <button onClick={handleExport} className="flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-sm font-medium transition-all bg-amber-500/20 text-amber-400 hover:bg-amber-500/30">
-              <Download size={16} />Exportar
+
+          {/* Backup + Zona de Perigo lado a lado */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-5">
+            {/* Backup */}
+            <div className="p-4 rounded-xl bg-[var(--bg-input)] border border-[var(--border-input)]">
+              <div className="flex items-center gap-2 mb-2">
+                <Database size={16} className="text-amber-400" />
+                <h4 className="font-medium text-[var(--text-primary)] text-sm">Backup de Dados</h4>
+              </div>
+              <p className="text-[var(--text-muted)] text-xs mb-3">
+                Exporte ou importe seus dados.
+              </p>
+              <div className="flex gap-2">
+                <button onClick={handleExport} className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-medium transition-all bg-amber-500/20 text-amber-400 hover:bg-amber-500/30">
+                  <Download size={14} />Exportar
+                </button>
+                <button onClick={handleImport} className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-medium transition-all bg-[var(--bg-modal)] border border-[var(--border-input)] text-[var(--text-secondary)] hover:bg-[var(--bg-hover)]">
+                  <UploadIcon size={14} />Importar
+                </button>
+              </div>
+            </div>
+
+            {/* Zona de Perigo */}
+            <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/30">
+              <div className="flex items-center gap-2 mb-2">
+                <AlertCircle size={16} className="text-red-400" />
+                <h4 className="font-medium text-red-400 text-sm">Zona de Perigo</h4>
+              </div>
+              <p className="text-[var(--text-muted)] text-xs mb-3">Ações irreversíveis. Tenha cuidado!</p>
+              <button
+                onClick={() => { onClose(); abrirModalReset(); }}
+                disabled={disciplinas.length === 0}
+                className="w-full flex items-center justify-center gap-1.5 py-2 rounded-lg bg-red-500/20 text-red-400 hover:bg-red-500/30 text-xs font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <Trash2 size={14} />Excluir Todas ({disciplinas.length})
+              </button>
+            </div>
+          </div>
+
+          {/* Footer buttons */}
+          <div className="flex gap-3">
+            <button onClick={onClose} className="flex-1 py-2.5 rounded-xl bg-[var(--bg-input)] border border-[var(--border-input)] text-[var(--text-secondary)] text-sm font-medium hover:bg-[var(--bg-hover)] transition-colors">
+              Cancelar
             </button>
-            <button onClick={handleImport} className="flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-sm font-medium transition-all bg-[var(--bg-input)] text-[var(--text-secondary)] hover:bg-[var(--bg-hover)]">
-              <UploadIcon size={16} />Importar
+            <button
+              onClick={onSave}
+              disabled={savingSettings}
+              className="flex-1 py-2.5 rounded-xl text-white text-sm font-medium transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+              style={{ background: 'linear-gradient(to right, var(--accent-600), var(--accent-500))' }}
+            >
+              {savingSettings ? <RefreshCw size={16} className="animate-spin" /> : <><Save size={16} />Salvar</>}
             </button>
           </div>
-        </div>
-
-        <div className="mb-6 p-4 rounded-xl bg-red-500/10 border border-red-500/30">
-          <div className="flex items-center gap-3 mb-3">
-            <AlertCircle size={20} className="text-red-400" />
-            <h4 className="font-medium text-red-400">Zona de Perigo</h4>
-          </div>
-          <p className="text-[var(--text-secondary)] text-sm mb-3">Acoes irreversiveis. Tenha cuidado!</p>
-          <button
-            onClick={() => { onClose(); abrirModalReset(); }}
-            disabled={disciplinas.length === 0}
-            className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg bg-red-500/20 text-red-400 hover:bg-red-500/30 text-sm font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            <Trash2 size={16} />Excluir Todas as Cadeiras ({disciplinas.length})
-          </button>
-        </div>
-
-        <div className="flex gap-3">
-          <button onClick={onClose} className="flex-1 py-3 rounded-xl bg-[var(--bg-input)] border border-[var(--border-input)] text-[var(--text-secondary)] font-medium hover:bg-[var(--bg-hover)] transition-colors">
-            Cancelar
-          </button>
-          <button
-            onClick={onSave}
-            disabled={savingSettings}
-            className="flex-1 py-3 rounded-xl text-white font-medium transition-all disabled:opacity-50 flex items-center justify-center gap-2"
-            style={{ background: 'linear-gradient(to right, var(--accent-600), var(--accent-500))' }}
-          >
-            {savingSettings ? <RefreshCw size={18} className="animate-spin" /> : <><Save size={18} />Salvar</>}
-          </button>
         </div>
       </div>
     </div>
