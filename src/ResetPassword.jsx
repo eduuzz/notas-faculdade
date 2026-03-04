@@ -204,7 +204,7 @@ export default function ResetPassword({ onComplete }) {
 
         {/* Footer */}
         <p className="text-center text-slate-600 text-xs mt-6">
-          © 2024 Sistema de Notas. Todos os direitos reservados.
+          © 2024 Semestry. Todos os direitos reservados.
         </p>
       </div>
     </div>

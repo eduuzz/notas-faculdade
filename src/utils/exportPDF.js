@@ -379,7 +379,7 @@ export function exportarPDF({ disciplinas, estatisticas, userName, userCurso, pe
   doc.setFontSize(7);
   doc.setFont(undefined, 'normal');
   doc.setTextColor(...gray400);
-  doc.text(`Gerado em ${new Date().toLocaleDateString('pt-BR')} — Sistema de Notas`, pageWidth / 2, 290, { align: 'center' });
+  doc.text(`Gerado em ${new Date().toLocaleDateString('pt-BR')} — Semestry`, pageWidth / 2, 290, { align: 'center' });
 
   doc.save(`grade-curricular-${new Date().toISOString().split('T')[0]}.pdf`);
 }

@@ -453,7 +453,7 @@ export default function SistemaNotas({ onOpenAdmin }) {
                 <GraduationCap size={28} className="text-white" />
               </div>
               <div>
-                <h1 className="text-2xl font-semibold tracking-tight">Sistema de Notas</h1>
+                <h1 className="text-2xl font-semibold tracking-tight">Semestry</h1>
                 <p className="text-[var(--text-muted)] text-sm">Gerencie suas disciplinas</p>
               </div>
             </div>

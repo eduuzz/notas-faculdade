@@ -172,7 +172,7 @@ export default function Login() {
           </div>
 
           <p className="text-center text-slate-600 text-xs mt-6">
-            © 2024 Sistema de Notas. Todos os direitos reservados.
+            © 2024 Semestry. Todos os direitos reservados.
           </p>
         </div>
       </div>
@@ -189,7 +189,7 @@ export default function Login() {
             <div className="inline-flex items-center justify-center w-20 h-20 rounded-[22px] bg-gradient-to-br from-violet-500 to-indigo-600 shadow-xl shadow-violet-500/30 mb-4">
               <GraduationCap size={40} className="text-white" />
             </div>
-            <h1 className="text-2xl font-semibold tracking-tight">Sistema de Notas</h1>
+            <h1 className="text-2xl font-semibold tracking-tight">Semestry</h1>
             <p className="text-[var(--text-muted)] text-sm mt-1">
               {isLogin ? 'Entre na sua conta' : 'Crie sua conta'}
             </p>
@@ -322,7 +322,7 @@ export default function Login() {
         </div>
 
         <p className="text-center text-slate-600 text-xs mt-6">
-          © 2024 Sistema de Notas. Todos os direitos reservados.
+          © 2024 Semestry. Todos os direitos reservados.
         </p>
       </div>
     </div>

@@ -146,7 +146,7 @@ export default function SharedGrade({ token }) {
 
         {/* Footer */}
         <p className="text-center text-xs text-slate-500 mt-10">
-          Sistema de Notas Academicas
+          Semestry
         </p>
       </div>
     </div>

@@ -9,7 +9,7 @@ export default function WelcomeModal({ cursoInput, setCursoInput, savingCurso, o
           <div className="w-20 h-20 rounded-[24px] bg-gradient-to-br from-violet-500 to-indigo-600 flex items-center justify-center shadow-xl shadow-violet-500/30 mx-auto mb-4">
             <GraduationCap size={40} className="text-white" />
           </div>
-          <h2 className="text-2xl font-bold text-[var(--text-primary)] mb-2">Bem-vindo ao Sistema de Notas!</h2>
+          <h2 className="text-2xl font-bold text-[var(--text-primary)] mb-2">Bem-vindo ao Semestry!</h2>
           <p className="text-[var(--text-secondary)]">Para personalizar sua experiência, conte-nos qual curso você está fazendo.</p>
         </div>
         <div className="mb-6">

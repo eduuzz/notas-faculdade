@@ -1,6 +1,6 @@
 {
-  "name": "Sistema de Notas Acadêmicas",
-  "short_name": "Notas",
+  "name": "Semestry",
+  "short_name": "Semestry",
   "description": "Gerencie suas disciplinas e notas da faculdade",
   "start_url": "/",
   "display": "standalone",
