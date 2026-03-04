@@ -438,9 +438,9 @@ export default function SistemaNotas({ onOpenAdmin }) {
   return (
     <div className="min-h-screen bg-[var(--bg-root)] text-[var(--text-primary)]">
       <div className="fixed inset-0 overflow-hidden pointer-events-none dark:block hidden">
-        <div className="absolute top-[-20%] right-[-10%] w-[600px] h-[600px] bg-violet-600/10 rounded-full blur-[120px]" />
-        <div className="absolute bottom-[-20%] left-[-10%] w-[500px] h-[500px] bg-blue-600/10 rounded-full blur-[100px]" />
-        <div className="absolute top-[40%] left-[30%] w-[300px] h-[300px] bg-fuchsia-600/5 rounded-full blur-[80px]" />
+        <div className="absolute top-[-20%] right-[-10%] w-[600px] h-[600px] rounded-full blur-[120px]" style={{ background: 'var(--accent-glow1)' }} />
+        <div className="absolute bottom-[-20%] left-[-10%] w-[500px] h-[500px] rounded-full blur-[100px]" style={{ background: 'var(--accent-glow2)' }} />
+        <div className="absolute top-[40%] left-[30%] w-[300px] h-[300px] rounded-full blur-[80px]" style={{ background: 'var(--accent-bg10)' }} />
       </div>
 
       <div className="relative z-10 max-w-6xl mx-auto px-4 sm:px-6 py-8">
@@ -466,20 +466,20 @@ export default function SistemaNotas({ onOpenAdmin }) {
               </button>
               {onOpenAdmin && (
                 <button onClick={onOpenAdmin} className="p-2.5 sm:p-3 rounded-2xl bg-[var(--bg-input)] border border-[var(--border-input)] hover:bg-[var(--bg-hover)] transition-all">
-                  <Shield size={18} className="text-violet-400" />
+                  <Shield size={18} style={{ color: 'var(--accent-400)' }} />
                 </button>
               )}
               <button onClick={() => setShowShareModal(true)} className="p-2.5 sm:p-3 rounded-2xl bg-[var(--bg-input)] border border-[var(--border-input)] hover:bg-[var(--bg-hover)] transition-all" title="Compartilhar Grade">
                 <Share2 size={18} className="text-[var(--text-secondary)]" />
               </button>
               <button onClick={toggleTheme} className="p-2.5 sm:p-3 rounded-2xl bg-[var(--bg-input)] border border-[var(--border-input)] hover:bg-[var(--bg-hover)] transition-all" title={isDark ? 'Modo claro' : 'Modo escuro'}>
-                {isDark ? <Sun size={18} className="text-amber-400" /> : <Moon size={18} className="text-indigo-500" />}
+                {isDark ? <Sun size={18} className="text-amber-400" /> : <Moon size={18} style={{ color: 'var(--accent-500)' }} />}
               </button>
               <button onClick={openSettings} className="p-2.5 sm:p-3 rounded-2xl bg-[var(--bg-input)] border border-[var(--border-input)] hover:bg-[var(--bg-hover)] transition-all">
                 <Settings size={18} className="text-[var(--text-secondary)]" />
               </button>
               <div className="hidden sm:flex items-center gap-3 px-4 py-2.5 rounded-2xl bg-[var(--bg-input)] border border-[var(--border-input)]">
-                <div className="w-9 h-9 rounded-full bg-gradient-to-br from-violet-500 to-pink-500 flex items-center justify-center text-sm font-semibold">
+                <div className="w-9 h-9 rounded-full flex items-center justify-center text-sm font-semibold text-white" style={{ background: 'linear-gradient(to bottom right, var(--accent-500), var(--accent-600))' }}>
                   {user?.email?.charAt(0).toUpperCase()}
                 </div>
                 <span className="text-sm text-[var(--text-secondary)] font-medium max-w-[120px] truncate">{user?.email}</span>
@@ -503,7 +503,7 @@ export default function SistemaNotas({ onOpenAdmin }) {
           </h2>
           {userCurso && (
             <p className="text-[var(--text-muted)] text-sm sm:text-base mt-1 flex items-center gap-2">
-              <BookOpen size={16} className="text-violet-400" />
+              <BookOpen size={16} style={{ color: 'var(--accent-400)' }} />
               {userCurso}
             </p>
           )}
@@ -524,9 +524,10 @@ export default function SistemaNotas({ onOpenAdmin }) {
                   onClick={() => setActiveTab(tab.id)}
                   className={`relative px-3 sm:px-6 py-3 rounded-xl text-sm font-medium transition-all duration-300 whitespace-nowrap ${
                     activeTab === tab.id
-                      ? 'bg-[var(--bg-hover)] text-[var(--text-primary)] shadow-lg dark:bg-white/10'
+                      ? 'text-[var(--text-primary)] shadow-lg'
                       : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
                   }`}
+                  style={activeTab === tab.id ? { background: 'var(--accent-bg10)', boxShadow: `0 0 0 1px var(--accent-ring)` } : {}}
                 >
                   <tab.icon size={16} className="sm:hidden" />
                   <span className="hidden sm:inline">{tab.label}</span>
