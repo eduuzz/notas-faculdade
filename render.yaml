@@ -13,6 +13,6 @@ services:
       - key: SUPABASE_SERVICE_KEY
         sync: false
       - key: CORS_ORIGIN
-        sync: false
+        value: "https://semestry.com.br"
       - key: PORTAL_BASE_URL
         value: "https://portal.asav.org.br"
