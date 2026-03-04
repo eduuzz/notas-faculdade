@@ -20,6 +20,9 @@ app.use(cors({
 // Body parser
 app.use(express.json());
 
+// Health check na raiz (Railway verifica / por padrão)
+app.get('/', (req, res) => res.json({ status: 'ok' }));
+
 // Rotas
 app.use('/api', routes);
 
