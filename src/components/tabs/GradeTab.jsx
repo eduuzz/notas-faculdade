@@ -1,8 +1,10 @@
 import React from 'react';
+import { motion } from 'framer-motion';
 import { Plus, Minus, Trash2, Award, TrendingUp, CheckCircle, Clock, Edit2, ChevronDown, ChevronUp, Search, Download, Upload as UploadIcon, List, LayoutGrid } from 'lucide-react';
 import { STATUS } from '../ui/STATUS';
 import GlassCard from '../ui/GlassCard';
 import GradientButton from '../ui/GradientButton';
+import { staggerContainer, staggerItem } from '../../utils/animations';
 
 export default function GradeTab({
   estatisticas,
@@ -103,8 +105,8 @@ export default function GradeTab({
               <GlassCard className="p-3 sm:p-4" onClick={() => togglePeriodo(periodo)}>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3 sm:gap-4">
-                    <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-gradient-to-br from-violet-500/20 to-indigo-500/20 flex items-center justify-center border border-violet-500/30">
-                      <span className="text-lg sm:text-xl font-bold text-violet-400">{periodo}</span>
+                    <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl flex items-center justify-center" style={{ background: 'linear-gradient(to bottom right, var(--accent-bg10), var(--accent-bg10))', border: '1px solid var(--accent-ring)' }}>
+                      <span className="text-lg sm:text-xl font-bold" style={{ color: 'var(--accent-400)' }}>{periodo}</span>
                     </div>
                     <div>
                       <h3 className="font-semibold text-base sm:text-lg">{periodo}º Semestre</h3>
@@ -183,10 +185,12 @@ export default function GradeTab({
                       </table>
                     </GlassCard>
                   ) : (
-                    discsVisiveis.map(disc => {
+                    <motion.div variants={staggerContainer} initial="initial" animate="animate" className="space-y-2">
+                    {discsVisiveis.map(disc => {
                       const status = STATUS[disc.status];
                       return (
-                        <GlassCard key={disc.id} className="group">
+                        <motion.div key={disc.id} variants={staggerItem}>
+                        <GlassCard className="group">
                           <div className={`absolute left-0 top-0 bottom-0 w-1 ${status.bar}`} />
                           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between p-3 sm:p-5 pl-4 sm:pl-6">
                             <div className="flex-1 min-w-0">
@@ -229,8 +233,10 @@ export default function GradeTab({
                             </div>
                           </div>
                         </GlassCard>
+                        </motion.div>
                       );
-                    })
+                    })}
+                    </motion.div>
                   )}
                 </div>
               )}

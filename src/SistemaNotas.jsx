@@ -1,26 +1,32 @@
 import React, { useState, useMemo, useEffect, useCallback, Suspense } from 'react';
-import { Plus, BookOpen, GraduationCap, Clock, RefreshCw, LogOut, Wifi, WifiOff, Sun, Moon, Shield, Settings, TrendingUp } from 'lucide-react';
+import { Plus, BookOpen, GraduationCap, Clock, RefreshCw, LogOut, Wifi, WifiOff, Sun, Moon, Shield, Settings, TrendingUp, Share2 } from 'lucide-react';
 import { useNotas } from './useNotas';
 import { useAuth } from './AuthContext';
 import { useTheme } from './ThemeContext';
-const ImportModal = React.lazy(() => import('./ImportModal'));
 import ConfirmModal from './ConfirmModal';
 import { useToast } from './ToastContext';
 import SkeletonLoader from './components/ui/SkeletonLoader';
 import { exportarPDF as exportarPDFUtil } from './utils/exportPDF';
-import GradeTab from './components/tabs/GradeTab';
-import EmCursoTab from './components/tabs/EmCursoTab';
-import DashboardTab from './components/tabs/DashboardTab';
-import FormaturaTab from './components/tabs/FormaturaTab';
-import AddDisciplinaModal from './components/modals/AddDisciplinaModal';
-import IniciarModal from './components/modals/IniciarModal';
-import EditNotasModal from './components/modals/EditNotasModal';
-import DeleteMenuModal from './components/modals/DeleteMenuModal';
-import WelcomeModal from './components/modals/WelcomeModal';
-import SettingsModal from './components/modals/SettingsModal';
-import LogoutModal from './components/modals/LogoutModal';
-import ResetModal from './components/modals/ResetModal';
-import SimuladorModal from './components/modals/SimuladorModal';
+import { checkReminders } from './utils/notifications';
+
+// Lazy-loaded tabs
+const GradeTab = React.lazy(() => import('./components/tabs/GradeTab'));
+const EmCursoTab = React.lazy(() => import('./components/tabs/EmCursoTab'));
+const DashboardTab = React.lazy(() => import('./components/tabs/DashboardTab'));
+const FormaturaTab = React.lazy(() => import('./components/tabs/FormaturaTab'));
+
+// Lazy-loaded modals
+const ImportModal = React.lazy(() => import('./ImportModal'));
+const AddDisciplinaModal = React.lazy(() => import('./components/modals/AddDisciplinaModal'));
+const IniciarModal = React.lazy(() => import('./components/modals/IniciarModal'));
+const EditNotasModal = React.lazy(() => import('./components/modals/EditNotasModal'));
+const DeleteMenuModal = React.lazy(() => import('./components/modals/DeleteMenuModal'));
+const WelcomeModal = React.lazy(() => import('./components/modals/WelcomeModal'));
+const SettingsModal = React.lazy(() => import('./components/modals/SettingsModal'));
+const LogoutModal = React.lazy(() => import('./components/modals/LogoutModal'));
+const ResetModal = React.lazy(() => import('./components/modals/ResetModal'));
+const SimuladorModal = React.lazy(() => import('./components/modals/SimuladorModal'));
+const ShareModal = React.lazy(() => import('./components/modals/ShareModal'));
 
 export default function SistemaNotas({ onOpenAdmin }) {
   const { user, userName, userCurso, isNewUser, updateUserCurso, updateUserProfile, signOut } = useAuth();
@@ -97,6 +103,7 @@ export default function SistemaNotas({ onOpenAdmin }) {
   const [simuladorDisciplina, setSimuladorDisciplina] = useState(null);
   const [simuladorGA, setSimuladorGA] = useState('');
   const [simuladorGB, setSimuladorGB] = useState('');
+  const [showShareModal, setShowShareModal] = useState(false);
 
   // Mostrar modal de boas-vindas APENAS na primeira vez (usando localStorage)
   useEffect(() => {
@@ -227,6 +234,13 @@ export default function SistemaNotas({ onOpenAdmin }) {
       return next;
     });
   }, [numSemestres]);
+
+  // Lembretes no mount
+  useEffect(() => {
+    if (!loading && disciplinas.length > 0) {
+      checkReminders(disciplinas, toast);
+    }
+  }, [loading]);
 
   const disciplinasFiltradas = useMemo(() => {
     return disciplinas.filter(d => {
@@ -435,7 +449,7 @@ export default function SistemaNotas({ onOpenAdmin }) {
         <header className="mb-10">
           <div className="flex items-center justify-between flex-wrap gap-4">
             <div className="flex items-center gap-4">
-              <div className="w-14 h-14 rounded-[18px] bg-gradient-to-br from-violet-500 to-indigo-600 flex items-center justify-center shadow-xl shadow-violet-500/30">
+              <div className="w-14 h-14 rounded-[18px] flex items-center justify-center shadow-xl" style={{ background: 'linear-gradient(to bottom right, var(--accent-500), var(--accent-600))', boxShadow: '0 10px 25px -5px var(--accent-ring)' }}>
                 <GraduationCap size={28} className="text-white" />
               </div>
               <div>
@@ -455,6 +469,9 @@ export default function SistemaNotas({ onOpenAdmin }) {
                   <Shield size={18} className="text-violet-400" />
                 </button>
               )}
+              <button onClick={() => setShowShareModal(true)} className="p-2.5 sm:p-3 rounded-2xl bg-[var(--bg-input)] border border-[var(--border-input)] hover:bg-[var(--bg-hover)] transition-all" title="Compartilhar Grade">
+                <Share2 size={18} className="text-[var(--text-secondary)]" />
+              </button>
               <button onClick={toggleTheme} className="p-2.5 sm:p-3 rounded-2xl bg-[var(--bg-input)] border border-[var(--border-input)] hover:bg-[var(--bg-hover)] transition-all" title={isDark ? 'Modo claro' : 'Modo escuro'}>
                 {isDark ? <Sun size={18} className="text-amber-400" /> : <Moon size={18} className="text-indigo-500" />}
               </button>
@@ -520,7 +537,7 @@ export default function SistemaNotas({ onOpenAdmin }) {
           </div>
         </nav>
 
-        {activeTab === 'grade' && (
+        {activeTab === 'grade' && (<Suspense fallback={null}>
           <GradeTab
             estatisticas={estatisticas}
             busca={busca} setBusca={setBusca}
@@ -539,25 +556,25 @@ export default function SistemaNotas({ onOpenAdmin }) {
             setShowDeleteMenu={setShowDeleteMenu}
             startEditNotas={startEditNotas}
           />
-        )}
+        </Suspense>)}
 
-        {activeTab === 'emCurso' && (
+        {activeTab === 'emCurso' && (<Suspense fallback={null}>
           <EmCursoTab
             disciplinas={disciplinas}
             setShowSimulador={setShowSimulador}
             startEditNotas={startEditNotas}
           />
-        )}
+        </Suspense>)}
 
-        {activeTab === 'dashboard' && (
+        {activeTab === 'dashboard' && (<Suspense fallback={null}>
           <DashboardTab
             dadosGrafico={dadosGrafico}
             dadosPorPeriodo={dadosPorPeriodo}
             estatisticas={estatisticas}
           />
-        )}
+        </Suspense>)}
 
-        {activeTab === 'formatura' && (
+        {activeTab === 'formatura' && (<Suspense fallback={null}>
           <FormaturaTab
             disciplinas={disciplinas}
             semestreAtualAno={semestreAtualAno}
@@ -565,7 +582,7 @@ export default function SistemaNotas({ onOpenAdmin }) {
             planejamentoSemestres={planejamentoSemestres}
             setPlanejamentoSemestres={setPlanejamentoSemestres}
           />
-        )}
+        </Suspense>)}
 
         {/* Modais */}
         {showAddDisciplina && (
@@ -663,10 +680,17 @@ export default function SistemaNotas({ onOpenAdmin }) {
           />
         )}
 
+        {showShareModal && (
+          <Suspense fallback={null}>
+            <ShareModal userId={user?.id} onClose={() => setShowShareModal(false)} />
+          </Suspense>
+        )}
+
         {/* FAB Mobile */}
         <button 
           onClick={() => setShowAddDisciplina(true)} 
-          className="fixed bottom-6 right-6 w-14 h-14 rounded-full flex items-center justify-center shadow-2xl hover:scale-110 transition-transform duration-300 sm:hidden bg-gradient-to-br from-violet-600 to-indigo-600 shadow-violet-500/40"
+          className="fixed bottom-6 right-6 w-14 h-14 rounded-full flex items-center justify-center shadow-2xl hover:scale-110 transition-transform duration-300 sm:hidden"
+          style={{ background: 'linear-gradient(to bottom right, var(--accent-500), var(--accent-600))', boxShadow: '0 10px 25px -5px var(--accent-ring)' }}
         >
           <Plus size={24} />
         </button>

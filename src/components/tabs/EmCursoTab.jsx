@@ -1,8 +1,10 @@
 import React from 'react';
+import { motion } from 'framer-motion';
 import { Clock, Edit2, Calculator } from 'lucide-react';
 import { STATUS } from '../ui/STATUS';
 import GlassCard from '../ui/GlassCard';
 import GradientButton from '../ui/GradientButton';
+import { staggerContainer, staggerItem } from '../../utils/animations';
 
 export default function EmCursoTab({ disciplinas, setShowSimulador, startEditNotas }) {
   const emCurso = disciplinas.filter(d => d.status === 'EM_CURSO');
@@ -26,10 +28,12 @@ export default function EmCursoTab({ disciplinas, setShowSimulador, startEditNot
           <p className="text-[var(--text-secondary)]">Nenhuma disciplina em curso</p>
         </GlassCard>
       ) : (
-        emCurso.map(disc => {
+        <motion.div variants={staggerContainer} initial="initial" animate="animate" className="space-y-4">
+        {emCurso.map(disc => {
           const status = STATUS[disc.status];
           return (
-            <GlassCard key={disc.id} className="group" hover={false}>
+            <motion.div key={disc.id} variants={staggerItem}>
+            <GlassCard className="group" hover={false}>
               <div className={`absolute left-0 top-0 bottom-0 w-1 ${status.bar}`} />
               <div className="p-3 sm:p-5 pl-4 sm:pl-6">
                 <div className="flex items-center justify-between mb-3 sm:mb-4">
@@ -58,8 +62,10 @@ export default function EmCursoTab({ disciplinas, setShowSimulador, startEditNot
                 </div>
               </div>
             </GlassCard>
+            </motion.div>
           );
-        })
+        })}
+        </motion.div>
       )}
     </div>
   );

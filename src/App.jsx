@@ -9,6 +9,7 @@ const SistemaNotas = React.lazy(() => import('./SistemaNotas'))
 const Login = React.lazy(() => import('./Login'))
 const ResetPassword = React.lazy(() => import('./ResetPassword'))
 const AdminPanel = React.lazy(() => import('./AdminPanel'))
+const SharedGrade = React.lazy(() => import('./SharedGrade'))
 
 // Email do administrador
 const ADMIN_EMAIL = 'eproencad@gmail.com';
@@ -70,6 +71,16 @@ function AppContent() {
       subscription?.unsubscribe();
     };
   }, []);
+
+  // Rota pública de grade compartilhada
+  const shareMatch = window.location.pathname.match(/^\/share\/(.+)$/);
+  if (shareMatch) {
+    return (
+      <Suspense fallback={<LoadingSpinner />}>
+        <SharedGrade token={shareMatch[1]} />
+      </Suspense>
+    );
+  }
 
   if (loading || checkingRecovery) {
     return <LoadingSpinner />;
