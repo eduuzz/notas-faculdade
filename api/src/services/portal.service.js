@@ -53,7 +53,7 @@ async function dismissModal(page, preferPeriod = null) {
     if (btn) btn.click();
   }, preferPeriod);
 
-  await page.waitForTimeout(1500);
+  await page.waitForTimeout(1000);
   return true;
 }
 
@@ -103,23 +103,37 @@ async function withPortalSession(ra, senha, navigations) {
       '--no-first-run',
       '--single-process',
       '--disable-software-rasterizer',
-      '--js-flags=--max-old-space-size=256',
+      '--js-flags=--max-old-space-size=192',
+      '--disable-features=site-per-process,TranslateUI',
+      '--disable-ipc-flooding-protection',
+      '--disable-renderer-backgrounding',
+      '--disable-backgrounding-occluded-windows',
+      '--disable-component-update',
+      '--disable-domain-reliability',
+      '--disable-breakpad',
+      '--no-zygote',
+      '--memory-pressure-off',
     ],
   });
 
   try {
     const ctx = await browser.newContext({
-      viewport: { width: 1280, height: 720 },
+      viewport: { width: 1024, height: 576 },
       userAgent:
         'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 ' +
         '(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
     });
     const page = await ctx.newPage();
 
-    // Bloquear recursos pesados (imagens, CSS, fonts) para economizar memória/tempo
+    // Bloquear recursos pesados para economizar memória/tempo
     await page.route('**/*', (route) => {
       const type = route.request().resourceType();
-      if (['image', 'stylesheet', 'font', 'media'].includes(type)) {
+      if (['image', 'stylesheet', 'font', 'media', 'websocket', 'manifest', 'other'].includes(type)) {
+        return route.abort();
+      }
+      const url = route.request().url();
+      // Bloquear analytics, tracking, e scripts desnecessários
+      if (/google|analytics|tracking|hotjar|sentry|newrelic/i.test(url)) {
         return route.abort();
       }
       return route.continue();
@@ -148,14 +162,14 @@ async function withPortalSession(ra, senha, navigations) {
     });
 
     // ── Login ──
-    await page.goto(LOGIN_URL, { waitUntil: 'networkidle', timeout: 30000 });
+    await page.goto(LOGIN_URL, { waitUntil: 'domcontentloaded', timeout: 20000 });
     await page.fill('input[name="User"]:visible', ra);
     await page.fill('input[name="Pass"]:visible', senha);
     await page.click('input[type="submit"]:visible');
     await page
-      .waitForURL(u => !u.href.includes('/login'), { timeout: 15000 })
+      .waitForURL(u => !u.href.includes('/login'), { timeout: 12000 })
       .catch(() => {});
-    await page.waitForTimeout(2000);
+    await page.waitForTimeout(1500);
 
     if (page.url().includes('/login')) {
       throw new PortalAuthError();
@@ -163,7 +177,7 @@ async function withPortalSession(ra, senha, navigations) {
 
     // Fechar modal inicial (sem preferência de período)
     await dismissModal(page);
-    await page.waitForLoadState('networkidle', { timeout: 10000 }).catch(() => {});
+    await page.waitForLoadState('networkidle', { timeout: 8000 }).catch(() => {});
 
     logger.info('Login bem-sucedido no portal');
 
@@ -171,41 +185,49 @@ async function withPortalSession(ra, senha, navigations) {
     for (const { route, preferPeriod = null, waitFor = null } of navigations) {
       logger.info(`Navegando para #/${route}`);
       await page
-        .goto(`${PORTAL_SPA}/#/${route}`, { timeout: 20000 })
+        .goto(`${PORTAL_SPA}/#/${route}`, { timeout: 15000 })
         .catch(() => {});
-      await page.waitForTimeout(2000);
+      await page.waitForTimeout(1500);
       await dismissModal(page, preferPeriod);
 
       if (waitFor) {
-        // Esperar ativamente até a resposta esperada ser capturada (até 20s)
-        const found = await waitForCapture(captured, waitFor, 20000);
+        // Esperar ativamente até a resposta esperada ser capturada (até 12s)
+        const found = await waitForCapture(captured, waitFor, 12000);
         if (!found) {
           logger.warn(`Resposta esperada não capturada para #/${route}`, { waitFor });
           // Tentar recarregar a rota uma vez
           logger.info(`Retry: recarregando #/${route}`);
-          await page.goto(`${PORTAL_SPA}/#/${route}`, { timeout: 20000 }).catch(() => {});
-          await page.waitForTimeout(2000);
+          await page.goto(`${PORTAL_SPA}/#/${route}`, { timeout: 15000 }).catch(() => {});
+          await page.waitForTimeout(1500);
           await dismissModal(page, preferPeriod);
-          await waitForCapture(captured, waitFor, 15000);
+          await waitForCapture(captured, waitFor, 10000);
         }
       } else {
         await page
-          .waitForLoadState('networkidle', { timeout: 10000 })
+          .waitForLoadState('networkidle', { timeout: 8000 })
           .catch(() => {});
-        await page.waitForTimeout(3000);
+        await page.waitForTimeout(1500);
       }
     }
 
-    // Aguardar todas as respostas pendentes serem processadas
-    await Promise.allSettled(pendingResponses);
+    // Aguardar todas as respostas pendentes serem processadas (max 5s)
+    await Promise.race([
+      Promise.allSettled(pendingResponses),
+      new Promise(r => setTimeout(r, 5000)),
+    ]);
 
     logger.info('Coleta concluída', {
       endpoints: Object.keys(captured).length,
       paths: Object.keys(captured),
     });
+
+    // Limpar recursos antes de fechar o browser
+    try { await page.close(); } catch {}
+    try { await ctx.close(); } catch {}
+
     return captured;
   } finally {
-    await browser.close();
+    try { await browser.close(); } catch {}
   }
 }
 
