@@ -45,7 +45,7 @@ export default function GradeTab({
 
       {/* Search & Actions */}
       <div className="flex flex-col sm:flex-row gap-3">
-        <div className="relative sm:max-w-xs flex-1">
+        <div className="relative flex-1">
           <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" />
           <input type="text" placeholder="Buscar disciplina..." value={busca} onChange={(e) => setBusca(e.target.value)} className="w-full pl-9 pr-4 py-2 rounded-lg bg-[var(--bg-input)] border border-[var(--border-input)] text-[var(--text-primary)] placeholder-[var(--text-muted)] text-sm focus:outline-none focus:border-[var(--accent-500)] transition-colors" />
         </div>
