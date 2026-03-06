@@ -28,6 +28,7 @@ const WelcomeModal = React.lazy(() => import('./components/modals/WelcomeModal')
 const SettingsModal = React.lazy(() => import('./components/modals/SettingsModal'));
 const LogoutModal = React.lazy(() => import('./components/modals/LogoutModal'));
 const ResetModal = React.lazy(() => import('./components/modals/ResetModal'));
+const WhatsNewModal = React.lazy(() => import('./components/modals/WhatsNewModal'));
 const SimuladorModal = React.lazy(() => import('./components/modals/SimuladorModal'));
 const ShareModal = React.lazy(() => import('./components/modals/ShareModal'));
 
@@ -101,6 +102,20 @@ export default function SistemaNotas({ onOpenAdmin }) {
   const [simuladorGB, setSimuladorGB] = useState('');
   const [showShareModal, setShowShareModal] = useState(false);
   const [showAddMultiplas, setShowAddMultiplas] = useState(false);
+  const [recentlyUpdated, setRecentlyUpdated] = useState(new Set());
+  const [showWhatsNew, setShowWhatsNew] = useState(null); // null | 'latest' | 'all'
+
+  const [horarios, setHorarios] = useState(() => {
+    try {
+      const saved = localStorage.getItem('horarios');
+      return saved ? JSON.parse(saved) : [];
+    } catch { return []; }
+  });
+
+  const saveHorarios = useCallback((data) => {
+    setHorarios(data);
+    localStorage.setItem('horarios', JSON.stringify(data));
+  }, []);
 
   useEffect(() => {
     if (!loading && user && !userCurso) {
@@ -110,6 +125,18 @@ export default function SistemaNotas({ onOpenAdmin }) {
       }
     }
   }, [user, userCurso, loading]);
+
+  useEffect(() => {
+    if (!loading && user) {
+      import('./components/modals/WhatsNewModal').then(({ APP_VERSION }) => {
+        const lastSeen = localStorage.getItem('lastSeenVersion');
+        if (lastSeen && lastSeen !== APP_VERSION) {
+          setShowWhatsNew('latest');
+        }
+        localStorage.setItem('lastSeenVersion', APP_VERSION);
+      });
+    }
+  }, [loading, user]);
 
   const handleSaveCurso = async () => {
     if (!cursoInput.trim()) return;
@@ -268,12 +295,17 @@ export default function SistemaNotas({ onOpenAdmin }) {
   const handleAtualizarNotas = async (atualizacoes) => {
     let ok = 0;
     let falhas = 0;
+    const updatedIds = new Set();
     for (const { id, updates } of atualizacoes) {
       const result = await atualizarDisciplina(id, updates);
       if (result.error) falhas++;
-      else ok++;
+      else { ok++; updatedIds.add(id); }
     }
-    if (ok > 0) toast.success(`${ok} nota(s) atualizada(s).`);
+    if (ok > 0) {
+      toast.success(`${ok} nota(s) atualizada(s).`);
+      setRecentlyUpdated(updatedIds);
+      setTimeout(() => setRecentlyUpdated(new Set()), 30000);
+    }
     if (falhas > 0) toast.error(`${falhas} atualização(ões) falharam.`);
   };
 
@@ -445,6 +477,8 @@ export default function SistemaNotas({ onOpenAdmin }) {
                     setShowIniciarModal={setShowIniciarModal}
                     setShowDeleteMenu={setShowDeleteMenu}
                     startEditNotas={startEditNotas}
+                    recentlyUpdated={recentlyUpdated}
+                    horarios={horarios}
                   />
                 </Suspense>
               </motion.div>
@@ -457,6 +491,9 @@ export default function SistemaNotas({ onOpenAdmin }) {
                     disciplinas={disciplinas}
                     setShowSimulador={setShowSimulador}
                     startEditNotas={startEditNotas}
+                    horarios={horarios}
+                    onSaveHorarios={saveHorarios}
+                    recentlyUpdated={recentlyUpdated}
                   />
                 </Suspense>
               </motion.div>
@@ -469,6 +506,7 @@ export default function SistemaNotas({ onOpenAdmin }) {
                     dadosGrafico={dadosGrafico}
                     dadosPorPeriodo={dadosPorPeriodo}
                     estatisticas={estatisticas}
+                    horarios={horarios}
                   />
                 </Suspense>
               </motion.div>
@@ -524,7 +562,8 @@ export default function SistemaNotas({ onOpenAdmin }) {
 
       {editingNotas && (
         <EditNotasModal
-          nome={disciplinas.find(d => d.id === editingNotas)?.nome}
+          disciplina={disciplinas.find(d => d.id === editingNotas)}
+          horarios={horarios}
           notasTemp={notasTemp} setNotasTemp={setNotasTemp}
           onClose={() => setEditingNotas(null)}
           onSave={() => saveNotas(editingNotas)}
@@ -543,7 +582,7 @@ export default function SistemaNotas({ onOpenAdmin }) {
 
       {showImportModal && (
         <Suspense fallback={null}>
-          <ImportModal onClose={() => setShowImportModal(false)} onImport={handleImportarDisciplinas} onUpdate={handleAtualizarNotas} disciplinasExistentes={disciplinas} />
+          <ImportModal onClose={() => setShowImportModal(false)} onImport={handleImportarDisciplinas} onUpdate={handleAtualizarNotas} disciplinasExistentes={disciplinas} onSaveHorarios={saveHorarios} />
         </Suspense>
       )}
 
@@ -565,6 +604,7 @@ export default function SistemaNotas({ onOpenAdmin }) {
           disciplinas={disciplinas} setDisciplinas={setDisciplinas}
           setConfirmState={setConfirmState}
           abrirModalReset={abrirModalReset} toast={toast}
+          onShowChangelog={() => { setShowSettingsModal(false); setShowWhatsNew('all'); }}
         />
       )}
 
@@ -602,6 +642,12 @@ export default function SistemaNotas({ onOpenAdmin }) {
       )}
 
       {confirmState && <ConfirmModal {...confirmState} />}
+
+      {showWhatsNew && (
+        <Suspense fallback={null}>
+          <WhatsNewModal onClose={() => setShowWhatsNew(null)} showAll={showWhatsNew === 'all'} />
+        </Suspense>
+      )}
     </div>
   );
 }

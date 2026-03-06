@@ -2,13 +2,17 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import GlassCard from '../ui/GlassCard';
+import ProximasAulas from '../widgets/ProximasAulas';
 import { staggerContainer, staggerItem } from '../../utils/animations';
 
 const tooltipStyle = { backgroundColor: '#141415', border: '1px solid #1f1f23', borderRadius: '6px' };
 
-export default function DashboardTab({ dadosGrafico, dadosPorPeriodo, estatisticas }) {
+export default function DashboardTab({ dadosGrafico, dadosPorPeriodo, estatisticas, horarios }) {
   return (
     <motion.div className="space-y-5" variants={staggerContainer} initial="initial" animate="animate">
+      {/* Widget de próximas aulas */}
+      <ProximasAulas horarios={horarios} />
+
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
         <motion.div variants={staggerItem}><GlassCard className="p-5" hover={false}>
           <h3 className="text-sm font-medium text-[var(--text-secondary)] mb-4">Distribuição por Status</h3>

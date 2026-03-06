@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Settings, Save, Download, Upload as UploadIcon, Trash2, AlertCircle, Database, RefreshCw, Bell, Palette, X } from 'lucide-react';
+import { Settings, Save, Download, Upload as UploadIcon, Trash2, AlertCircle, Database, RefreshCw, Bell, Palette, X, Sparkles } from 'lucide-react';
 import { useTheme, ACCENT_PRESETS } from '../../ThemeContext';
 import { getNotificationSettings, setNotificationSettings, requestNotificationPermission } from '../../utils/notifications';
 
@@ -9,7 +9,7 @@ export default function SettingsModal({
   settingsCurso, setSettingsCurso,
   savingSettings, onSave, onClose,
   disciplinas, setDisciplinas, setConfirmState,
-  abrirModalReset, toast,
+  abrirModalReset, toast, onShowChangelog,
 }) {
   const { accentColor, setAccentColor } = useTheme();
   const [notifSettings, setNotifSettings] = useState(() => getNotificationSettings());
@@ -193,6 +193,21 @@ export default function SettingsModal({
                     </select>
                   </div>
                 )}
+              </div>
+
+              {/* Novidades */}
+              <div className="p-4 rounded-md bg-[var(--bg-input)] border border-[var(--border-input)]">
+                <div className="flex items-center gap-2 mb-2">
+                  <Sparkles size={16} style={{ color: 'var(--accent-400)' }} />
+                  <h4 className="font-medium text-[var(--text-primary)] text-sm">Novidades</h4>
+                </div>
+                <p className="text-[var(--text-muted)] text-xs mb-3">Veja o que mudou nas últimas versões.</p>
+                <button
+                  onClick={onShowChangelog}
+                  className="w-full flex items-center justify-center gap-1.5 py-2 rounded-md text-xs font-medium transition-all bg-[var(--accent-bg10)] text-[var(--accent-400)] hover:bg-[var(--accent-500)]/20"
+                >
+                  <Sparkles size={14} />Ver atualizações
+                </button>
               </div>
             </div>
           </div>

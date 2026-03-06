@@ -270,4 +270,75 @@ export class ParserService {
         'DESCSITUACAO', 'DescSituacao')),
     }));
   }
+
+  /**
+   * DIASEMANA do TOTVS: 0=domingo, 1=segunda..7=sábado
+   * Na prática, 2=segunda, 3=terça, 4=quarta, 5=quinta, 6=sexta, 7=sábado
+   */
+  static #mapDiaSemana(dia) {
+    const map = { '1': 'dom', '2': 'seg', '3': 'ter', '4': 'qua', '5': 'qui', '6': 'sex', '7': 'sab' };
+    return map[String(dia)] || null;
+  }
+
+  /**
+   * Parse do quadro de horários do aluno.
+   * Recebe dados de QuadroHorarioAluno que contém SHorarioAluno.
+   *
+   * Retorna um array agrupado por disciplina:
+   * [{ codDisc, nome, codTurma, aulas: [{ dia, inicio, fim, data, dataFim, sala, predio, bloco, online }] }]
+   */
+  static parseHorarios(raw) {
+    if (!raw) return [];
+
+    let horarios = [];
+    if (raw.data?.SHorarioAluno) {
+      horarios = raw.data.SHorarioAluno;
+    } else if (raw.SHorarioAluno) {
+      horarios = raw.SHorarioAluno;
+    } else if (Array.isArray(raw.data)) {
+      horarios = raw.data;
+    } else if (Array.isArray(raw)) {
+      horarios = raw;
+    }
+
+    // Filtrar apenas entradas com disciplina real
+    const comDisc = horarios.filter(h => h.CODDISC || h.NOME);
+
+    if (comDisc.length === 0) {
+      logger.warn('parseHorarios: nenhum horário encontrado');
+      return [];
+    }
+
+    // Agrupar por disciplina (CODDISC + CODTURMA)
+    const porDisc = {};
+    for (const h of comDisc) {
+      const key = h.CODDISC || h.NOME;
+      if (!porDisc[key]) {
+        porDisc[key] = {
+          codDisc: h.CODDISC || '',
+          nome: h.NOME || '',
+          codTurma: h.CODTURMA || '',
+          idTurmaDisc: h.IDTURMADISC || null,
+          aulas: [],
+        };
+      }
+
+      const dia = this.#mapDiaSemana(h.DIASEMANA);
+      if (!dia) continue;
+
+      porDisc[key].aulas.push({
+        dia,
+        inicio: h.HORAINICIAL || '',
+        fim: h.HORAFINAL || '',
+        data: h.DATAINICIAL ? h.DATAINICIAL.split('T')[0] : null,
+        dataFim: h.DATAFINAL ? h.DATAFINAL.split('T')[0] : null,
+        sala: h.SALA || null,
+        predio: h.PREDIO || null,
+        bloco: h.BLOCO || null,
+        online: h.URLAULAONLINE || null,
+      });
+    }
+
+    return Object.values(porDisc);
+  }
 }

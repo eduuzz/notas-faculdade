@@ -4,6 +4,7 @@ import { Plus, Minus, Trash2, Award, TrendingUp, CheckCircle, Clock, Edit2, Chev
 import { STATUS } from '../ui/STATUS';
 import GlassCard from '../ui/GlassCard';
 import GradientButton from '../ui/GradientButton';
+import AulasHoje from '../widgets/AulasHoje';
 import { staggerContainer, staggerItem } from '../../utils/animations';
 
 export default function GradeTab({
@@ -24,9 +25,14 @@ export default function GradeTab({
   setShowDeleteMenu,
   startEditNotas,
   setShowShareModal,
+  recentlyUpdated = new Set(),
+  horarios,
 }) {
   return (
     <div className="space-y-6">
+      {/* Aulas de hoje e amanhã */}
+      <AulasHoje horarios={horarios} />
+
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         {[
@@ -61,13 +67,13 @@ export default function GradeTab({
             <Download size={14} />
             <span>PDF</span>
           </GradientButton>
-          <GradientButton variant="secondary" size="md" onClick={() => setShowImportModal(true)}>
-            <UploadIcon size={14} />
-            <span>Importar</span>
-          </GradientButton>
           <GradientButton variant="secondary" size="md" onClick={() => setShowShareModal(true)}>
             <Share2 size={14} />
             <span>Compartilhar</span>
+          </GradientButton>
+          <GradientButton variant="amber" size="md" onClick={() => setShowImportModal(true)}>
+            <UploadIcon size={14} />
+            <span>Importar</span>
           </GradientButton>
           <GradientButton size="md" onClick={() => setShowAddDisciplina(true)}>
             <Plus size={14} />
@@ -161,13 +167,16 @@ export default function GradeTab({
                         <tbody>
                           {discsVisiveis.map(disc => {
                             const status = STATUS[disc.status];
-                            const handleRowClick = () => {
-                              if (disc.status === 'NAO_INICIADA') setShowIniciarModal(disc.id);
-                              else startEditNotas(disc);
-                            };
+                            const isUpdated = recentlyUpdated.has(disc.id);
                             return (
-                              <tr key={disc.id} onClick={handleRowClick} className="border-b border-[var(--border-card)] last:border-0 hover:bg-[var(--bg-hover)] transition-colors cursor-pointer group">
-                                <td className="p-2.5"><span className="font-medium text-xs text-[var(--text-primary)] truncate block max-w-[180px] sm:max-w-none">{disc.nome}</span>{disc.tipo === 'optativa' && <span className="ml-1.5 text-[10px] text-amber-400">OPT</span>}</td>
+                              <tr key={disc.id} onClick={() => startEditNotas(disc)} className={`border-b border-[var(--border-card)] last:border-0 hover:bg-[var(--bg-hover)] transition-colors cursor-pointer group ${isUpdated ? 'bg-blue-500/5' : ''}`}>
+                                <td className="p-2.5">
+                                  <span className="font-medium text-xs text-[var(--text-primary)] truncate block max-w-[180px] sm:max-w-none">
+                                    {isUpdated && <span className="inline-block w-1.5 h-1.5 rounded-full bg-blue-400 mr-1.5 align-middle" />}
+                                    {disc.nome}
+                                  </span>
+                                  {disc.tipo === 'optativa' && <span className="ml-1.5 text-[10px] text-amber-400">OPT</span>}
+                                </td>
                                 <td className="p-2.5 text-center text-[var(--text-muted)] text-xs hidden sm:table-cell tabular-nums">{disc.creditos}</td>
                                 <td className="p-2.5 text-center"><span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${status.bg} ${status.text}`}>{status.label}</span></td>
                                 <td className="p-2.5 text-center font-medium text-xs tabular-nums">{disc.notaFinal ? disc.notaFinal.toFixed(1) : '–'}</td>
@@ -184,20 +193,18 @@ export default function GradeTab({
                     <motion.div variants={staggerContainer} initial="initial" animate="animate" className="space-y-1.5">
                     {discsVisiveis.map(disc => {
                       const status = STATUS[disc.status];
-                      const handleClick = () => {
-                        if (disc.status === 'NAO_INICIADA') setShowIniciarModal(disc.id);
-                        else startEditNotas(disc);
-                      };
+                      const isUpdated = recentlyUpdated.has(disc.id);
                       return (
                         <motion.div key={disc.id} variants={staggerItem}>
                         <div
-                          onClick={handleClick}
-                          className="group rounded-lg bg-[var(--bg-card)] border border-[var(--border-card)] hover:bg-[var(--bg-card-hover)] transition-colors relative cursor-pointer"
+                          onClick={() => startEditNotas(disc)}
+                          className={`group rounded-lg bg-[var(--bg-card)] border ${isUpdated ? 'border-blue-500/40 bg-blue-500/5' : 'border-[var(--border-card)]'} hover:bg-[var(--bg-card-hover)] transition-colors relative cursor-pointer`}
                         >
                           <div className={`absolute left-0 top-0 bottom-0 w-0.5 rounded-l-lg ${status.bar}`} />
                           <div className="flex items-center justify-between p-3 pl-3.5">
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center gap-2 mb-0.5 flex-wrap">
+                                {isUpdated && <span className="w-1.5 h-1.5 rounded-full bg-blue-400 shrink-0" />}
                                 <h4 className="font-medium text-sm text-[var(--text-primary)]">{disc.nome}</h4>
                                 {disc.tipo === 'optativa' && <span className="text-[10px] text-amber-400 font-medium">OPT</span>}
                                 <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${status.bg} ${status.text}`}>{status.label}</span>

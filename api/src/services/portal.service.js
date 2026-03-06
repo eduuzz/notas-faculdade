@@ -378,4 +378,32 @@ export class PortalService {
       throw new PortalConnectionError(`Falha ao buscar cadeiras: ${err.message}`);
     }
   }
+
+  /**
+   * Busca quadro de horários do semestre atual.
+   * Navega para #/notas (contexto) e #/quadro-horario (captura QuadroHorarioAluno).
+   */
+  static async fetchHorarios(ra, senha) {
+    try {
+      const captured = await withPortalSession(ra, senha, [
+        { route: 'notas' },
+        { route: 'quadro-horario', waitFor: ['QuadroHorarioAluno'] },
+      ]);
+
+      const quadro = findCaptured(captured, 'QuadroHorarioAluno');
+
+      return {
+        method: 'api',
+        data: ParserService.parseHorarios(quadro),
+        raw: quadro,
+      };
+    } catch (err) {
+      if (err instanceof PortalAuthError) throw err;
+      if (err.name === 'TimeoutError' || err.message?.includes('timeout') || err.message?.includes('Timeout')) {
+        throw new PortalTimeoutError('Portal demorou para responder ao buscar horários');
+      }
+      logger.error('Erro ao buscar horários', err.message);
+      throw new PortalConnectionError(`Falha ao buscar horários: ${err.message}`);
+    }
+  }
 }

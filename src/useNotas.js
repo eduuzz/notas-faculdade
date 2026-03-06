@@ -111,23 +111,49 @@ export function useNotas() {
 
     setSyncing(true)
     try {
-      const { data, error } = await supabase
-        .from('disciplinas')
-        .update({ ...updates, updated_at: new Date().toISOString() })
-        .eq('id', id)
-        .eq('user_id', user.id)
-        .select()
-        .single()
+      // fetch() direto — supabase client .update() trava (bug v2.87.1)
+      const ref = supabase.supabaseUrl.match(/https:\/\/([^.]+)/)?.[1]
+      const stored = localStorage.getItem(`sb-${ref}-auth-token`)
+      const sessionData = stored ? JSON.parse(stored) : null
+      const accessToken = sessionData?.access_token
+      if (!accessToken) return { error: 'Sessão expirada. Faça login novamente.' }
 
-      if (error) {
-        console.error('Erro ao atualizar:', error)
-        return { error: humanizeSupabaseError(error) }
+      const baseUrl = supabase.supabaseUrl
+      const apiKey = supabase.supabaseKey
+      const url = `${baseUrl}/rest/v1/disciplinas?id=eq.${id}&user_id=eq.${user.id}`
+
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), 15000)
+      const res = await fetch(url, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': apiKey,
+          'Authorization': `Bearer ${accessToken}`,
+          'Prefer': 'return=representation',
+        },
+        body: JSON.stringify({ ...updates, updated_at: new Date().toISOString() }),
+        signal: controller.signal,
+      })
+      clearTimeout(timeoutId)
+
+      if (!res.ok) {
+        const body = await res.text()
+        console.error('Erro ao atualizar:', body)
+        return { error: `Erro ${res.status}: ${body}` }
       }
 
-      setDisciplinasState(prev => 
-        prev.map(d => d.id === id ? data : d)
-      )
+      const rows = await res.json()
+      const data = rows[0]
+      if (data) {
+        setDisciplinasState(prev =>
+          prev.map(d => d.id === id ? data : d)
+        )
+      }
       return { data }
+    } catch (err) {
+      console.error('Erro ao atualizar:', err)
+      return { error: err.name === 'AbortError' ? 'Timeout na atualização' : err.message }
     } finally {
       setSyncing(false)
     }

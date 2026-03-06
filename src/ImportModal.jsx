@@ -1,10 +1,9 @@
 import React, { useState, useCallback, useRef } from 'react';
-import { X, Upload, FileText, AlertCircle, CheckCircle, ChevronDown, ChevronUp, Info, File, Loader2, Eye, EyeOff, Sparkles, Zap, Globe, RefreshCw } from 'lucide-react';
+import { X, Upload, AlertCircle, CheckCircle, ChevronDown, ChevronUp, File, Loader2, Eye, EyeOff, Sparkles, Globe, RefreshCw, ShieldCheck } from 'lucide-react';
 import { supabase } from './supabaseClient';
 
-export default function ImportModal({ onClose, onImport, onUpdate, disciplinasExistentes = [] }) {
+export default function ImportModal({ onClose, onImport, onUpdate, disciplinasExistentes = [], onSaveHorarios }) {
   const [modo, setModo] = useState('portal');
-  const [texto, setTexto] = useState('');
   const [disciplinasPreview, setDisciplinasPreview] = useState([]);
   const [expandido, setExpandido] = useState(false);
   const [processandoPdf, setProcessandoPdf] = useState(false);
@@ -375,7 +374,6 @@ export default function ImportModal({ onClose, onImport, onUpdate, disciplinasEx
       }
 
       setTextoExtraidoPdf(textoCompleto);
-      setTexto(textoCompleto);
       setProcessandoPdf(false);
 
       if (usarIA) {
@@ -429,7 +427,7 @@ export default function ImportModal({ onClose, onImport, onUpdate, disciplinasEx
 
       const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
-      // Etapa 1: Acordar o servidor (free tier do Render dorme após inatividade)
+      // Etapa 1: Verificar se o servidor está acessível
       setStatusPortal('Ligando o servidor...');
       for (let tentativa = 1; tentativa <= 5; tentativa++) {
         try {
@@ -562,11 +560,36 @@ export default function ImportModal({ onClose, onImport, onUpdate, disciplinasEx
       setFiltroObrigatorias(true);
       setFiltroTrilhas(true);
       setFiltroOptativas(true);
+
+      // Buscar horários em background (não bloqueia o fluxo de importação)
+      if (onSaveHorarios) {
+        setStatusPortal('Buscando horários das aulas...');
+        fetch(`${apiUrl}/api/portal/horarios`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
+          body: JSON.stringify({ ra: ra.trim(), senha }),
+          signal: AbortSignal.timeout(180000),
+        })
+          .then(r => r.ok ? r.json() : null)
+          .then(json => {
+            if (json?.data?.length > 0) {
+              onSaveHorarios(json.data);
+              console.log(`Horários carregados: ${json.data.length} disciplinas`);
+            }
+          })
+          .catch(err => console.warn('Horários não carregados:', err.message));
+      }
     } catch (err) {
       const msg = err.message || '';
       console.error('Portal import error:', msg);
       if (msg === 'WAKE_FAIL') {
-        setErroPortal('O servidor está iniciando (hospedagem gratuita). Tente novamente em 30 segundos.');
+        const isLocal = apiUrl.includes('localhost') || apiUrl.includes('127.0.0.1');
+        setErroPortal(isLocal
+          ? 'Não foi possível conectar ao servidor local. Verifique se o backend está rodando (npm run dev:api).'
+          : 'O servidor está iniciando. Tente novamente em 30 segundos.');
       } else if (msg.includes('Token') || msg.includes('token') || msg.includes('autenticação')) {
         setErroPortal('Erro de autenticação com o servidor. Faça logout e login novamente no sistema.');
       } else if (msg.includes('401') || msg.includes('Credenciais') || msg.includes('acesso negado') || msg.includes('Login failed') || msg.includes('login falhou')) {
@@ -590,15 +613,6 @@ export default function ImportModal({ onClose, onImport, onUpdate, disciplinasEx
       setBuscandoPortal(false);
     }
   }, [ra, senha, ehTrilha]);
-
-  const analisarTexto = useCallback(async (usarIA = false) => {
-    if (usarIA) {
-      await analisarComIA(texto);
-    } else {
-      const disciplinas = parseTextoManual(texto);
-      setDisciplinasPreview(disciplinas);
-    }
-  }, [texto, analisarComIA, parseTextoManual]);
 
   const verificarDuplicata = (d) => {
     return disciplinasExistentes.some(existente =>
@@ -752,17 +766,6 @@ export default function ImportModal({ onClose, onImport, onUpdate, disciplinasEx
             Portal<span className="hidden sm:inline"> Auto</span>
           </button>
           <button
-            onClick={() => { setModo('texto'); setDisciplinasPreview([]); }}
-            className={`flex-1 py-2.5 px-2 sm:px-4 rounded-xl text-xs sm:text-sm font-medium transition-all flex items-center justify-center gap-1.5 sm:gap-2 ${
-              modo === 'texto'
-                ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
-                : 'bg-[var(--bg-input)] text-[var(--text-secondary)] border border-[var(--border-input)] hover:bg-[var(--bg-hover)]'
-            }`}
-          >
-            <FileText size={16} />
-            <span className="hidden sm:inline">Colar </span>Texto
-          </button>
-          <button
             onClick={() => { setModo('pdf'); setDisciplinasPreview([]); setErroPdf(null); }}
             className={`flex-1 py-2.5 px-2 sm:px-4 rounded-xl text-xs sm:text-sm font-medium transition-all flex items-center justify-center gap-1.5 sm:gap-2 ${
               modo === 'pdf'
@@ -777,54 +780,16 @@ export default function ImportModal({ onClose, onImport, onUpdate, disciplinasEx
 
         {/* Content */}
         <div className="p-6 overflow-y-auto max-h-[50vh]">
-          {modo === 'texto' && (
-            <div className="space-y-4">
-              <div>
-                <label className="text-sm text-[var(--text-secondary)] block mb-2">
-                  Cole a lista de disciplinas
-                </label>
-                <textarea
-                  value={texto}
-                  onChange={(e) => setTexto(e.target.value)}
-                  rows={8}
-                  className="w-full px-4 py-3 rounded-xl bg-[var(--bg-input)] border border-[var(--border-input)] text-[var(--text-primary)] text-sm focus:outline-none focus:border-amber-500/50 resize-none font-mono"
-                  placeholder="Cole aqui o texto do PDF ou lista de disciplinas..."
-                />
-              </div>
-
-              <div className="flex gap-2">
-                <button
-                  onClick={() => analisarTexto(true)}
-                  disabled={!texto.trim() || isProcessando}
-                  className="flex-1 py-2 rounded-md bg-[var(--accent-500)] hover:bg-[var(--accent-600)] text-white text-sm font-medium transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
-                >
-                  {processandoIA ? (
-                    <><Loader2 size={18} className="animate-spin" /> Analisando...</>
-                  ) : (
-                    <><Sparkles size={18} /> Análise com IA</>
-                  )}
-                </button>
-                <button
-                  onClick={() => analisarTexto(false)}
-                  disabled={!texto.trim() || isProcessando}
-                  className="px-4 py-3 rounded-xl bg-[var(--bg-input)] border border-[var(--border-input)] text-[var(--text-secondary)] font-medium hover:bg-[var(--bg-hover)] transition-all disabled:opacity-50"
-                  title="Análise manual sem IA"
-                >
-                  <Zap size={18} />
-                </button>
-              </div>
-
-              <div className="rounded-xl p-3 flex items-start gap-2" style={{ background: 'var(--accent-bg10)', border: '1px solid var(--accent-ring)' }}>
-                <Sparkles size={16} className="mt-0.5 flex-shrink-0" style={{ color: 'var(--accent-400)' }} />
-                <p className="text-xs" style={{ color: 'var(--accent-400)' }}>
-                  <strong>IA ativada:</strong> O Claude analisa o texto e extrai as disciplinas automaticamente.
-                </p>
-              </div>
-            </div>
-          )}
-
           {modo === 'pdf' && (
             <div className="space-y-4">
+              <div className="space-y-2">
+                <p className="text-[var(--text-secondary)] text-sm">
+                  Envie o PDF da grade curricular gerado pelo portal UNISINOS.
+                </p>
+                <p className="text-[var(--text-muted)] text-xs leading-relaxed">
+                  O texto do PDF é extraído localmente no seu navegador e analisado por IA para identificar as disciplinas. Nenhum arquivo é armazenado no servidor.
+                </p>
+              </div>
               <div
                 onClick={() => !isProcessando && fileInputRef.current?.click()}
                 className={`border border-dashed rounded-md p-4 sm:p-8 text-center cursor-pointer transition-all ${
@@ -918,9 +883,21 @@ export default function ImportModal({ onClose, onImport, onUpdate, disciplinasEx
 
           {modo === 'portal' && (
             <div className="space-y-4">
-              <p className="text-[var(--text-secondary)] text-sm">
-                Busca automaticamente todas as cadeiras e notas diretamente do portal UNISINOS.
-              </p>
+              <div className="space-y-2">
+                <p className="text-[var(--text-secondary)] text-sm">
+                  Importa automaticamente todas as cadeiras e notas do portal UNISINOS.
+                </p>
+                <p className="text-[var(--text-muted)] text-xs leading-relaxed">
+                  Um navegador automático acessa o portal com suas credenciais, coleta a grade curricular completa e encerra a sessão. O processo leva cerca de 1 minuto.
+                </p>
+              </div>
+
+              <div className="flex items-start gap-2 p-3 rounded-lg bg-emerald-500/8 border border-emerald-500/20">
+                <ShieldCheck size={16} className="text-emerald-400 mt-0.5 shrink-0" />
+                <p className="text-xs text-emerald-300 leading-relaxed">
+                  <strong>Sua senha não é salva em nenhum momento.</strong> As credenciais são usadas uma única vez para o acesso e descartadas imediatamente após a importação.
+                </p>
+              </div>
 
               <div className="space-y-3">
                 <div>
@@ -993,12 +970,6 @@ export default function ImportModal({ onClose, onImport, onUpdate, disciplinasEx
                 </div>
               )}
 
-              <div className="bg-slate-700/30 border border-white/5 rounded-xl p-3">
-                <p className="text-[var(--text-muted)] text-xs leading-relaxed">
-                  Suas credenciais são usadas apenas para acessar o portal e <strong className="text-[var(--text-secondary)]">nunca ficam salvas</strong> no servidor.
-                  O processo abre um browser automático e pode levar até 1 minuto.
-                </p>
-              </div>
             </div>
           )}
 
@@ -1218,7 +1189,7 @@ export default function ImportModal({ onClose, onImport, onUpdate, disciplinasEx
           <button
             onClick={confirmarImportacao}
             disabled={(disciplinasNovas.length === 0 && disciplinasAtualizadas.length === 0) || isProcessando}
-            className="flex-1 py-2 rounded-md bg-amber-600 hover:bg-amber-700 text-white text-sm font-medium transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+            className="flex-1 py-3 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white font-semibold transition-colors disabled:opacity-50 flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/25"
           >
             {importando ? (
               <><Loader2 size={18} className="animate-spin" /> {importProgress.step || 'Salvando...'}</>
