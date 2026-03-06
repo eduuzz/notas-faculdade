@@ -561,26 +561,34 @@ export default function ImportModal({ onClose, onImport, onUpdate, disciplinasEx
       setFiltroTrilhas(true);
       setFiltroOptativas(true);
 
-      // Buscar horários em background (não bloqueia o fluxo de importação)
+      // Buscar horários em sequência (usa a mesma sessão de login)
       if (onSaveHorarios) {
         setStatusPortal('Buscando horários das aulas...');
-        fetch(`${apiUrl}/api/portal/horarios`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            ...(token ? { Authorization: `Bearer ${token}` } : {}),
-          },
-          body: JSON.stringify({ ra: ra.trim(), senha }),
-          signal: AbortSignal.timeout(180000),
-        })
-          .then(r => r.ok ? r.json() : null)
-          .then(json => {
-            if (json?.data?.length > 0) {
-              onSaveHorarios(json.data);
-              console.log(`Horários carregados: ${json.data.length} disciplinas`);
+        try {
+          const hRes = await fetch(`${apiUrl}/api/portal/horarios`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              ...(token ? { Authorization: `Bearer ${token}` } : {}),
+            },
+            body: JSON.stringify({ ra: ra.trim(), senha }),
+            signal: AbortSignal.timeout(180000),
+          });
+          if (hRes.ok) {
+            const hJson = await hRes.json();
+            if (hJson?.data?.length > 0) {
+              onSaveHorarios(hJson.data);
+              setStatusPortal(`Horários carregados (${hJson.data.length} disciplinas)`);
+            } else {
+              setStatusPortal('');
             }
-          })
-          .catch(err => console.warn('Horários não carregados:', err.message));
+          } else {
+            setStatusPortal('');
+          }
+        } catch (hErr) {
+          console.warn('Horários não carregados:', hErr.message);
+          setStatusPortal('');
+        }
       }
     } catch (err) {
       const msg = err.message || '';
