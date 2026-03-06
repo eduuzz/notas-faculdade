@@ -422,6 +422,7 @@ export default function SistemaNotas({ onOpenAdmin }) {
         onOpenSettings={openSettings}
         onOpenLogout={() => setShowLogoutModal(true)}
         onOpenAdmin={onOpenAdmin}
+        onShowChangelog={() => setShowWhatsNew('all')}
       />
 
       {/* Main content */}
@@ -608,7 +609,6 @@ export default function SistemaNotas({ onOpenAdmin }) {
           disciplinas={disciplinas} setDisciplinas={setDisciplinas}
           setConfirmState={setConfirmState}
           abrirModalReset={abrirModalReset} toast={toast}
-          onShowChangelog={() => { setShowSettingsModal(false); setShowWhatsNew('all'); }}
         />
       )}
 

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Settings, Save, Download, Upload as UploadIcon, Trash2, AlertCircle, Database, RefreshCw, Bell, Palette, X, Sparkles } from 'lucide-react';
+import { Settings, Save, Download, Upload as UploadIcon, Trash2, AlertCircle, Database, RefreshCw, Bell, Palette, X } from 'lucide-react';
 import { useTheme, ACCENT_PRESETS } from '../../ThemeContext';
 import { getNotificationSettings, setNotificationSettings, requestNotificationPermission } from '../../utils/notifications';
 
@@ -9,7 +9,7 @@ export default function SettingsModal({
   settingsCurso, setSettingsCurso,
   savingSettings, onSave, onClose,
   disciplinas, setDisciplinas, setConfirmState,
-  abrirModalReset, toast, onShowChangelog,
+  abrirModalReset, toast,
 }) {
   const { accentColor, setAccentColor } = useTheme();
   const [notifSettings, setNotifSettings] = useState(() => getNotificationSettings());
@@ -97,14 +97,14 @@ export default function SettingsModal({
       <div className="bg-[var(--bg-modal)] border border-[var(--border-input)] rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
 
         {/* Header */}
-        <div className="flex items-center justify-between p-5 pb-4 border-b border-[var(--border-input)]">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-lg flex items-center justify-center" style={{ background: 'var(--accent-bg10)' }}>
-              <Settings size={18} style={{ color: 'var(--accent-400)' }} />
+        <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--border-input)]">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: 'var(--accent-bg10)' }}>
+              <Settings size={16} style={{ color: 'var(--accent-400)' }} />
             </div>
             <div>
-              <h2 className="text-base font-semibold text-[var(--text-primary)]">Configurações</h2>
-              <p className="text-[var(--text-muted)] text-xs">Personalize sua experiência</p>
+              <h2 className="text-sm font-semibold text-[var(--text-primary)]">Configurações</h2>
+              <p className="text-[var(--text-muted)] text-[11px]">Personalize sua experiência</p>
             </div>
           </div>
           <button onClick={onClose} className="w-7 h-7 rounded-md flex items-center justify-center text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-hover)] transition-colors">
@@ -113,45 +113,45 @@ export default function SettingsModal({
         </div>
 
         {/* Body */}
-        <div className="p-5">
+        <div className="p-4">
           {/* Perfil + Tema lado a lado */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
 
             {/* Perfil */}
-            <div className="p-4 rounded-md bg-[var(--bg-input)] border border-[var(--border-input)]">
-              <h4 className="font-medium text-[var(--text-primary)] text-sm mb-3">Perfil</h4>
-              <div className="space-y-2.5">
+            <div className="p-3 rounded-md bg-[var(--bg-input)] border border-[var(--border-input)]">
+              <h4 className="font-medium text-[var(--text-primary)] text-sm mb-2">Perfil</h4>
+              <div className="space-y-2">
                 <div>
-                  <label className="text-xs text-[var(--text-muted)] block mb-1">Email</label>
-                  <div className="w-full px-3 py-2 rounded-lg bg-[var(--bg-modal)] border border-[var(--border-input)] text-[var(--text-muted)] text-sm truncate">
+                  <label className="text-[11px] text-[var(--text-muted)] block mb-0.5">Email</label>
+                  <div className="w-full px-2.5 py-1.5 rounded-md bg-[var(--bg-modal)] border border-[var(--border-input)] text-[var(--text-muted)] text-xs truncate">
                     {user?.email}
                   </div>
                 </div>
                 <div>
-                  <label className="text-xs text-[var(--text-muted)] block mb-1">Nome</label>
-                  <input type="text" value={settingsNome} onChange={(e) => setSettingsNome(e.target.value.slice(0, 80))} className="w-full px-3 py-2 rounded-lg bg-[var(--bg-modal)] border border-[var(--border-input)] text-[var(--text-primary)] text-sm focus:outline-none transition-colors" style={{ borderColor: undefined }} onFocus={(e) => e.target.style.borderColor = 'var(--accent-500)'} onBlur={(e) => e.target.style.borderColor = ''} placeholder="Seu nome" maxLength={80} />
+                  <label className="text-[11px] text-[var(--text-muted)] block mb-0.5">Nome</label>
+                  <input type="text" value={settingsNome} onChange={(e) => setSettingsNome(e.target.value.slice(0, 80))} className="w-full px-2.5 py-1.5 rounded-md bg-[var(--bg-modal)] border border-[var(--border-input)] text-[var(--text-primary)] text-xs focus:outline-none transition-colors" style={{ borderColor: undefined }} onFocus={(e) => e.target.style.borderColor = 'var(--accent-500)'} onBlur={(e) => e.target.style.borderColor = ''} placeholder="Seu nome" maxLength={80} />
                 </div>
                 <div>
-                  <label className="text-xs text-[var(--text-muted)] block mb-1">Curso</label>
-                  <input type="text" value={settingsCurso} onChange={(e) => setSettingsCurso(e.target.value.slice(0, 100))} className="w-full px-3 py-2 rounded-lg bg-[var(--bg-modal)] border border-[var(--border-input)] text-[var(--text-primary)] text-sm focus:outline-none transition-colors" onFocus={(e) => e.target.style.borderColor = 'var(--accent-500)'} onBlur={(e) => e.target.style.borderColor = ''} placeholder="Ex: Ciência da Computação" maxLength={100} />
+                  <label className="text-[11px] text-[var(--text-muted)] block mb-0.5">Curso</label>
+                  <input type="text" value={settingsCurso} onChange={(e) => setSettingsCurso(e.target.value.slice(0, 100))} className="w-full px-2.5 py-1.5 rounded-md bg-[var(--bg-modal)] border border-[var(--border-input)] text-[var(--text-primary)] text-xs focus:outline-none transition-colors" onFocus={(e) => e.target.style.borderColor = 'var(--accent-500)'} onBlur={(e) => e.target.style.borderColor = ''} placeholder="Ex: Ciência da Computação" maxLength={100} />
                 </div>
               </div>
             </div>
 
             {/* Tema + Lembretes */}
-            <div className="space-y-4">
+            <div className="space-y-3">
               {/* Cor do Tema */}
-              <div className="p-4 rounded-md bg-[var(--bg-input)] border border-[var(--border-input)]">
-                <div className="flex items-center gap-2 mb-3">
-                  <Palette size={16} style={{ color: 'var(--accent-400)' }} />
+              <div className="p-3 rounded-md bg-[var(--bg-input)] border border-[var(--border-input)]">
+                <div className="flex items-center gap-2 mb-2">
+                  <Palette size={14} style={{ color: 'var(--accent-400)' }} />
                   <h4 className="font-medium text-[var(--text-primary)] text-sm">Cor do Tema</h4>
                 </div>
-                <div className="flex gap-2.5 flex-wrap">
+                <div className="flex gap-2 flex-wrap">
                   {Object.entries(ACCENT_PRESETS).map(([key, preset]) => (
                     <button
                       key={key}
                       onClick={() => setAccentColor(key)}
-                      className="w-9 h-9 rounded-lg transition-all hover:scale-105"
+                      className="w-8 h-8 rounded-lg transition-all hover:scale-105"
                       style={{
                         background: preset[500],
                         boxShadow: accentColor === key ? `0 0 0 2px var(--bg-modal), 0 0 0 3px ${preset[500]}` : 'none',
@@ -164,27 +164,26 @@ export default function SettingsModal({
               </div>
 
               {/* Lembretes */}
-              <div className="p-4 rounded-md bg-[var(--bg-input)] border border-[var(--border-input)]">
-                <div className="flex items-center gap-2 mb-3">
-                  <Bell size={16} style={{ color: 'var(--accent-400)' }} />
-                  <h4 className="font-medium text-[var(--text-primary)] text-sm">Lembretes</h4>
-                </div>
+              <div className="p-3 rounded-md bg-[var(--bg-input)] border border-[var(--border-input)]">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs text-[var(--text-secondary)]">Ativar lembretes</span>
+                  <div className="flex items-center gap-2">
+                    <Bell size={14} style={{ color: 'var(--accent-400)' }} />
+                    <h4 className="font-medium text-[var(--text-primary)] text-sm">Lembretes</h4>
+                  </div>
                   <button
                     onClick={handleToggleReminders}
-                    className="w-10 h-5.5 rounded-full transition-all relative"
-                    style={{ background: notifSettings.enabled ? 'var(--accent-500)' : '#475569', width: '40px', height: '22px' }}
+                    className="rounded-full transition-all relative"
+                    style={{ background: notifSettings.enabled ? 'var(--accent-500)' : '#475569', width: '36px', height: '20px' }}
                   >
-                    <div className="w-4 h-4 rounded-full bg-white absolute top-[3px] transition-transform" style={{ transform: notifSettings.enabled ? 'translateX(21px)' : 'translateX(3px)' }} />
+                    <div className="w-3.5 h-3.5 rounded-full bg-white absolute top-[3px] transition-transform" style={{ transform: notifSettings.enabled ? 'translateX(18px)' : 'translateX(3px)' }} />
                   </button>
                 </div>
                 {notifSettings.enabled && (
-                  <div className="mt-2.5">
+                  <div className="mt-2">
                     <select
                       value={notifSettings.intervalDays}
                       onChange={(e) => handleIntervalChange(parseInt(e.target.value))}
-                      className="w-full px-3 py-1.5 rounded-lg bg-[var(--bg-modal)] border border-[var(--border-input)] text-[var(--text-primary)] text-xs focus:outline-none cursor-pointer"
+                      className="w-full px-2.5 py-1 rounded-md bg-[var(--bg-modal)] border border-[var(--border-input)] text-[var(--text-primary)] text-xs focus:outline-none cursor-pointer"
                     >
                       <option value="3">A cada 3 dias</option>
                       <option value="7">A cada 7 dias</option>
@@ -194,73 +193,54 @@ export default function SettingsModal({
                   </div>
                 )}
               </div>
-
-              {/* Novidades */}
-              <div className="p-4 rounded-md bg-[var(--bg-input)] border border-[var(--border-input)]">
-                <div className="flex items-center gap-2 mb-2">
-                  <Sparkles size={16} style={{ color: 'var(--accent-400)' }} />
-                  <h4 className="font-medium text-[var(--text-primary)] text-sm">Novidades</h4>
-                </div>
-                <p className="text-[var(--text-muted)] text-xs mb-3">Veja o que mudou nas últimas versões.</p>
-                <button
-                  onClick={onShowChangelog}
-                  className="w-full flex items-center justify-center gap-1.5 py-2 rounded-md text-xs font-medium transition-all bg-[var(--accent-bg10)] text-[var(--accent-400)] hover:bg-[var(--accent-500)]/20"
-                >
-                  <Sparkles size={14} />Ver atualizações
-                </button>
-              </div>
             </div>
           </div>
 
           {/* Backup + Zona de Perigo lado a lado */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
             {/* Backup */}
-            <div className="p-4 rounded-md bg-[var(--bg-input)] border border-[var(--border-input)]">
+            <div className="p-3 rounded-md bg-[var(--bg-input)] border border-[var(--border-input)]">
               <div className="flex items-center gap-2 mb-2">
-                <Database size={16} className="text-amber-400" />
+                <Database size={14} className="text-amber-400" />
                 <h4 className="font-medium text-[var(--text-primary)] text-sm">Backup de Dados</h4>
               </div>
-              <p className="text-[var(--text-muted)] text-xs mb-3">
-                Exporte ou importe seus dados.
-              </p>
               <div className="flex gap-2">
-                <button onClick={handleExport} className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-md text-xs font-medium transition-all bg-amber-500/20 text-amber-400 hover:bg-amber-500/30">
-                  <Download size={14} />Exportar
+                <button onClick={handleExport} className="flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-md text-xs font-medium transition-all bg-amber-500/20 text-amber-400 hover:bg-amber-500/30">
+                  <Download size={13} />Exportar
                 </button>
-                <button onClick={handleImport} className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-md text-xs font-medium transition-all bg-[var(--bg-modal)] border border-[var(--border-input)] text-[var(--text-secondary)] hover:bg-[var(--bg-hover)]">
-                  <UploadIcon size={14} />Importar
+                <button onClick={handleImport} className="flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-md text-xs font-medium transition-all bg-[var(--bg-modal)] border border-[var(--border-input)] text-[var(--text-secondary)] hover:bg-[var(--bg-hover)]">
+                  <UploadIcon size={13} />Importar
                 </button>
               </div>
             </div>
 
             {/* Zona de Perigo */}
-            <div className="p-4 rounded-md bg-red-500/10 border border-red-500/30">
+            <div className="p-3 rounded-md bg-red-500/10 border border-red-500/30">
               <div className="flex items-center gap-2 mb-2">
-                <AlertCircle size={16} className="text-red-400" />
+                <AlertCircle size={14} className="text-red-400" />
                 <h4 className="font-medium text-red-400 text-sm">Zona de Perigo</h4>
               </div>
-              <p className="text-[var(--text-muted)] text-xs mb-3">Ações irreversíveis. Tenha cuidado!</p>
               <button
                 onClick={() => { onClose(); abrirModalReset(); }}
                 disabled={disciplinas.length === 0}
-                className="w-full flex items-center justify-center gap-1.5 py-2 rounded-lg bg-red-500/20 text-red-400 hover:bg-red-500/30 text-xs font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full flex items-center justify-center gap-1.5 py-1.5 rounded-md bg-red-500/20 text-red-400 hover:bg-red-500/30 text-xs font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                <Trash2 size={14} />Excluir Todas ({disciplinas.length})
+                <Trash2 size={13} />Excluir Todas ({disciplinas.length})
               </button>
             </div>
           </div>
 
           {/* Footer buttons */}
-          <div className="flex gap-3">
-            <button onClick={onClose} className="flex-1 py-2.5 rounded-md bg-[var(--bg-input)] border border-[var(--border-input)] text-[var(--text-secondary)] text-sm font-medium hover:bg-[var(--bg-hover)] transition-colors">
+          <div className="flex gap-2.5 justify-end">
+            <button onClick={onClose} className="px-5 py-2 rounded-md bg-[var(--bg-input)] border border-[var(--border-input)] text-[var(--text-secondary)] text-sm font-medium hover:bg-[var(--bg-hover)] transition-colors">
               Cancelar
             </button>
             <button
               onClick={onSave}
               disabled={savingSettings}
-              className="flex-1 py-2.5 rounded-md bg-[var(--accent-500)] hover:bg-[var(--accent-600)] text-white text-sm font-medium transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+              className="px-5 py-2 rounded-md bg-[var(--accent-500)] hover:bg-[var(--accent-600)] text-white text-sm font-medium transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
             >
-              {savingSettings ? <RefreshCw size={16} className="animate-spin" /> : <><Save size={16} />Salvar</>}
+              {savingSettings ? <RefreshCw size={14} className="animate-spin" /> : <><Save size={14} />Salvar</>}
             </button>
           </div>
         </div>

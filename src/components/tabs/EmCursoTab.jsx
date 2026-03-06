@@ -5,12 +5,12 @@ import { STATUS } from '../ui/STATUS';
 import GlassCard from '../ui/GlassCard';
 import { staggerContainer, staggerItem } from '../../utils/animations';
 import { getFreshToken } from '../../useNotas';
-import { useAuth } from '../../AuthContext';
+import { supabase } from '../../supabaseClient';
 
 const DIAS_LABEL = { dom: 'Dom', seg: 'Seg', ter: 'Ter', qua: 'Qua', qui: 'Qui', sex: 'Sex', sab: 'Sáb' };
 
 export default function EmCursoTab({ disciplinas, setShowSimulador, startEditNotas, horarios, onSaveHorarios, recentlyUpdated = new Set() }) {
-  const { supabase } = useAuth();
+  // supabase imported directly from supabaseClient (useAuth doesn't expose it)
   const emCurso = disciplinas.filter(d => d.status === 'EM_CURSO');
 
   const [showHorarioForm, setShowHorarioForm] = useState(false);

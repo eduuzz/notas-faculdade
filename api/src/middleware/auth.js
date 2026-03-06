@@ -16,7 +16,7 @@ export async function requireAuth(req, res, next) {
   const header = req.headers.authorization;
 
   if (!header || !header.startsWith('Bearer ')) {
-    return res.status(401).json({ error: { message: 'Token não fornecido' } });
+    return res.status(401).json({ error: 'Token não fornecido' });
   }
 
   const token = header.slice(7);
@@ -25,12 +25,12 @@ export async function requireAuth(req, res, next) {
     const { data, error } = await supabase.auth.getUser(token);
 
     if (error || !data.user) {
-      return res.status(401).json({ error: { message: 'Token inválido ou expirado' } });
+      return res.status(401).json({ error: 'Token inválido ou expirado' });
     }
 
     req.user = data.user;
     next();
   } catch (err) {
-    return res.status(401).json({ error: { message: 'Falha ao verificar autenticação' } });
+    return res.status(401).json({ error: 'Falha ao verificar autenticação' });
   }
 }

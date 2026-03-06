@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { BookOpen, Clock, TrendingUp, GraduationCap, LogOut, Settings, Shield, Menu, X, Sun, Moon } from 'lucide-react';
+import { BookOpen, Clock, TrendingUp, GraduationCap, LogOut, Settings, Shield, Menu, X, Sun, Moon, Sparkles } from 'lucide-react';
 import { useTheme } from '../ThemeContext';
 
 const wiggleStyle = document.getElementById('sidebar-wiggle-style') || (() => {
@@ -31,7 +31,7 @@ const NAV_ITEMS = [
 export default function Sidebar({
   activeTab, setActiveTab,
   user, userName,
-  onOpenSettings, onOpenLogout, onOpenAdmin,
+  onOpenSettings, onOpenLogout, onOpenAdmin, onShowChangelog,
 }) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const { isDark, toggleTheme } = useTheme();
@@ -76,6 +76,10 @@ export default function Sidebar({
         <button onClick={toggleTheme} className="sidebar-btn w-full flex items-center gap-2.5 px-2.5 py-[7px] rounded-md text-[13px] text-[var(--text-muted)] hover:text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] transition-colors">
           {isDark ? <Sun size={16} className="sidebar-icon flex-shrink-0" /> : <Moon size={16} className="sidebar-icon flex-shrink-0" />}
           {isDark ? 'Modo Claro' : 'Modo Escuro'}
+        </button>
+        <button onClick={() => { onShowChangelog(); setMobileOpen(false); }} className="sidebar-btn w-full flex items-center gap-2.5 px-2.5 py-[7px] rounded-md text-[13px] text-[var(--text-muted)] hover:text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] transition-colors">
+          <Sparkles size={16} className="sidebar-icon flex-shrink-0" />
+          Novidades
         </button>
         <button onClick={() => { onOpenSettings(); setMobileOpen(false); }} className="sidebar-btn w-full flex items-center gap-2.5 px-2.5 py-[7px] rounded-md text-[13px] text-[var(--text-muted)] hover:text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] transition-colors">
           <Settings size={16} className="sidebar-icon flex-shrink-0" />
