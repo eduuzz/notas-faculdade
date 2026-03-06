@@ -130,13 +130,16 @@ export default function SistemaNotas({ onOpenAdmin }) {
     if (!loading && user) {
       import('./components/modals/WhatsNewModal').then(({ APP_VERSION }) => {
         const lastSeen = localStorage.getItem('lastSeenVersion');
-        if (lastSeen && lastSeen !== APP_VERSION) {
-          setShowWhatsNew('latest');
+        if (lastSeen !== APP_VERSION) {
+          // Show for existing users (have disciplines) or returning users with older version
+          if (lastSeen || disciplinas.length > 0) {
+            setShowWhatsNew('latest');
+          }
+          localStorage.setItem('lastSeenVersion', APP_VERSION);
         }
-        localStorage.setItem('lastSeenVersion', APP_VERSION);
       });
     }
-  }, [loading, user]);
+  }, [loading, user, disciplinas.length]);
 
   const handleSaveCurso = async () => {
     if (!cursoInput.trim()) return;
