@@ -76,53 +76,59 @@ export const AuthProvider = ({ children }) => {
     }
   }, [verificarAutorizacao]);
 
+  // Helper: fetch direto no Supabase (workaround para .update() que trava)
+  const supabasePatch = useCallback(async (table, body, eqColumn, eqValue) => {
+    const url = import.meta.env.VITE_SUPABASE_URL;
+    const key = import.meta.env.VITE_SUPABASE_ANON_KEY;
+    const token = localStorage.getItem('sb-' + url.replace('https://', '').split('.')[0] + '-auth-token');
+    const accessToken = token ? JSON.parse(token)?.access_token : key;
+
+    const res = await fetch(
+      `${url}/rest/v1/${table}?${eqColumn}=eq.${encodeURIComponent(eqValue)}`,
+      {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': key,
+          'Authorization': `Bearer ${accessToken}`,
+          'Prefer': 'return=minimal',
+        },
+        body: JSON.stringify(body),
+      }
+    );
+    if (!res.ok) {
+      const text = await res.text();
+      throw new Error(text || `HTTP ${res.status}`);
+    }
+    return { success: true };
+  }, []);
+
   // Função para atualizar o curso do usuário
   const updateUserCurso = useCallback(async (curso) => {
-    if (!user || !supabase) {
-      console.error('updateUserCurso: Não autenticado');
-      return { error: 'Não autenticado' };
-    }
+    if (!user) return { error: 'Não autenticado' };
     try {
-      const { data, error } = await supabase
-        .from('usuarios_autorizados')
-        .update({ curso })
-        .eq('email', user.email.toLowerCase())
-        .select();
-
-      if (error) {
-        console.error('Erro ao salvar curso:', error);
-        return { error: error.message };
-      }
-
+      await supabasePatch('usuarios_autorizados', { curso }, 'email', user.email.toLowerCase());
       setUserCurso(curso);
       setIsNewUser(false);
       return { success: true };
     } catch (err) {
-      console.error('Erro inesperado:', err);
+      console.error('Erro ao salvar curso:', err);
       return { error: err.message };
     }
-  }, [user]);
+  }, [user, supabasePatch]);
 
   // Função para atualizar perfil completo (nome e curso)
   const updateUserProfile = useCallback(async (nome, curso) => {
-    if (!user || !supabase) return { error: 'Não autenticado' };
+    if (!user) return { error: 'Não autenticado' };
     try {
-      const { error } = await supabase
-        .from('usuarios_autorizados')
-        .update({ nome, curso })
-        .eq('email', user.email.toLowerCase());
-
-      if (error) {
-        return { error: error.message };
-      }
-
+      await supabasePatch('usuarios_autorizados', { nome, curso }, 'email', user.email.toLowerCase());
       setUserName(nome || null);
       setUserCurso(curso || null);
       return { success: true };
     } catch (err) {
       return { error: err.message };
     }
-  }, [user]);
+  }, [user, supabasePatch]);
 
   useEffect(() => {
     if (!isSupabaseConfigured() || !supabase) {

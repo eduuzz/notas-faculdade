@@ -62,11 +62,11 @@
         --bg-modal-overlay: rgba(0,0,0,0.7);
         --bg-hover: #232326;
         --shadow-card: none;
-        --accent-400: #8b92e0;
-        --accent-500: #5e6ad2;
-        --accent-600: #4f5ac0;
-        --accent-ring: rgba(94,106,210,0.25);
-        --accent-bg10: rgba(94,106,210,0.08);
+        --accent-400: #6e9de0;
+        --accent-500: #4283d4;
+        --accent-600: #3672be;
+        --accent-ring: rgba(66,131,212,0.25);
+        --accent-bg10: rgba(66,131,212,0.08);
       }
       html {
         font-size: 17px;
@@ -95,6 +95,23 @@
       }
       *::-webkit-scrollbar-thumb:hover {
         background: var(--accent-400);
+      }
+
+      /* Background glow */
+      body::before {
+        content: '';
+        position: fixed;
+        top: -20vh;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 80vw;
+        height: 60vh;
+        border-radius: 50%;
+        background: radial-gradient(ellipse at center, var(--accent-500), transparent 70%);
+        opacity: 0.07;
+        pointer-events: none;
+        z-index: 0;
+        transition: background 0.3s ease;
       }
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" integrity="sha384-JcnsjUPPylna1s1fvi1u12X5qjY5OL56iySh75FdtrwhO/SWXgMjoVqcKyIIWOLk" crossorigin="anonymous"></script>

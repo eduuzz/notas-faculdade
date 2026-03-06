@@ -376,7 +376,6 @@ export default function SistemaNotas({ onOpenAdmin }) {
   return (
     <div className="min-h-screen bg-[var(--bg-root)] text-[var(--text-primary)]">
 
-
       {/* Sidebar */}
       <Sidebar
         activeTab={activeTab}

@@ -20,7 +20,7 @@ export const ThemeProvider = ({ children }) => {
   });
 
   const [accentColor, setAccentColorState] = useState(() => {
-    return localStorage.getItem('accentColor') || 'indigo';
+    return localStorage.getItem('accentColor') || 'blue';
   });
 
   useEffect(() => {
