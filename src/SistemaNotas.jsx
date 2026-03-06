@@ -567,6 +567,7 @@ export default function SistemaNotas({ onOpenAdmin }) {
         <EditNotasModal
           disciplina={disciplinas.find(d => d.id === editingNotas)}
           horarios={horarios}
+          onSaveHorarios={saveHorarios}
           notasTemp={notasTemp} setNotasTemp={setNotasTemp}
           onClose={() => setEditingNotas(null)}
           onSave={() => saveNotas(editingNotas)}

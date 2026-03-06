@@ -92,8 +92,6 @@ function DiaColumn({ titulo, aulas, proximaAula, semAulaMsg }) {
 
 export default function AulasHoje({ horarios }) {
   const { aulasHoje, aulasAmanha, proximaAula, hojeDia, amanhaDia } = useMemo(() => {
-    if (!horarios || horarios.length === 0) return { aulasHoje: [], aulasAmanha: [], proximaAula: null, hojeDia: 'seg', amanhaDia: 'ter' };
-
     const now = new Date();
     const hojeStr = now.toISOString().split('T')[0];
     const amanha = new Date(now);
@@ -103,6 +101,10 @@ export default function AulasHoje({ horarios }) {
     const hojeDia = DIAS_ORDEM[now.getDay()];
     const amanhaDia = DIAS_ORDEM[amanha.getDay()];
     const horaAtual = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+
+    if (!horarios || horarios.length === 0) {
+      return { aulasHoje: [], aulasAmanha: [], proximaAula: null, hojeDia, amanhaDia };
+    }
 
     const todasAulas = [];
     for (const disc of horarios) {
@@ -121,7 +123,7 @@ export default function AulasHoje({ horarios }) {
     return { aulasHoje, aulasAmanha, proximaAula: proxima, hojeDia, amanhaDia };
   }, [horarios]);
 
-  if (!horarios || horarios.length === 0) return null;
+  const temHorarios = horarios && horarios.length > 0;
 
   return (
     <GlassCard className="p-5" hover={false}>
@@ -130,7 +132,7 @@ export default function AulasHoje({ horarios }) {
           titulo={`HOJE — ${DIAS_NOME[hojeDia]}`}
           aulas={aulasHoje}
           proximaAula={proximaAula}
-          semAulaMsg="Sem aulas hoje, pode descansar!"
+          semAulaMsg={temHorarios ? 'Sem aulas hoje, pode descansar!' : 'Importe seus horários para ver as aulas do dia.'}
         />
         <div className="hidden sm:block w-px bg-[var(--border-input)] shrink-0" />
         <div className="sm:hidden border-t border-[var(--border-input)]" />
@@ -138,7 +140,7 @@ export default function AulasHoje({ horarios }) {
           titulo={`AMANHÃ — ${DIAS_NOME[amanhaDia]}`}
           aulas={aulasAmanha}
           proximaAula={null}
-          semAulaMsg="Sem aulas amanhã, aproveite!"
+          semAulaMsg={temHorarios ? 'Sem aulas amanhã, aproveite!' : 'Importe seus horários para ver as aulas do dia.'}
         />
       </div>
     </GlassCard>

@@ -4,6 +4,7 @@ import { Clock, Edit2, Calculator, MapPin, Monitor, CalendarDays, Loader2, X, Ey
 import { STATUS } from '../ui/STATUS';
 import GlassCard from '../ui/GlassCard';
 import { staggerContainer, staggerItem } from '../../utils/animations';
+import { getFreshToken } from '../../useNotas';
 import { useAuth } from '../../AuthContext';
 
 const DIAS_LABEL = { dom: 'Dom', seg: 'Seg', ter: 'Ter', qua: 'Qua', qui: 'Qui', sex: 'Sex', sab: 'Sáb' };
@@ -40,11 +41,7 @@ export default function EmCursoTab({ disciplinas, setShowSimulador, startEditNot
     setHorarioSuccess('');
 
     try {
-      let token = null;
-      if (supabase) {
-        const { data: { session } } = await supabase.auth.getSession();
-        token = session?.access_token;
-      }
+      const token = supabase ? await getFreshToken(supabase) : null;
 
       const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
       const res = await fetch(`${apiUrl}/api/portal/horarios`, {

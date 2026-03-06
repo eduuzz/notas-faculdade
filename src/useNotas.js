@@ -3,6 +3,41 @@ import { supabase } from './supabaseClient'
 import { useAuth } from './AuthContext'
 
 
+/**
+ * Get a fresh access token, refreshing the session if needed.
+ * Falls back to localStorage token if getSession hangs (known Supabase bug).
+ */
+export async function getFreshToken(supabaseClient) {
+  if (!supabaseClient) return null;
+
+  // Try refreshing via localStorage first (avoids getSession() hang)
+  const ref = supabaseClient.supabaseUrl.match(/https:\/\/([^.]+)/)?.[1];
+  const storageKey = `sb-${ref}-auth-token`;
+  const stored = localStorage.getItem(storageKey);
+  if (!stored) return null;
+
+  try {
+    const sessionData = JSON.parse(stored);
+    const expiresAt = sessionData?.expires_at; // unix timestamp in seconds
+    const now = Math.floor(Date.now() / 1000);
+
+    // If token expires in less than 5 minutes, refresh it
+    if (expiresAt && expiresAt - now < 300) {
+      const refreshToken = sessionData?.refresh_token;
+      if (refreshToken) {
+        const { data, error } = await supabaseClient.auth.refreshSession({ refresh_token: refreshToken });
+        if (!error && data?.session?.access_token) {
+          return data.session.access_token;
+        }
+      }
+    }
+
+    return sessionData?.access_token || null;
+  } catch {
+    return null;
+  }
+}
+
 function humanizeSupabaseError(error) {
   const msg = error?.message || '';
   if (msg.includes('duplicate key') || msg.includes('unique')) {
@@ -112,10 +147,7 @@ export function useNotas() {
     setSyncing(true)
     try {
       // fetch() direto — supabase client .update() trava (bug v2.87.1)
-      const ref = supabase.supabaseUrl.match(/https:\/\/([^.]+)/)?.[1]
-      const stored = localStorage.getItem(`sb-${ref}-auth-token`)
-      const sessionData = stored ? JSON.parse(stored) : null
-      const accessToken = sessionData?.access_token
+      const accessToken = await getFreshToken(supabase)
       if (!accessToken) return { error: 'Sessão expirada. Faça login novamente.' }
 
       const baseUrl = supabase.supabaseUrl
@@ -226,11 +258,7 @@ export function useNotas() {
     let inseridos = 0
     let erros = 0
     try {
-      // Pegar token direto do localStorage (getSession() trava)
-      const ref = supabase.supabaseUrl.match(/https:\/\/([^.]+)/)?.[1]
-      const stored = localStorage.getItem(`sb-${ref}-auth-token`)
-      const sessionData = stored ? JSON.parse(stored) : null
-      const accessToken = sessionData?.access_token
+      const accessToken = await getFreshToken(supabase)
       if (!accessToken) {
         return { error: 'Sessão expirada. Faça login novamente.' }
       }

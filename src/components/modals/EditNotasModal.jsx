@@ -1,13 +1,14 @@
 import React, { useMemo, useState, useCallback } from 'react';
 import { motion } from 'framer-motion';
-import { X, Calculator, Monitor, MapPin, Calendar } from 'lucide-react';
+import { X, Calculator, Monitor, MapPin, Calendar, Plus, Trash2 } from 'lucide-react';
 import { STATUS } from '../ui/STATUS';
 import GradientButton from '../ui/GradientButton';
 import { modalOverlay, modalContent } from '../../utils/animations';
 
 const DIAS_LABEL = { dom: 'Domingo', seg: 'Segunda', ter: 'Terça', qua: 'Quarta', qui: 'Quinta', sex: 'Sexta', sab: 'Sábado' };
+const DIAS_OPTIONS = ['seg', 'ter', 'qua', 'qui', 'sex', 'sab'];
 
-export default function EditNotasModal({ disciplina, horarios, notasTemp, setNotasTemp, onClose, onSave }) {
+export default function EditNotasModal({ disciplina, horarios, onSaveHorarios, notasTemp, setNotasTemp, onClose, onSave }) {
   const nome = disciplina?.nome;
   const status = disciplina ? STATUS[disciplina.status] : null;
 
@@ -105,6 +106,49 @@ export default function EditNotasModal({ disciplina, horarios, notasTemp, setNot
     return 'hibrido';
   }, [aulasUnicas, aulaOverrides]);
 
+  // Manual aula add/remove
+  const [showAddAula, setShowAddAula] = useState(false);
+  const [newAula, setNewAula] = useState({ dia: 'seg', inicio: '19:00', fim: '22:30', sala: '' });
+
+  const addManualAula = useCallback(() => {
+    if (!disciplina || !onSaveHorarios) return;
+    const discName = disciplina.nome;
+    const discCode = disciplina.codigo;
+
+    const updated = [...(horarios || [])];
+    let entry = updated.find(h =>
+      (h.codDisc && h.codDisc === discCode) ||
+      (h.nome && h.nome.toLowerCase().trim() === discName?.toLowerCase().trim())
+    );
+
+    const aula = { dia: newAula.dia, inicio: newAula.inicio, fim: newAula.fim, sala: newAula.sala || null, predio: null, manual: true };
+
+    if (entry) {
+      entry.aulas = [...entry.aulas, aula];
+    } else {
+      updated.push({ codDisc: discCode, nome: discName, codTurma: null, aulas: [aula] });
+    }
+
+    onSaveHorarios(updated);
+    setShowAddAula(false);
+    setNewAula({ dia: 'seg', inicio: '19:00', fim: '22:30', sala: '' });
+  }, [disciplina, horarios, onSaveHorarios, newAula]);
+
+  const removeAula = useCallback((dia, inicio) => {
+    if (!disciplina || !onSaveHorarios) return;
+    const discName = disciplina.nome;
+    const discCode = disciplina.codigo;
+
+    const updated = (horarios || []).map(h => {
+      const match = (h.codDisc && h.codDisc === discCode) ||
+        (h.nome && h.nome.toLowerCase().trim() === discName?.toLowerCase().trim());
+      if (!match) return h;
+      return { ...h, aulas: h.aulas.filter(a => !(a.dia === dia && a.inicio === inicio)) };
+    }).filter(h => h.aulas.length > 0);
+
+    onSaveHorarios(updated);
+  }, [disciplina, horarios, onSaveHorarios]);
+
   const handleNota = (field, value) => {
     if (value === '') { setNotasTemp({ ...notasTemp, [field]: '' }); return; }
     const num = parseFloat(value);
@@ -135,7 +179,7 @@ export default function EditNotasModal({ disciplina, horarios, notasTemp, setNot
       onClick={onClose}
     >
       <motion.div
-        className="w-full max-w-lg rounded-xl bg-[var(--bg-modal)] border border-[var(--border-card)] shadow-xl"
+        className="w-full max-w-lg rounded-xl bg-[var(--bg-modal)] border border-[var(--border-card)] shadow-xl max-h-[90vh] flex flex-col"
         {...modalContent}
         onClick={e => e.stopPropagation()}
       >
@@ -164,7 +208,7 @@ export default function EditNotasModal({ disciplina, horarios, notasTemp, setNot
           </button>
         </div>
 
-        <div className="p-5 space-y-4">
+        <div className="p-5 space-y-4 overflow-y-auto">
           {/* Info blocks */}
           {disciplina && (
             <div className="grid grid-cols-4 gap-2">
@@ -187,44 +231,97 @@ export default function EditNotasModal({ disciplina, horarios, notasTemp, setNot
             </div>
           )}
 
-          {/* Horário block */}
-          {aulasUnicas.length > 0 && (
-            <div className="rounded-lg border border-[var(--border-input)] overflow-hidden">
-              <div className="px-3 py-2 bg-[var(--bg-input)] border-b border-[var(--border-input)] flex items-center justify-between">
-                <p className="text-[11px] font-medium text-[var(--text-muted)] tracking-wider">HORÁRIOS</p>
+          {/* Horário block — always visible */}
+          <div className="rounded-lg border border-[var(--border-input)] overflow-hidden">
+            <div className="px-3 py-2 bg-[var(--bg-input)] border-b border-[var(--border-input)] flex items-center justify-between">
+              <p className="text-[11px] font-medium text-[var(--text-muted)] tracking-wider">HORÁRIOS</p>
+              <div className="flex items-center gap-2">
                 {dateRange && (
                   <span className="flex items-center gap-1 text-xs text-[var(--text-muted)]">
                     <Calendar size={12} />
                     {formatDate(dateRange.inicio)} — {formatDate(dateRange.fim)}
                   </span>
                 )}
-              </div>
-              <div className="p-3 space-y-1">
-                {aulasUnicas.map((a, i) => {
-                  const online = isAulaOnline(a);
-                  const hasOverride = aulaOverrides[getAulaKey(a.dia, a.inicio)] !== undefined;
-                  return (
-                    <div key={i} className="flex items-center gap-3 text-sm">
-                      <span className="text-[var(--text-primary)] font-medium w-16 shrink-0">{DIAS_LABEL[a.dia]}</span>
-                      <span className="text-[var(--text-secondary)] tabular-nums">{a.inicio} – {a.fim}</span>
-                      <button
-                        onClick={() => toggleAulaModalidade(a.dia, a.inicio)}
-                        title="Clique para alternar Online/Presencial"
-                        className={`flex items-center gap-1 text-[11px] ml-auto px-1.5 py-0.5 rounded transition-colors cursor-pointer ${
-                          online
-                            ? 'text-cyan-400 hover:bg-cyan-500/10'
-                            : 'text-emerald-400 hover:bg-emerald-500/10'
-                        }`}
-                      >
-                        {online ? <><Monitor size={11} /> Online</> : <><MapPin size={11} /> {a.sala || 'Presencial'}</>}
-                        {hasOverride && <span className="text-[9px] text-[var(--text-muted)] ml-0.5">(editado)</span>}
-                      </button>
-                    </div>
-                  );
-                })}
+                <button
+                  onClick={() => setShowAddAula(v => !v)}
+                  className="flex items-center gap-1 text-[11px] px-1.5 py-0.5 rounded text-[var(--accent-400)] hover:bg-[var(--accent-bg10)] transition-colors"
+                >
+                  <Plus size={12} /> Adicionar
+                </button>
               </div>
             </div>
-          )}
+            <div className="p-3 space-y-1">
+              {aulasUnicas.length > 0 ? aulasUnicas.map((a, i) => {
+                const online = isAulaOnline(a);
+                const hasOverride = aulaOverrides[getAulaKey(a.dia, a.inicio)] !== undefined;
+                return (
+                  <div key={i} className="flex items-center gap-3 text-sm group">
+                    <span className="text-[var(--text-primary)] font-medium w-16 shrink-0">{DIAS_LABEL[a.dia]}</span>
+                    <span className="text-[var(--text-secondary)] tabular-nums">{a.inicio} – {a.fim}</span>
+                    <button
+                      onClick={() => toggleAulaModalidade(a.dia, a.inicio)}
+                      title="Clique para alternar Online/Presencial"
+                      className={`flex items-center gap-1 text-[11px] ml-auto px-1.5 py-0.5 rounded transition-colors cursor-pointer ${
+                        online
+                          ? 'text-cyan-400 hover:bg-cyan-500/10'
+                          : 'text-emerald-400 hover:bg-emerald-500/10'
+                      }`}
+                    >
+                      {online ? <><Monitor size={11} /> Online</> : <><MapPin size={11} /> {a.sala || 'Presencial'}</>}
+                      {hasOverride && <span className="text-[9px] text-[var(--text-muted)] ml-0.5">(editado)</span>}
+                    </button>
+                    <button
+                      onClick={() => removeAula(a.dia, a.inicio)}
+                      className="text-[var(--text-muted)] hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all p-0.5"
+                      title="Remover horário"
+                    >
+                      <Trash2 size={12} />
+                    </button>
+                  </div>
+                );
+              }) : (
+                <p className="text-xs text-[var(--text-muted)] py-1">Nenhum horário cadastrado. Clique em "Adicionar" para incluir.</p>
+              )}
+
+              {/* Add aula form */}
+              {showAddAula && (
+                <div className="flex items-center gap-2 mt-2 pt-2 border-t border-[var(--border-input)]">
+                  <select
+                    value={newAula.dia}
+                    onChange={e => setNewAula(p => ({ ...p, dia: e.target.value }))}
+                    className="px-2 py-1.5 rounded-md bg-[var(--bg-input)] border border-[var(--border-input)] text-[var(--text-primary)] text-xs"
+                  >
+                    {DIAS_OPTIONS.map(d => <option key={d} value={d}>{DIAS_LABEL[d]}</option>)}
+                  </select>
+                  <input
+                    type="time"
+                    value={newAula.inicio}
+                    onChange={e => setNewAula(p => ({ ...p, inicio: e.target.value }))}
+                    className="px-2 py-1.5 rounded-md bg-[var(--bg-input)] border border-[var(--border-input)] text-[var(--text-primary)] text-xs tabular-nums w-20"
+                  />
+                  <input
+                    type="time"
+                    value={newAula.fim}
+                    onChange={e => setNewAula(p => ({ ...p, fim: e.target.value }))}
+                    className="px-2 py-1.5 rounded-md bg-[var(--bg-input)] border border-[var(--border-input)] text-[var(--text-primary)] text-xs tabular-nums w-20"
+                  />
+                  <input
+                    type="text"
+                    value={newAula.sala}
+                    onChange={e => setNewAula(p => ({ ...p, sala: e.target.value }))}
+                    placeholder="Sala"
+                    className="px-2 py-1.5 rounded-md bg-[var(--bg-input)] border border-[var(--border-input)] text-[var(--text-primary)] text-xs w-16"
+                  />
+                  <button
+                    onClick={addManualAula}
+                    className="px-2 py-1.5 rounded-md bg-[var(--accent-500)] text-white text-xs font-medium hover:bg-[var(--accent-600)] transition-colors"
+                  >
+                    OK
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
 
           {/* Notas */}
           <div className="rounded-lg border border-[var(--border-input)] overflow-hidden">

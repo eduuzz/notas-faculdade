@@ -1,6 +1,7 @@
 import React, { useState, useCallback, useRef } from 'react';
 import { X, Upload, AlertCircle, CheckCircle, ChevronDown, ChevronUp, File, Loader2, Eye, EyeOff, Sparkles, Globe, RefreshCw, ShieldCheck } from 'lucide-react';
 import { supabase } from './supabaseClient';
+import { getFreshToken } from './useNotas';
 
 export default function ImportModal({ onClose, onImport, onUpdate, disciplinasExistentes = [], onSaveHorarios }) {
   const [modo, setModo] = useState('portal');
@@ -33,11 +34,7 @@ export default function ImportModal({ onClose, onImport, onUpdate, disciplinasEx
 
     try {
       const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
-      let token = null;
-      if (supabase) {
-        const { data: { session } } = await supabase.auth.getSession();
-        token = session?.access_token;
-      }
+      const token = supabase ? await getFreshToken(supabase) : null;
 
       const response = await fetch(`${apiUrl}/api/analyze/analyze-pdf`, {
         method: 'POST',
@@ -419,11 +416,7 @@ export default function ImportModal({ onClose, onImport, onUpdate, disciplinasEx
     setStatusPortal('');
 
     try {
-      let token = null;
-      if (supabase) {
-        const { data: { session } } = await supabase.auth.getSession();
-        token = session?.access_token;
-      }
+      const token = supabase ? await getFreshToken(supabase) : null;
 
       const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
@@ -730,7 +723,6 @@ export default function ImportModal({ onClose, onImport, onUpdate, disciplinasEx
   const disciplinasNovas = disciplinasFiltradas.filter(d => !verificarDuplicata(d));
   const disciplinasDuplicadas = disciplinasFiltradas.filter(d => verificarDuplicata(d));
   const disciplinasAtualizadas = disciplinasDuplicadas.filter(d => detectarMudancas(d));
-  const disciplinasSemMudanca = disciplinasDuplicadas.filter(d => !detectarMudancas(d));
   
   const disciplinasPorPeriodo = disciplinasFiltradas.reduce((acc, d) => {
     const p = d.periodo || 1;
@@ -1007,77 +999,57 @@ export default function ImportModal({ onClose, onImport, onUpdate, disciplinasEx
                 </button>
               </div>
 
-              {/* Filtros por tipo */}
-              <div className="bg-slate-700/30 rounded-xl p-4 space-y-3">
-                <p className="text-sm text-[var(--text-secondary)] font-medium">Selecione o que importar:</p>
-                <div className="flex flex-wrap gap-3">
-                  <label className={`flex items-center gap-2 px-3 py-2 rounded-lg cursor-pointer transition-all ${
-                    filtroObrigatorias 
-                      ? 'bg-emerald-500/20 border border-emerald-500/50' 
-                      : 'bg-[var(--bg-input)] border border-[var(--border-input)] hover:bg-[var(--bg-hover)]'
-                  }`}>
-                    <input
-                      type="checkbox"
-                      checked={filtroObrigatorias}
-                      onChange={(e) => setFiltroObrigatorias(e.target.checked)}
-                      className="w-4 h-4 rounded accent-emerald-500"
-                    />
-                    <span className="text-sm text-[var(--text-primary)]">Obrigatórias</span>
-                    <span className="text-xs px-1.5 py-0.5 rounded bg-emerald-500/30 text-emerald-300">
-                      {contagens.obrigatorias}
-                    </span>
-                  </label>
-                  
-                  <label className={`flex items-center gap-2 px-3 py-2 rounded-lg cursor-pointer transition-all ${
-                    filtroTrilhas
-                      ? 'border'
-                      : 'bg-[var(--bg-input)] border border-[var(--border-input)] hover:bg-[var(--bg-hover)]'
-                  }`} style={filtroTrilhas ? { background: 'var(--accent-bg10)', borderColor: 'var(--accent-ring)' } : {}}>
-                    <input
-                      type="checkbox"
-                      checked={filtroTrilhas}
-                      onChange={(e) => setFiltroTrilhas(e.target.checked)}
-                      className="w-4 h-4 rounded"
-                      style={{ accentColor: 'var(--accent-500)' }}
-                    />
-                    <span className="text-sm text-[var(--text-primary)]">Trilhas</span>
-                    <span className="text-xs px-1.5 py-0.5 rounded" style={{ background: 'var(--accent-bg10)', color: 'var(--accent-400)' }}>
-                      {contagens.trilhas}
-                    </span>
-                  </label>
-                  
-                  <label className={`flex items-center gap-2 px-3 py-2 rounded-lg cursor-pointer transition-all ${
-                    filtroOptativas 
-                      ? 'bg-amber-500/20 border border-amber-500/50' 
-                      : 'bg-[var(--bg-input)] border border-[var(--border-input)] hover:bg-[var(--bg-hover)]'
-                  }`}>
-                    <input
-                      type="checkbox"
-                      checked={filtroOptativas}
-                      onChange={(e) => setFiltroOptativas(e.target.checked)}
-                      className="w-4 h-4 rounded accent-amber-500"
-                    />
-                    <span className="text-sm text-[var(--text-primary)]">Optativas</span>
-                    <span className="text-xs px-1.5 py-0.5 rounded bg-amber-500/30 text-amber-300">
-                      {contagens.optativas}
-                    </span>
-                  </label>
-                </div>
+              {/* Filtros por tipo — cards clicáveis */}
+              <div className="grid grid-cols-3 gap-2">
+                {[
+                  { key: 'obrigatorias', label: 'Obrigatórias', count: contagens.obrigatorias, checked: filtroObrigatorias, toggle: () => setFiltroObrigatorias(v => !v), color: 'emerald' },
+                  { key: 'trilhas', label: 'Trilhas', count: contagens.trilhas, checked: filtroTrilhas, toggle: () => setFiltroTrilhas(v => !v), color: 'accent' },
+                  { key: 'optativas', label: 'Optativas', count: contagens.optativas, checked: filtroOptativas, toggle: () => setFiltroOptativas(v => !v), color: 'amber' },
+                ].map(({ key, label, count, checked, toggle, color }) => (
+                  <button
+                    key={key}
+                    onClick={toggle}
+                    className={`relative p-3 rounded-xl text-center transition-all cursor-pointer border ${
+                      checked
+                        ? color === 'accent'
+                          ? 'bg-[var(--accent-bg10)] border-[var(--accent-ring)]'
+                          : `bg-${color}-500/15 border-${color}-500/40`
+                        : 'bg-[var(--bg-input)] border-[var(--border-input)] opacity-50'
+                    }`}
+                    style={checked && color === 'emerald' ? { background: 'rgba(16,185,129,0.15)', borderColor: 'rgba(16,185,129,0.4)' }
+                      : checked && color === 'amber' ? { background: 'rgba(245,158,11,0.15)', borderColor: 'rgba(245,158,11,0.4)' }
+                      : undefined}
+                  >
+                    <div className={`absolute top-2 right-2 w-4 h-4 rounded border-2 flex items-center justify-center transition-colors ${
+                      checked
+                        ? color === 'accent' ? 'bg-[var(--accent-500)] border-[var(--accent-500)]'
+                          : color === 'emerald' ? 'bg-emerald-500 border-emerald-500'
+                          : 'bg-amber-500 border-amber-500'
+                        : 'border-[var(--text-muted)]'
+                    }`}>
+                      {checked && <CheckCircle size={10} className="text-white" />}
+                    </div>
+                    <p className={`text-2xl font-bold ${
+                      checked
+                        ? color === 'accent' ? 'text-[var(--accent-400)]'
+                          : color === 'emerald' ? 'text-emerald-400'
+                          : 'text-amber-400'
+                        : 'text-[var(--text-muted)]'
+                    }`}>{count}</p>
+                    <p className="text-xs text-[var(--text-secondary)] mt-0.5">{label}</p>
+                  </button>
+                ))}
               </div>
 
               {/* Resumo da seleção */}
-              <div className="grid grid-cols-3 gap-3">
-                <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-xl p-3 text-center">
-                  <p className="text-2xl font-bold text-emerald-400">{disciplinasNovas.length}</p>
-                  <p className="text-xs text-[var(--text-secondary)]">Novas</p>
+              <div className="grid grid-cols-2 gap-2">
+                <div className="bg-blue-500/10 border border-blue-500/30 rounded-xl p-2.5 text-center">
+                  <p className="text-lg font-bold text-blue-400">{disciplinasNovas.length}</p>
+                  <p className="text-[10px] text-[var(--text-secondary)]">Novas</p>
                 </div>
-                <div className="bg-blue-500/10 border border-blue-500/30 rounded-xl p-3 text-center">
-                  <p className="text-2xl font-bold text-blue-400">{disciplinasAtualizadas.length}</p>
-                  <p className="text-xs text-[var(--text-secondary)]">Notas alteradas</p>
-                </div>
-                <div className="bg-slate-500/10 border border-slate-500/30 rounded-xl p-3 text-center">
-                  <p className="text-2xl font-bold text-[var(--text-secondary)]">{disciplinasSemMudanca.length}</p>
-                  <p className="text-xs text-[var(--text-secondary)]">Sem mudança</p>
+                <div className="bg-cyan-500/10 border border-cyan-500/30 rounded-xl p-2.5 text-center">
+                  <p className="text-lg font-bold text-cyan-400">{disciplinasAtualizadas.length}</p>
+                  <p className="text-[10px] text-[var(--text-secondary)]">Notas alteradas</p>
                 </div>
               </div>
               
