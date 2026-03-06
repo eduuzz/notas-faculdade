@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Plus, Minus, Trash2, Award, TrendingUp, CheckCircle, Clock, Edit2, ChevronDown, ChevronUp, Search, Download, Upload as UploadIcon, List, LayoutGrid } from 'lucide-react';
+import { Plus, Minus, Trash2, Award, TrendingUp, CheckCircle, Clock, Edit2, ChevronDown, ChevronUp, Search, Download, Upload as UploadIcon, List, LayoutGrid, Share2 } from 'lucide-react';
 import { STATUS } from '../ui/STATUS';
 import GlassCard from '../ui/GlassCard';
 import GradientButton from '../ui/GradientButton';
@@ -23,6 +23,7 @@ export default function GradeTab({
   setShowIniciarModal,
   setShowDeleteMenu,
   startEditNotas,
+  setShowShareModal,
 }) {
   return (
     <div className="space-y-6">
@@ -44,7 +45,7 @@ export default function GradeTab({
 
       {/* Search & Actions */}
       <div className="flex flex-col sm:flex-row gap-3">
-        <div className="flex-1 relative">
+        <div className="relative sm:max-w-xs flex-1">
           <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" />
           <input type="text" placeholder="Buscar disciplina..." value={busca} onChange={(e) => setBusca(e.target.value)} className="w-full pl-9 pr-4 py-2 rounded-lg bg-[var(--bg-input)] border border-[var(--border-input)] text-[var(--text-primary)] placeholder-[var(--text-muted)] text-sm focus:outline-none focus:border-[var(--accent-500)] transition-colors" />
         </div>
@@ -63,6 +64,10 @@ export default function GradeTab({
           <GradientButton variant="secondary" size="md" onClick={() => setShowImportModal(true)}>
             <UploadIcon size={14} />
             <span>Importar</span>
+          </GradientButton>
+          <GradientButton variant="secondary" size="md" onClick={() => setShowShareModal(true)}>
+            <Share2 size={14} />
+            <span>Compartilhar</span>
           </GradientButton>
           <GradientButton size="md" onClick={() => setShowAddDisciplina(true)}>
             <Plus size={14} />

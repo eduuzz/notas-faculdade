@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect, useCallback, Suspense } from 'react';
-import { Plus, BookOpen, GraduationCap, Clock, RefreshCw, Wifi, WifiOff, TrendingUp, Share2 } from 'lucide-react';
+import { Plus, BookOpen, GraduationCap, Clock, RefreshCw, Wifi, WifiOff, TrendingUp } from 'lucide-react';
 import { useNotas } from './useNotas';
 import { useAuth } from './AuthContext';
 import ConfirmModal from './ConfirmModal';
@@ -398,12 +398,6 @@ export default function SistemaNotas({ onOpenAdmin }) {
             <button onClick={forceSync} disabled={syncing || !isOnline} className="p-1.5 rounded-md hover:bg-[var(--bg-hover)] transition-colors disabled:opacity-50">
               <RefreshCw size={15} className={`text-[var(--text-muted)] ${syncing ? 'animate-spin' : ''}`} />
             </button>
-            <button onClick={() => setShowShareModal(true)} className="p-1.5 rounded-md hover:bg-[var(--bg-hover)] transition-colors" title="Compartilhar">
-              <Share2 size={15} className="text-[var(--text-muted)]" />
-            </button>
-            <button onClick={() => setShowAddDisciplina(true)} className="hidden sm:flex p-1.5 rounded-md hover:bg-[var(--bg-hover)] text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors" title="Adicionar cadeira">
-              <Plus size={15} />
-            </button>
           </div>
         </header>
 
@@ -435,6 +429,7 @@ export default function SistemaNotas({ onOpenAdmin }) {
               exportarPDF={exportarPDF}
               setShowImportModal={setShowImportModal}
               setShowAddDisciplina={setShowAddDisciplina}
+              setShowShareModal={setShowShareModal}
               modoCompacto={modoCompacto} setModoCompacto={setModoCompacto}
               expandedPeriodos={expandedPeriodos} togglePeriodo={togglePeriodo} toggleAllPeriodos={toggleAllPeriodos}
               periodos={periodos}
