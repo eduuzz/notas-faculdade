@@ -15,7 +15,7 @@ export default function AddDisciplinaModal({
 }) {
   return (
     <div className="fixed inset-0 bg-[var(--bg-modal-overlay)] flex items-center justify-center z-50 p-4">
-      <GlassCard className="w-full max-w-lg" hover={false}>
+      <GlassCard className="w-full max-w-xl" hover={false}>
         <div className="p-5">
           <div className="flex items-center justify-between mb-5">
             <h3 className="text-base font-semibold">Adicionar Cadeira</h3>
