@@ -404,9 +404,9 @@ export default function SistemaNotas({ onOpenAdmin }) {
         </header>
 
         {/* Page content */}
-        <main className="max-w-6xl mx-auto px-4 sm:px-6 py-8">
+        <main className="max-w-6xl mx-auto px-4 sm:px-6 py-6">
           {/* Greeting */}
-          <div className="mb-8">
+          <div className="mb-6">
             <h2 className="text-2xl sm:text-3xl font-semibold tracking-tight text-[var(--text-primary)]">
               {(() => {
                 const hora = new Date().getHours();
