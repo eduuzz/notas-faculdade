@@ -12,7 +12,6 @@ export default function Login() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
-  // Mostrar erros de auth (ex: erro ao criar conta)
   React.useEffect(() => {
     if (authError) {
       setError(authError);
@@ -97,65 +96,51 @@ export default function Login() {
     setLoading(false);
   };
 
-  // Background component
-  const Background = () => (
-    <div className="fixed inset-0 overflow-hidden pointer-events-none dark:block hidden">
-      <div className="absolute top-[-20%] right-[-10%] w-[600px] h-[600px] rounded-full blur-[120px]" style={{ background: 'var(--accent-glow1)' }} />
-      <div className="absolute bottom-[-20%] left-[-10%] w-[500px] h-[500px] rounded-full blur-[100px]" style={{ background: 'var(--accent-glow2)' }} />
-      <div className="absolute top-[40%] left-[50%] w-[300px] h-[300px] rounded-full blur-[80px]" style={{ background: 'var(--accent-bg10)' }} />
+  const AlertBox = ({ type, message }) => (
+    <div className={`mb-4 px-3 py-2.5 rounded-lg flex items-center gap-2.5 text-sm border ${
+      type === 'success'
+        ? 'bg-emerald-500/8 border-emerald-500/20 text-emerald-400'
+        : 'bg-red-500/8 border-red-500/20 text-red-400'
+    }`}>
+      {type === 'success' ? <CheckCircle size={16} /> : <AlertCircle size={16} />}
+      <span>{message}</span>
     </div>
   );
 
-  // Tela de Esqueci Minha Senha
   if (isForgotPassword) {
     return (
       <div className="min-h-screen bg-[var(--bg-root)] text-[var(--text-primary)] flex items-center justify-center p-4">
-        <Background />
-        <div className="relative z-10 w-full max-w-md">
-          <div className="relative overflow-hidden rounded-3xl bg-[var(--bg-card)] dark:backdrop-blur-xl border border-[var(--border-card)] shadow-[var(--shadow-card)] p-8">
+        <div className="w-full max-w-sm">
+          <div className="rounded-lg bg-[var(--bg-card)] border border-[var(--border-card)] p-6">
             <button
               onClick={() => { setIsForgotPassword(false); setError(''); setSuccess(''); }}
-              className="flex items-center gap-2 text-[var(--text-secondary)] hover:text-white transition-colors mb-6"
+              className="flex items-center gap-1.5 text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors mb-5 text-sm"
             >
-              <ArrowLeft size={18} />
-              <span className="text-sm">Voltar ao login</span>
+              <ArrowLeft size={16} />
+              Voltar
             </button>
 
-            <div className="text-center mb-8">
-              <img src="/icon-192.png" alt="Semestry" className="w-14 h-14 rounded-[18px] mx-auto mb-4" style={{ filter: 'var(--accent-icon-filter)' }} />
-              <h1 className="text-2xl font-semibold tracking-tight">Recuperar Senha</h1>
+            <div className="mb-6">
+              <img src="/icon-192.png" alt="Semestry" className="w-10 h-10 rounded-lg mb-4" style={{ filter: 'var(--accent-icon-filter)' }} />
+              <h1 className="text-lg font-semibold text-[var(--text-primary)]">Recuperar Senha</h1>
               <p className="text-[var(--text-muted)] text-sm mt-1">
                 Digite seu email para receber o link de recuperação
               </p>
             </div>
 
-            {success && (
-              <div className="mb-6 p-4 rounded-2xl flex items-center gap-3 bg-emerald-500/10 border border-emerald-500/30 text-emerald-400">
-                <CheckCircle size={18} />
-                <span className="text-sm">{success}</span>
-              </div>
-            )}
+            {success && <AlertBox type="success" message={success} />}
+            {error && <AlertBox type="error" message={error} />}
 
-            {error && (
-              <div className="mb-6 p-4 rounded-2xl flex items-center gap-3 bg-red-500/10 border border-red-500/30 text-red-400">
-                <AlertCircle size={18} />
-                <span className="text-sm">{error}</span>
-              </div>
-            )}
-
-            <form onSubmit={handleForgotPassword} className="space-y-4">
+            <form onSubmit={handleForgotPassword} className="space-y-3">
               <div>
-                <label className="text-sm text-[var(--text-secondary)] block mb-2">Email</label>
+                <label className="text-xs text-[var(--text-muted)] block mb-1.5">Email</label>
                 <div className="relative">
-                  <Mail size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" />
+                  <Mail size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" />
                   <input
                     type="email"
                     value={formData.email}
                     onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                    className="w-full pl-12 pr-4 py-3 rounded-xl bg-[var(--bg-input)] border border-[var(--border-input)] text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none transition-all"
-                    style={{ borderColor: undefined }}
-                    onFocus={(e) => e.target.style.borderColor = 'var(--accent-500)'}
-                    onBlur={(e) => e.target.style.borderColor = ''}
+                    className="w-full pl-10 pr-3 py-2 rounded-md bg-[var(--bg-input)] border border-[var(--border-input)] text-[var(--text-primary)] text-sm placeholder-[var(--text-muted)] focus:outline-none focus:border-[var(--accent-500)] transition-colors"
                     placeholder="seu@email.com"
                     required
                   />
@@ -165,63 +150,46 @@ export default function Login() {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full py-4 rounded-2xl font-semibold shadow-lg transition-all duration-300 hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 text-white"
-                style={{ background: 'linear-gradient(to right, var(--accent-600), var(--accent-500))', boxShadow: '0 10px 15px -3px var(--accent-ring)' }}
+                className="w-full py-2 rounded-md bg-[var(--accent-500)] hover:bg-[var(--accent-600)] text-white text-sm font-medium transition-colors disabled:opacity-50"
               >
                 {loading ? 'Enviando...' : 'Enviar Link de Recuperação'}
               </button>
             </form>
           </div>
 
-          <p className="text-center text-slate-600 text-xs mt-6">
-            © 2024 Semestry. Todos os direitos reservados.
+          <p className="text-center text-[var(--text-muted)] text-xs mt-5">
+            © 2024 Semestry
           </p>
         </div>
       </div>
     );
   }
 
-  // Tela de Login/Cadastro
   return (
     <div className="min-h-screen bg-[var(--bg-root)] text-[var(--text-primary)] flex items-center justify-center p-4">
-      <Background />
-      <div className="relative z-10 w-full max-w-md">
-        <div className="relative overflow-hidden rounded-3xl bg-[var(--bg-card)] dark:backdrop-blur-xl border border-[var(--border-card)] shadow-[var(--shadow-card)] p-6">
-          <div className="text-center mb-5">
-            <img src="/icon-192.png" alt="Semestry" className="w-10 h-10 rounded-[12px] mx-auto mb-2" style={{ filter: 'var(--accent-icon-filter)' }} />
-            <h1 className="text-xl font-semibold tracking-tight">Semestry</h1>
+      <div className="w-full max-w-sm">
+        <div className="rounded-lg bg-[var(--bg-card)] border border-[var(--border-card)] p-6">
+          <div className="mb-5">
+            <img src="/icon-192.png" alt="Semestry" className="w-10 h-10 rounded-lg mb-3" style={{ filter: 'var(--accent-icon-filter)' }} />
+            <h1 className="text-lg font-semibold text-[var(--text-primary)]">Semestry</h1>
             <p className="text-[var(--text-muted)] text-sm">
               {isLogin ? 'Entre na sua conta' : 'Crie sua conta'}
             </p>
           </div>
 
-          {success && (
-            <div className="mb-6 p-4 rounded-2xl flex items-center gap-3 bg-emerald-500/10 border border-emerald-500/30 text-emerald-400">
-              <CheckCircle size={18} />
-              <span className="text-sm">{success}</span>
-            </div>
-          )}
-
-          {error && (
-            <div className="mb-6 p-4 rounded-2xl flex items-center gap-3 bg-red-500/10 border border-red-500/30 text-red-400">
-              <AlertCircle size={18} />
-              <span className="text-sm">{error}</span>
-            </div>
-          )}
+          {success && <AlertBox type="success" message={success} />}
+          {error && <AlertBox type="error" message={error} />}
 
           <form onSubmit={handleSubmit} className="space-y-3">
             <div>
-              <label className="text-sm text-[var(--text-secondary)] block mb-2">Email</label>
+              <label className="text-xs text-[var(--text-muted)] block mb-1.5">Email</label>
               <div className="relative">
-                <Mail size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" />
+                <Mail size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" />
                 <input
                   type="email"
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  className="w-full pl-12 pr-4 py-3 rounded-xl bg-[var(--bg-input)] border border-[var(--border-input)] text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none transition-all"
-                  style={{ borderColor: undefined }}
-                  onFocus={(e) => e.target.style.borderColor = 'var(--accent-500)'}
-                  onBlur={(e) => e.target.style.borderColor = ''}
+                  className="w-full pl-10 pr-3 py-2 rounded-md bg-[var(--bg-input)] border border-[var(--border-input)] text-[var(--text-primary)] text-sm placeholder-[var(--text-muted)] focus:outline-none focus:border-[var(--accent-500)] transition-colors"
                   placeholder="seu@email.com"
                   required
                 />
@@ -229,57 +197,48 @@ export default function Login() {
             </div>
 
             <div>
-              <div className="flex justify-between items-center mb-2">
-                <label className="text-sm text-[var(--text-secondary)]">Senha</label>
+              <div className="flex justify-between items-center mb-1.5">
+                <label className="text-xs text-[var(--text-muted)]">Senha</label>
                 {isLogin && (
                   <button
                     type="button"
                     onClick={() => { setIsForgotPassword(true); setError(''); setSuccess(''); }}
-                    className="text-xs transition-colors"
-                    style={{ color: 'var(--accent-400)' }}
-                    onMouseEnter={(e) => e.target.style.opacity = '0.8'}
-                    onMouseLeave={(e) => e.target.style.opacity = '1'}
+                    className="text-xs text-[var(--accent-400)] hover:text-[var(--accent-500)] transition-colors"
                   >
                     Esqueci minha senha
                   </button>
                 )}
               </div>
               <div className="relative">
-                <Lock size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" />
+                <Lock size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" />
                 <input
                   type={showPassword ? 'text' : 'password'}
                   value={formData.password}
                   onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                  className="w-full pl-12 pr-12 py-3 rounded-xl bg-[var(--bg-input)] border border-[var(--border-input)] text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none transition-all"
-                  style={{ borderColor: undefined }}
-                  onFocus={(e) => e.target.style.borderColor = 'var(--accent-500)'}
-                  onBlur={(e) => e.target.style.borderColor = ''}
+                  className="w-full pl-10 pr-10 py-2 rounded-md bg-[var(--bg-input)] border border-[var(--border-input)] text-[var(--text-primary)] text-sm placeholder-[var(--text-muted)] focus:outline-none focus:border-[var(--accent-500)] transition-colors"
                   placeholder="Sua senha"
                   required
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 text-[var(--text-muted)] hover:text-white transition-colors"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
                 >
-                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                 </button>
               </div>
             </div>
 
             {!isLogin && (
               <div>
-                <label className="text-sm text-[var(--text-secondary)] block mb-2">Confirmar Senha</label>
+                <label className="text-xs text-[var(--text-muted)] block mb-1.5">Confirmar Senha</label>
                 <div className="relative">
-                  <Lock size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" />
+                  <Lock size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" />
                   <input
                     type={showPassword ? 'text' : 'password'}
                     value={formData.confirmPassword}
                     onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
-                    className="w-full pl-12 pr-4 py-3 rounded-xl bg-[var(--bg-input)] border border-[var(--border-input)] text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none transition-all"
-                    style={{ borderColor: undefined }}
-                    onFocus={(e) => e.target.style.borderColor = 'var(--accent-500)'}
-                    onBlur={(e) => e.target.style.borderColor = ''}
+                    className="w-full pl-10 pr-3 py-2 rounded-md bg-[var(--bg-input)] border border-[var(--border-input)] text-[var(--text-primary)] text-sm placeholder-[var(--text-muted)] focus:outline-none focus:border-[var(--accent-500)] transition-colors"
                     placeholder="Confirme sua senha"
                     required
                   />
@@ -290,25 +249,24 @@ export default function Login() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-3 rounded-xl font-semibold shadow-lg transition-all duration-300 hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 text-white"
-              style={{ background: 'linear-gradient(to right, var(--accent-600), var(--accent-500))', boxShadow: '0 10px 15px -3px var(--accent-ring)' }}
+              className="w-full py-2 rounded-md bg-[var(--accent-500)] hover:bg-[var(--accent-600)] text-white text-sm font-medium transition-colors disabled:opacity-50"
             >
               {loading ? 'Carregando...' : (isLogin ? 'Entrar' : 'Cadastrar')}
             </button>
           </form>
 
-          <div className="flex items-center gap-4 my-4">
-            <div className="flex-1 h-px bg-white/10" />
-            <span className="text-sm text-[var(--text-muted)]">ou</span>
-            <div className="flex-1 h-px bg-white/10" />
+          <div className="flex items-center gap-3 my-4">
+            <div className="flex-1 h-px bg-[var(--border-card)]" />
+            <span className="text-xs text-[var(--text-muted)]">ou</span>
+            <div className="flex-1 h-px bg-[var(--border-card)]" />
           </div>
 
           <button
             onClick={handleGoogleLogin}
             disabled={loading}
-            className="w-full py-3 rounded-xl bg-white hover:bg-slate-100 text-slate-800 font-semibold flex items-center justify-center gap-3 transition-all duration-300 hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50"
+            className="w-full py-2 rounded-md bg-[var(--bg-input)] border border-[var(--border-input)] text-[var(--text-secondary)] text-sm font-medium flex items-center justify-center gap-2.5 hover:bg-[var(--bg-hover)] transition-colors disabled:opacity-50"
           >
-            <svg className="w-5 h-5" viewBox="0 0 24 24">
+            <svg className="w-4 h-4" viewBox="0 0 24 24">
               <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
               <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
               <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
@@ -318,7 +276,7 @@ export default function Login() {
           </button>
 
           <div className="mt-4 text-center">
-            <p className="text-[var(--text-secondary)] text-sm">
+            <p className="text-[var(--text-muted)] text-sm">
               {isLogin ? 'Não tem conta?' : 'Já tem conta?'}{' '}
               <button
                 onClick={() => {
@@ -326,8 +284,7 @@ export default function Login() {
                   setError('');
                   setSuccess('');
                 }}
-                className="font-medium transition-colors"
-                style={{ color: 'var(--accent-400)' }}
+                className="text-[var(--accent-400)] hover:text-[var(--accent-500)] font-medium transition-colors"
               >
                 {isLogin ? 'Criar conta' : 'Fazer login'}
               </button>
@@ -335,8 +292,8 @@ export default function Login() {
           </div>
         </div>
 
-        <p className="text-center text-slate-600 text-xs mt-6">
-          © 2024 Semestry. Todos os direitos reservados.
+        <p className="text-center text-[var(--text-muted)] text-xs mt-5">
+          © 2024 Semestry
         </p>
       </div>
     </div>

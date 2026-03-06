@@ -93,22 +93,22 @@ export default function SettingsModal({
   };
 
   return (
-    <div className="fixed inset-0 bg-[var(--bg-modal-overlay)] backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={(e) => e.target === e.currentTarget && onClose()}>
-      <div className="bg-[var(--bg-modal)] border border-[var(--border-input)] rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 bg-[var(--bg-modal-overlay)] flex items-center justify-center z-50 p-4" onClick={(e) => e.target === e.currentTarget && onClose()}>
+      <div className="bg-[var(--bg-modal)] border border-[var(--border-input)] rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
 
         {/* Header */}
         <div className="flex items-center justify-between p-5 pb-4 border-b border-[var(--border-input)]">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: 'var(--accent-bg10)' }}>
-              <Settings size={20} style={{ color: 'var(--accent-400)' }} />
+            <div className="w-9 h-9 rounded-lg flex items-center justify-center" style={{ background: 'var(--accent-bg10)' }}>
+              <Settings size={18} style={{ color: 'var(--accent-400)' }} />
             </div>
             <div>
-              <h2 className="text-lg font-bold text-[var(--text-primary)]">Configurações</h2>
+              <h2 className="text-base font-semibold text-[var(--text-primary)]">Configurações</h2>
               <p className="text-[var(--text-muted)] text-xs">Personalize sua experiência</p>
             </div>
           </div>
-          <button onClick={onClose} className="w-8 h-8 rounded-lg flex items-center justify-center text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-hover)] transition-colors">
-            <X size={18} />
+          <button onClick={onClose} className="w-7 h-7 rounded-md flex items-center justify-center text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-hover)] transition-colors">
+            <X size={16} />
           </button>
         </div>
 
@@ -118,7 +118,7 @@ export default function SettingsModal({
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
 
             {/* Perfil */}
-            <div className="p-4 rounded-xl bg-[var(--bg-input)] border border-[var(--border-input)]">
+            <div className="p-4 rounded-md bg-[var(--bg-input)] border border-[var(--border-input)]">
               <h4 className="font-medium text-[var(--text-primary)] text-sm mb-3">Perfil</h4>
               <div className="space-y-2.5">
                 <div>
@@ -141,7 +141,7 @@ export default function SettingsModal({
             {/* Tema + Lembretes */}
             <div className="space-y-4">
               {/* Cor do Tema */}
-              <div className="p-4 rounded-xl bg-[var(--bg-input)] border border-[var(--border-input)]">
+              <div className="p-4 rounded-md bg-[var(--bg-input)] border border-[var(--border-input)]">
                 <div className="flex items-center gap-2 mb-3">
                   <Palette size={16} style={{ color: 'var(--accent-400)' }} />
                   <h4 className="font-medium text-[var(--text-primary)] text-sm">Cor do Tema</h4>
@@ -164,7 +164,7 @@ export default function SettingsModal({
               </div>
 
               {/* Lembretes */}
-              <div className="p-4 rounded-xl bg-[var(--bg-input)] border border-[var(--border-input)]">
+              <div className="p-4 rounded-md bg-[var(--bg-input)] border border-[var(--border-input)]">
                 <div className="flex items-center gap-2 mb-3">
                   <Bell size={16} style={{ color: 'var(--accent-400)' }} />
                   <h4 className="font-medium text-[var(--text-primary)] text-sm">Lembretes</h4>
@@ -200,7 +200,7 @@ export default function SettingsModal({
           {/* Backup + Zona de Perigo lado a lado */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-5">
             {/* Backup */}
-            <div className="p-4 rounded-xl bg-[var(--bg-input)] border border-[var(--border-input)]">
+            <div className="p-4 rounded-md bg-[var(--bg-input)] border border-[var(--border-input)]">
               <div className="flex items-center gap-2 mb-2">
                 <Database size={16} className="text-amber-400" />
                 <h4 className="font-medium text-[var(--text-primary)] text-sm">Backup de Dados</h4>
@@ -209,17 +209,17 @@ export default function SettingsModal({
                 Exporte ou importe seus dados.
               </p>
               <div className="flex gap-2">
-                <button onClick={handleExport} className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-medium transition-all bg-amber-500/20 text-amber-400 hover:bg-amber-500/30">
+                <button onClick={handleExport} className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-md text-xs font-medium transition-all bg-amber-500/20 text-amber-400 hover:bg-amber-500/30">
                   <Download size={14} />Exportar
                 </button>
-                <button onClick={handleImport} className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-medium transition-all bg-[var(--bg-modal)] border border-[var(--border-input)] text-[var(--text-secondary)] hover:bg-[var(--bg-hover)]">
+                <button onClick={handleImport} className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-md text-xs font-medium transition-all bg-[var(--bg-modal)] border border-[var(--border-input)] text-[var(--text-secondary)] hover:bg-[var(--bg-hover)]">
                   <UploadIcon size={14} />Importar
                 </button>
               </div>
             </div>
 
             {/* Zona de Perigo */}
-            <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/30">
+            <div className="p-4 rounded-md bg-red-500/10 border border-red-500/30">
               <div className="flex items-center gap-2 mb-2">
                 <AlertCircle size={16} className="text-red-400" />
                 <h4 className="font-medium text-red-400 text-sm">Zona de Perigo</h4>
@@ -237,14 +237,13 @@ export default function SettingsModal({
 
           {/* Footer buttons */}
           <div className="flex gap-3">
-            <button onClick={onClose} className="flex-1 py-2.5 rounded-xl bg-[var(--bg-input)] border border-[var(--border-input)] text-[var(--text-secondary)] text-sm font-medium hover:bg-[var(--bg-hover)] transition-colors">
+            <button onClick={onClose} className="flex-1 py-2.5 rounded-md bg-[var(--bg-input)] border border-[var(--border-input)] text-[var(--text-secondary)] text-sm font-medium hover:bg-[var(--bg-hover)] transition-colors">
               Cancelar
             </button>
             <button
               onClick={onSave}
               disabled={savingSettings}
-              className="flex-1 py-2.5 rounded-xl text-white text-sm font-medium transition-all disabled:opacity-50 flex items-center justify-center gap-2"
-              style={{ background: 'linear-gradient(to right, var(--accent-600), var(--accent-500))' }}
+              className="flex-1 py-2.5 rounded-md bg-[var(--accent-500)] hover:bg-[var(--accent-600)] text-white text-sm font-medium transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
             >
               {savingSettings ? <RefreshCw size={16} className="animate-spin" /> : <><Save size={16} />Salvar</>}
             </button>

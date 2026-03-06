@@ -3,11 +3,10 @@ export default function GlassCard({ children, className = '', hover = true, onCl
     <div
       onClick={onClick}
       className={`
-        relative overflow-hidden rounded-2xl
-        bg-[var(--bg-card)] dark:backdrop-blur-xl
+        relative overflow-hidden rounded-lg
+        bg-[var(--bg-card)]
         border border-[var(--border-card)]
-        shadow-[var(--shadow-card)]
-        transition-all duration-300
+        transition-colors duration-150
         ${hover ? 'hover:bg-[var(--bg-card-hover)] cursor-pointer' : ''}
         ${className}
       `}

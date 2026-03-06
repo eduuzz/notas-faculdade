@@ -12,9 +12,7 @@ export default function ResetPassword({ onComplete }) {
     confirmPassword: ''
   });
 
-  // Usuário já está autenticado pelo link do Supabase
   useEffect(() => {
-    // Limpa qualquer erro anterior
     setError('');
   }, []);
 
@@ -23,7 +21,6 @@ export default function ResetPassword({ onComplete }) {
     setError('');
     setLoading(true);
 
-    // Validações
     if (formData.password.length < 6) {
       setError('A senha deve ter pelo menos 6 caracteres');
       setLoading(false);
@@ -45,7 +42,6 @@ export default function ResetPassword({ onComplete }) {
         setError(error.message);
       } else {
         setSuccess(true);
-        // Redireciona para o sistema após 3 segundos
         setTimeout(() => {
           if (onComplete) {
             onComplete();
@@ -60,31 +56,21 @@ export default function ResetPassword({ onComplete }) {
     setLoading(false);
   };
 
-  // Tela de sucesso
   if (success) {
     return (
       <div className="min-h-screen bg-[var(--bg-root)] text-[var(--text-primary)] flex items-center justify-center p-4">
-        {/* Background Effects */}
-        <div className="fixed inset-0 overflow-hidden pointer-events-none dark:block hidden">
-          <div className="absolute top-[-20%] right-[-10%] w-[600px] h-[600px] bg-[var(--accent-glow1)] rounded-full blur-[120px]" />
-          <div className="absolute bottom-[-20%] left-[-10%] w-[500px] h-[500px] bg-[var(--accent-glow2)] rounded-full blur-[100px]" />
-          <div className="absolute top-[40%] left-[50%] w-[300px] h-[300px] bg-[var(--accent-bg10)] rounded-full blur-[80px]" />
-        </div>
-
-        {/* Card */}
-        <div className="relative z-10 w-full max-w-md">
-          <div className="relative overflow-hidden rounded-3xl bg-[var(--bg-card)] dark:backdrop-blur-xl border border-[var(--border-card)] shadow-[var(--shadow-card)] p-8 text-center">
-            <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-emerald-500/20 border border-emerald-500/30 mb-6">
-              <CheckCircle size={40} className="text-emerald-400" />
+        <div className="w-full max-w-sm">
+          <div className="rounded-lg bg-[var(--bg-card)] border border-[var(--border-card)] p-6 text-center">
+            <div className="inline-flex items-center justify-center w-12 h-12 rounded-lg bg-emerald-500/10 border border-emerald-500/20 mb-4">
+              <CheckCircle size={24} className="text-emerald-400" />
             </div>
-            <h1 className="text-2xl font-semibold tracking-tight mb-2">Senha Alterada!</h1>
-            <p className="text-[var(--text-secondary)] mb-6">
-              Sua senha foi atualizada com sucesso. Você será redirecionado para o login em instantes...
+            <h1 className="text-lg font-semibold mb-1.5">Senha Alterada!</h1>
+            <p className="text-sm text-[var(--text-muted)] mb-5">
+              Sua senha foi atualizada. Você será redirecionado em instantes...
             </p>
             <button
               onClick={() => onComplete ? onComplete() : window.location.href = '/'}
-              className="inline-block w-full py-4 rounded-2xl font-semibold shadow-lg transition-all duration-300 hover:scale-[1.02] active:scale-[0.98] text-white"
-              style={{ background: 'linear-gradient(to right, var(--accent-600), var(--accent-500))', boxShadow: '0 10px 15px -3px var(--accent-ring)' }}
+              className="w-full py-2 rounded-md bg-[var(--accent-500)] hover:bg-[var(--accent-600)] text-white text-sm font-medium transition-colors"
             >
               Acessar o Sistema
             </button>
@@ -96,46 +82,35 @@ export default function ResetPassword({ onComplete }) {
 
   return (
     <div className="min-h-screen bg-[var(--bg-root)] text-[var(--text-primary)] flex items-center justify-center p-4">
-      {/* Background Effects */}
-      <div className="fixed inset-0 overflow-hidden pointer-events-none dark:block hidden">
-        <div className="absolute top-[-20%] right-[-10%] w-[600px] h-[600px] bg-[var(--accent-glow1)] rounded-full blur-[120px]" />
-        <div className="absolute bottom-[-20%] left-[-10%] w-[500px] h-[500px] bg-[var(--accent-glow2)] rounded-full blur-[100px]" />
-        <div className="absolute top-[40%] left-[50%] w-[300px] h-[300px] bg-[var(--accent-bg10)] rounded-full blur-[80px]" />
-      </div>
-
-      {/* Card */}
-      <div className="relative z-10 w-full max-w-md">
-        <div className="relative overflow-hidden rounded-3xl bg-[var(--bg-card)] dark:backdrop-blur-xl border border-[var(--border-card)] shadow-[var(--shadow-card)] p-8">
-          {/* Logo */}
-          <div className="text-center mb-8">
-            <div className="inline-flex items-center justify-center w-20 h-20 rounded-[22px] shadow-xl mb-4" style={{ background: 'linear-gradient(to bottom right, var(--accent-500), var(--accent-600))', boxShadow: '0 20px 25px -5px var(--accent-ring)' }}>
-              <GraduationCap size={40} className="text-white" />
+      <div className="w-full max-w-sm">
+        <div className="rounded-lg bg-[var(--bg-card)] border border-[var(--border-card)] p-6">
+          <div className="mb-6">
+            <div className="w-10 h-10 rounded-lg bg-[var(--accent-bg10)] flex items-center justify-center mb-3">
+              <GraduationCap size={20} style={{ color: 'var(--accent-400)' }} />
             </div>
-            <h1 className="text-2xl font-semibold tracking-tight">Nova Senha</h1>
+            <h1 className="text-lg font-semibold">Nova Senha</h1>
             <p className="text-[var(--text-muted)] text-sm mt-1">
               Digite sua nova senha
             </p>
           </div>
 
-          {/* Error Message */}
           {error && (
-            <div className="mb-6 p-4 rounded-2xl flex items-center gap-3 bg-red-500/10 border border-red-500/30 text-red-400">
-              <AlertCircle size={18} />
-              <span className="text-sm">{error}</span>
+            <div className="mb-4 px-3 py-2.5 rounded-md flex items-center gap-2.5 bg-red-500/8 border border-red-500/20 text-red-400 text-sm">
+              <AlertCircle size={16} />
+              <span>{error}</span>
             </div>
           )}
 
-          {/* Form */}
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-3">
             <div>
-              <label className="text-sm text-[var(--text-secondary)] block mb-2">Nova Senha</label>
+              <label className="text-xs text-[var(--text-muted)] block mb-1.5">Nova Senha</label>
               <div className="relative">
-                <Lock size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" />
+                <Lock size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" />
                 <input
                   type={showPassword ? 'text' : 'password'}
                   value={formData.password}
                   onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                  className="w-full pl-12 pr-12 py-3.5 rounded-2xl bg-[var(--bg-input)] border border-[var(--border-input)] text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none focus:border-[var(--accent-500)] focus:bg-white/[0.07] transition-all duration-300"
+                  className="w-full pl-10 pr-10 py-2 rounded-md bg-[var(--bg-input)] border border-[var(--border-input)] text-[var(--text-primary)] text-sm placeholder-[var(--text-muted)] focus:outline-none focus:border-[var(--accent-500)] transition-colors"
                   placeholder="Mínimo 6 caracteres"
                   required
                   minLength={6}
@@ -143,38 +118,37 @@ export default function ResetPassword({ onComplete }) {
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 text-[var(--text-muted)] hover:text-white transition-colors"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
                 >
-                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                 </button>
               </div>
             </div>
 
             <div>
-              <label className="text-sm text-[var(--text-secondary)] block mb-2">Confirmar Nova Senha</label>
+              <label className="text-xs text-[var(--text-muted)] block mb-1.5">Confirmar Nova Senha</label>
               <div className="relative">
-                <Lock size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" />
+                <Lock size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" />
                 <input
                   type={showPassword ? 'text' : 'password'}
                   value={formData.confirmPassword}
                   onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
-                  className="w-full pl-12 pr-4 py-3.5 rounded-2xl bg-[var(--bg-input)] border border-[var(--border-input)] text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none focus:border-[var(--accent-500)] focus:bg-white/[0.07] transition-all duration-300"
+                  className="w-full pl-10 pr-3 py-2 rounded-md bg-[var(--bg-input)] border border-[var(--border-input)] text-[var(--text-primary)] text-sm placeholder-[var(--text-muted)] focus:outline-none focus:border-[var(--accent-500)] transition-colors"
                   placeholder="Repita a senha"
                   required
                 />
               </div>
             </div>
 
-            {/* Password strength indicator */}
             {formData.password && (
-              <div className="space-y-2">
+              <div className="space-y-1.5">
                 <div className="flex gap-1">
-                  <div className={`h-1 flex-1 rounded-full ${formData.password.length >= 6 ? 'bg-emerald-500' : 'bg-slate-700'}`} />
-                  <div className={`h-1 flex-1 rounded-full ${formData.password.length >= 8 ? 'bg-emerald-500' : 'bg-slate-700'}`} />
-                  <div className={`h-1 flex-1 rounded-full ${formData.password.length >= 10 && /[A-Z]/.test(formData.password) ? 'bg-emerald-500' : 'bg-slate-700'}`} />
-                  <div className={`h-1 flex-1 rounded-full ${formData.password.length >= 10 && /[A-Z]/.test(formData.password) && /[0-9]/.test(formData.password) ? 'bg-emerald-500' : 'bg-slate-700'}`} />
+                  <div className={`h-0.5 flex-1 rounded-full ${formData.password.length >= 6 ? 'bg-emerald-500' : 'bg-[var(--border-card)]'}`} />
+                  <div className={`h-0.5 flex-1 rounded-full ${formData.password.length >= 8 ? 'bg-emerald-500' : 'bg-[var(--border-card)]'}`} />
+                  <div className={`h-0.5 flex-1 rounded-full ${formData.password.length >= 10 && /[A-Z]/.test(formData.password) ? 'bg-emerald-500' : 'bg-[var(--border-card)]'}`} />
+                  <div className={`h-0.5 flex-1 rounded-full ${formData.password.length >= 10 && /[A-Z]/.test(formData.password) && /[0-9]/.test(formData.password) ? 'bg-emerald-500' : 'bg-[var(--border-card)]'}`} />
                 </div>
-                <p className="text-xs text-[var(--text-muted)]">
+                <p className="text-[10px] text-[var(--text-muted)]">
                   {formData.password.length < 6 && 'Senha muito curta'}
                   {formData.password.length >= 6 && formData.password.length < 8 && 'Senha fraca'}
                   {formData.password.length >= 8 && formData.password.length < 10 && 'Senha média'}
@@ -186,29 +160,21 @@ export default function ResetPassword({ onComplete }) {
             <button
               type="submit"
               disabled={loading || error.includes('Link inválido')}
-              className="w-full py-4 rounded-2xl font-semibold shadow-lg transition-all duration-300 hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:hover:scale-100 text-white"
-              style={{ background: 'linear-gradient(to right, var(--accent-600), var(--accent-500))', boxShadow: '0 10px 15px -3px var(--accent-ring)' }}
+              className="w-full py-2 rounded-md bg-[var(--accent-500)] hover:bg-[var(--accent-600)] text-white text-sm font-medium transition-colors disabled:opacity-50"
             >
               {loading ? 'Salvando...' : 'Salvar Nova Senha'}
             </button>
           </form>
 
-          {/* Link para login */}
-          <div className="mt-6 text-center">
-            <a
-              href="/"
-              className="text-[var(--text-secondary)] text-sm transition-colors"
-              onMouseEnter={(e) => e.target.style.color = 'var(--accent-400)'}
-              onMouseLeave={(e) => e.target.style.color = ''}
-            >
-              ← Voltar ao login
+          <div className="mt-4 text-center">
+            <a href="/" className="text-xs text-[var(--text-muted)] hover:text-[var(--accent-400)] transition-colors">
+              Voltar ao login
             </a>
           </div>
         </div>
 
-        {/* Footer */}
-        <p className="text-center text-slate-600 text-xs mt-6">
-          © 2024 Semestry. Todos os direitos reservados.
+        <p className="text-center text-[var(--text-muted)] text-xs mt-5">
+          © 2024 Semestry
         </p>
       </div>
     </div>

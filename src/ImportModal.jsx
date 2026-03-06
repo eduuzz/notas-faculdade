@@ -720,21 +720,21 @@ export default function ImportModal({ onClose, onImport, onUpdate, disciplinasEx
   const isProcessando = processandoPdf || processandoIA || buscandoPortal || importando;
 
   return (
-    <div className="fixed inset-0 bg-[var(--bg-modal-overlay)] backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-[var(--bg-modal)] border border-[var(--border-input)] rounded-3xl w-full max-w-2xl max-h-[90vh] overflow-hidden shadow-2xl">
+    <div className="fixed inset-0 bg-[var(--bg-modal-overlay)] flex items-center justify-center z-50 p-4">
+      <div className="bg-[var(--bg-modal)] border border-[var(--border-input)] rounded-lg w-full max-w-2xl max-h-[90vh] overflow-hidden">
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-[var(--border-input)]">
+        <div className="flex items-center justify-between p-5 border-b border-[var(--border-input)]">
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center">
-              <Upload size={24} className="text-[var(--text-primary)]" />
+            <div className="w-10 h-10 rounded-lg bg-amber-600/15 flex items-center justify-center">
+              <Upload size={20} className="text-amber-400" />
             </div>
             <div>
-              <h2 className="text-xl font-bold text-[var(--text-primary)]">Importar Cadeiras</h2>
-              <p className="text-[var(--text-secondary)] text-sm">Análise inteligente com IA</p>
+              <h2 className="text-base font-semibold text-[var(--text-primary)]">Importar Cadeiras</h2>
+              <p className="text-[var(--text-muted)] text-xs">Análise inteligente com IA</p>
             </div>
           </div>
-          <button onClick={onClose} className="p-2 rounded-xl hover:bg-[var(--bg-hover)] transition-all">
-            <X size={20} className="text-[var(--text-secondary)]" />
+          <button onClick={onClose} className="p-1.5 rounded-md hover:bg-[var(--bg-hover)] transition-colors">
+            <X size={18} className="text-[var(--text-muted)]" />
           </button>
         </div>
 
@@ -796,8 +796,7 @@ export default function ImportModal({ onClose, onImport, onUpdate, disciplinasEx
                 <button
                   onClick={() => analisarTexto(true)}
                   disabled={!texto.trim() || isProcessando}
-                  className="flex-1 py-3 rounded-xl text-white font-medium hover:scale-[1.02] transition-all disabled:opacity-50 disabled:hover:scale-100 flex items-center justify-center gap-2"
-                  style={{ background: 'linear-gradient(to right, var(--accent-500), var(--accent-600))' }}
+                  className="flex-1 py-2 rounded-md bg-[var(--accent-500)] hover:bg-[var(--accent-600)] text-white text-sm font-medium transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
                 >
                   {processandoIA ? (
                     <><Loader2 size={18} className="animate-spin" /> Analisando...</>
@@ -828,7 +827,7 @@ export default function ImportModal({ onClose, onImport, onUpdate, disciplinasEx
             <div className="space-y-4">
               <div
                 onClick={() => !isProcessando && fileInputRef.current?.click()}
-                className={`border-2 border-dashed rounded-2xl p-4 sm:p-8 text-center cursor-pointer transition-all ${
+                className={`border border-dashed rounded-md p-4 sm:p-8 text-center cursor-pointer transition-all ${
                   isProcessando
                     ? 'border-[var(--accent-ring)] bg-[var(--accent-bg10)] cursor-wait'
                     : arquivoPdf && disciplinasPreview.length > 0
@@ -961,7 +960,7 @@ export default function ImportModal({ onClose, onImport, onUpdate, disciplinasEx
                 <button
                   onClick={buscarDoPortal}
                   disabled={!ra.trim() || !senha.trim()}
-                  className="w-full py-3 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 text-[var(--text-primary)] font-medium hover:scale-[1.02] transition-all disabled:opacity-50 disabled:hover:scale-100 flex items-center justify-center gap-2"
+                  className="w-full py-2 rounded-md bg-cyan-600 hover:bg-cyan-700 text-white text-sm font-medium transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
                 >
                   <Globe size={18} /> Buscar do Portal
                 </button>
@@ -973,7 +972,7 @@ export default function ImportModal({ onClose, onImport, onUpdate, disciplinasEx
                   </div>
                   <div className="mt-3 mx-4">
                     <div className="w-full bg-white/10 rounded-full h-1.5 overflow-hidden">
-                      <div className="bg-gradient-to-r from-cyan-500 to-blue-500 h-full rounded-full animate-pulse" style={{ width: '100%' }} />
+                      <div className="bg-cyan-600 h-full rounded-full animate-pulse" style={{ width: '100%' }} />
                     </div>
                   </div>
                 </div>
@@ -1198,7 +1197,7 @@ export default function ImportModal({ onClose, onImport, onUpdate, disciplinasEx
           <div className="px-6 pt-4">
             <div className="w-full bg-[var(--bg-input)] rounded-full h-2 overflow-hidden">
               <div
-                className="h-full bg-gradient-to-r from-amber-500 to-orange-500 rounded-full transition-all duration-500"
+                className="h-full bg-amber-500 rounded-full transition-all duration-500"
                 style={{ width: `${Math.max(5, (importProgress.current / importProgress.total) * 100)}%` }}
               />
             </div>
@@ -1219,7 +1218,7 @@ export default function ImportModal({ onClose, onImport, onUpdate, disciplinasEx
           <button
             onClick={confirmarImportacao}
             disabled={(disciplinasNovas.length === 0 && disciplinasAtualizadas.length === 0) || isProcessando}
-            className="flex-1 py-3 rounded-xl bg-gradient-to-r from-amber-500 to-orange-600 text-[var(--text-primary)] font-medium hover:scale-[1.02] transition-all disabled:opacity-50 disabled:hover:scale-100 flex items-center justify-center gap-2"
+            className="flex-1 py-2 rounded-md bg-amber-600 hover:bg-amber-700 text-white text-sm font-medium transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
           >
             {importando ? (
               <><Loader2 size={18} className="animate-spin" /> {importProgress.step || 'Salvando...'}</>

@@ -3,7 +3,6 @@ import { motion } from 'framer-motion';
 import { Clock, Edit2, Calculator } from 'lucide-react';
 import { STATUS } from '../ui/STATUS';
 import GlassCard from '../ui/GlassCard';
-import GradientButton from '../ui/GradientButton';
 import { staggerContainer, staggerItem } from '../../utils/animations';
 
 export default function EmCursoTab({ disciplinas, setShowSimulador, startEditNotas }) {
@@ -12,53 +11,48 @@ export default function EmCursoTab({ disciplinas, setShowSimulador, startEditNot
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between mb-4">
-        <h2 className="text-xl font-semibold">Disciplinas em Curso</h2>
+        <h2 className="text-lg font-semibold">Disciplinas em Curso</h2>
         <button
           onClick={() => setShowSimulador(true)}
-          className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all bg-gradient-to-r from-amber-500 to-orange-600 text-white shadow-lg shadow-amber-500/25 hover:scale-105"
+          className="flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium transition-colors bg-amber-600 hover:bg-amber-700 text-white"
         >
-          <Calculator size={18} />
+          <Calculator size={16} />
           Simulador
         </button>
       </div>
 
       {emCurso.length === 0 ? (
         <GlassCard className="p-8 text-center" hover={false}>
-          <Clock size={48} className="mx-auto text-slate-600 mb-4" />
-          <p className="text-[var(--text-secondary)]">Nenhuma disciplina em curso</p>
+          <Clock size={40} className="mx-auto text-[var(--text-muted)] mb-3" />
+          <p className="text-[var(--text-secondary)] text-sm">Nenhuma disciplina em curso</p>
         </GlassCard>
       ) : (
-        <motion.div variants={staggerContainer} initial="initial" animate="animate" className="space-y-4">
+        <motion.div variants={staggerContainer} initial="initial" animate="animate" className="space-y-2">
         {emCurso.map(disc => {
           const status = STATUS[disc.status];
           return (
             <motion.div key={disc.id} variants={staggerItem}>
-            <GlassCard className="group" hover={false}>
-              <div className={`absolute left-0 top-0 bottom-0 w-1 ${status.bar}`} />
-              <div className="p-3 sm:p-5 pl-4 sm:pl-6">
-                <div className="flex items-center justify-between mb-3 sm:mb-4">
-                  <div className="min-w-0 flex-1 mr-2">
-                    <h4 className="font-medium text-base sm:text-lg">{disc.nome}</h4>
-                    <p className="text-xs sm:text-sm text-[var(--text-muted)]">{disc.periodo}º Semestre • {disc.creditos} créditos</p>
-                  </div>
-                  <span className={`px-2 py-1 sm:px-3 sm:py-1.5 rounded-xl text-xs sm:text-sm font-semibold shrink-0 ${status.bg} ${status.text} border ${status.border}`}>{status.label}</span>
+            <GlassCard className="group cursor-pointer" hover={false} onClick={() => startEditNotas(disc)}>
+              <div className={`absolute left-0 top-0 bottom-0 w-0.5 ${status.bar}`} />
+              <div className="px-3 py-2.5 sm:px-4 sm:py-3 flex items-center gap-3">
+                <div className="min-w-0 flex-1">
+                  <h4 className="font-medium text-sm truncate">{disc.nome}</h4>
+                  <p className="text-[11px] text-[var(--text-muted)]">{disc.periodo}º Sem · {disc.creditos} cred</p>
                 </div>
-                <div className="grid grid-cols-3 gap-2 sm:gap-4">
-                  <div className="text-center p-2 sm:p-3 rounded-xl bg-[var(--bg-input)]">
-                    <p className="text-lg sm:text-2xl font-semibold">{disc.ga ?? '-'}</p>
-                    <p className="text-xs text-[var(--text-muted)]">Grau A</p>
+                <div className="flex items-center gap-3 shrink-0">
+                  <div className="text-center">
+                    <p className="text-sm font-medium">{disc.ga ?? '-'}</p>
+                    <p className="text-[10px] text-[var(--text-muted)]">GA</p>
                   </div>
-                  <div className="text-center p-2 sm:p-3 rounded-xl bg-[var(--bg-input)]">
-                    <p className="text-lg sm:text-2xl font-semibold">{disc.gb ?? '-'}</p>
-                    <p className="text-xs text-[var(--text-muted)]">Grau B</p>
+                  <div className="text-center">
+                    <p className="text-sm font-medium">{disc.gb ?? '-'}</p>
+                    <p className="text-[10px] text-[var(--text-muted)]">GB</p>
                   </div>
-                  <div className="text-center p-2 sm:p-3 rounded-xl bg-[var(--bg-input)]">
-                    <p className="text-lg sm:text-2xl font-semibold">{disc.notaFinal ?? '-'}</p>
-                    <p className="text-xs text-[var(--text-muted)]">Final</p>
+                  <div className="text-center">
+                    <p className="text-sm font-medium">{disc.notaFinal ?? '-'}</p>
+                    <p className="text-[10px] text-[var(--text-muted)]">Final</p>
                   </div>
-                </div>
-                <div className="flex justify-end mt-4">
-                  <GradientButton size="sm" onClick={() => startEditNotas(disc)}><Edit2 size={16} />Editar Notas</GradientButton>
+                  <Edit2 size={14} className="text-[var(--text-muted)] opacity-0 group-hover:opacity-100 transition-opacity ml-1" />
                 </div>
               </div>
             </GlassCard>

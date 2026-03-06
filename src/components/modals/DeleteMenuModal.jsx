@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Trash2, RotateCcw, RefreshCw, AlertTriangle } from 'lucide-react';
+import { Trash2, RotateCcw, RefreshCw, AlertTriangle, X } from 'lucide-react';
 import GlassCard from '../ui/GlassCard';
 
 export default function DeleteMenuModal({ disc, onClose, onReset, onToggleTipo, onDelete }) {
@@ -8,10 +8,15 @@ export default function DeleteMenuModal({ disc, onClose, onReset, onToggleTipo, 
   if (!disc) return null;
 
   return (
-    <div className="fixed inset-0 bg-[var(--bg-modal-overlay)] backdrop-blur-sm flex items-center justify-center z-50 p-4">
+    <div className="fixed inset-0 bg-[var(--bg-modal-overlay)] flex items-center justify-center z-50 p-4" onClick={(e) => e.target === e.currentTarget && onClose()}>
       <GlassCard className="w-full max-w-sm" hover={false}>
         <div className="p-2">
-          <div className="p-4 border-b border-[var(--border-input)]"><h3 className="font-semibold">{disc.nome}</h3></div>
+          <div className="p-4 border-b border-[var(--border-input)] flex items-center justify-between">
+            <h3 className="font-semibold">{disc.nome}</h3>
+            <button onClick={onClose} className="p-1 rounded-md text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-hover)] transition-colors">
+              <X size={16} />
+            </button>
+          </div>
           {disc.status !== 'NAO_INICIADA' && (
             <button onClick={onReset} className="w-full flex items-center gap-3 px-4 py-4 text-left text-amber-400 hover:bg-[var(--bg-input)] transition-colors">
               <RotateCcw size={18} /><div><div className="font-medium">Resetar andamento</div><div className="text-xs text-[var(--text-muted)]">Volta para "Pendente"</div></div>

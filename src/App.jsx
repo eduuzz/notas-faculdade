@@ -13,36 +13,28 @@ const SharedGrade = React.lazy(() => import('./SharedGrade'))
 
 import { ADMIN_EMAIL } from './supabaseClient';
 
-// Spinner de carregamento reutilizável
 function LoadingSpinner() {
   return (
     <div className="min-h-screen bg-[var(--bg-root)] text-[var(--text-primary)] flex items-center justify-center">
-      <div className="fixed inset-0 overflow-hidden pointer-events-none dark:block hidden">
-        <div className="absolute top-[-20%] right-[-10%] w-[600px] h-[600px] rounded-full blur-[120px]" style={{ background: 'var(--accent-glow1)' }} />
-        <div className="absolute bottom-[-20%] left-[-10%] w-[500px] h-[500px] rounded-full blur-[100px]" style={{ background: 'var(--accent-glow2)' }} />
-      </div>
-      <div className="relative z-10 text-center">
-        <div className="w-20 h-20 rounded-[22px] flex items-center justify-center shadow-xl mx-auto mb-4" style={{ background: 'linear-gradient(to bottom right, var(--accent-500), var(--accent-600))', boxShadow: '0 20px 25px -5px var(--accent-ring)' }}>
-          <RefreshCw size={36} className="text-white animate-spin" />
+      <div className="text-center">
+        <div className="w-12 h-12 rounded-lg bg-[var(--accent-bg10)] flex items-center justify-center mx-auto mb-3">
+          <RefreshCw size={24} className="animate-spin" style={{ color: 'var(--accent-400)' }} />
         </div>
-        <p className="text-[var(--text-secondary)]">Carregando...</p>
+        <p className="text-sm text-[var(--text-muted)]">Carregando...</p>
       </div>
     </div>
   );
 }
 
-// Componente que decide o que mostrar
 function AppContent() {
   const { user, loading } = useAuth();
   const [isRecoveryMode, setIsRecoveryMode] = useState(false);
   const [checkingRecovery, setCheckingRecovery] = useState(true);
   const [showAdminPanel, setShowAdminPanel] = useState(false);
 
-  // Verifica se o usuário é admin
   const isAdmin = user?.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase();
 
   useEffect(() => {
-    // Verifica se é um fluxo de recuperação de senha
     const checkRecoveryMode = () => {
       const hashParams = new URLSearchParams(window.location.hash.substring(1));
       const queryParams = new URLSearchParams(window.location.search);
@@ -71,7 +63,6 @@ function AppContent() {
     };
   }, []);
 
-  // Rota pública de grade compartilhada
   const shareMatch = window.location.pathname.match(/^\/share\/(.+)$/);
   if (shareMatch) {
     return (
@@ -119,7 +110,6 @@ function AppContent() {
   );
 }
 
-// Error Boundary para capturar erros de render
 class ErrorBoundary extends React.Component {
   constructor(props) {
     super(props);
@@ -136,14 +126,14 @@ class ErrorBoundary extends React.Component {
       return (
         <div className="min-h-screen bg-[var(--bg-root)] text-[var(--text-primary)] flex items-center justify-center p-4">
           <div className="text-center max-w-md">
-            <div className="inline-flex items-center justify-center w-20 h-20 rounded-[22px] bg-red-500/20 border border-red-500/30 mb-6">
-              <AlertTriangle size={36} className="text-red-400" />
+            <div className="inline-flex items-center justify-center w-12 h-12 rounded-lg bg-red-500/10 border border-red-500/20 mb-4">
+              <AlertTriangle size={24} className="text-red-400" />
             </div>
-            <h1 className="text-xl font-semibold mb-2">Algo deu errado</h1>
-            <p className="text-[var(--text-secondary)] text-sm mb-4">
+            <h1 className="text-lg font-semibold mb-2">Algo deu errado</h1>
+            <p className="text-[var(--text-muted)] text-sm mb-4">
               Ocorreu um erro inesperado. Tente recarregar a página.
             </p>
-            <details className="text-left mb-6 bg-red-500/5 border border-red-500/20 rounded-xl p-3">
+            <details className="text-left mb-5 bg-red-500/5 border border-red-500/20 rounded-md p-3">
               <summary className="text-xs text-red-400 cursor-pointer">Detalhes do erro</summary>
               <pre className="mt-2 text-xs text-red-300 whitespace-pre-wrap break-all max-h-40 overflow-auto">
                 {this.state.error?.toString()}
@@ -158,8 +148,7 @@ class ErrorBoundary extends React.Component {
                 }
                 window.location.reload();
               }}
-              className="px-6 py-3 rounded-2xl font-semibold shadow-lg transition-all text-white"
-              style={{ background: 'linear-gradient(to right, var(--accent-600), var(--accent-500))', boxShadow: '0 10px 15px -3px var(--accent-ring)' }}
+              className="px-5 py-2 rounded-md bg-[var(--accent-500)] hover:bg-[var(--accent-600)] text-white text-sm font-medium transition-colors"
             >
               Recarregar
             </button>

@@ -113,77 +113,73 @@ export default function FormaturaTab({
   };
 
   return (
-    <div className="space-y-6">
-      {/* Card Principal - Previsão */}
-      <GlassCard className="p-6" hover={false}>
-        <div className="flex items-center gap-3 mb-6">
-          <div className="w-12 h-12 rounded-xl flex items-center justify-center shadow-lg" style={{ background: 'linear-gradient(to bottom right, var(--accent-500), var(--accent-600))', boxShadow: '0 10px 15px -3px var(--accent-ring)' }}>
-            <GraduationCap size={24} className="text-white" />
+    <div className="space-y-5">
+      <GlassCard className="p-5" hover={false}>
+        <div className="flex items-center gap-3 mb-5">
+          <div className="w-10 h-10 rounded-lg bg-[var(--accent-bg10)] flex items-center justify-center">
+            <GraduationCap size={20} style={{ color: 'var(--accent-400)' }} />
           </div>
-          <h3 className="text-xl font-semibold">Previsão de Formatura</h3>
+          <h3 className="text-base font-semibold">Previsão de Formatura</h3>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-4">
-          <div className="text-center p-5 rounded-2xl border" style={{ background: 'linear-gradient(to bottom right, var(--accent-bg10), var(--accent-bg10))', borderColor: 'var(--accent-ring)' }}>
-            <div className="text-4xl font-bold mb-1" style={{ color: 'var(--accent-400)' }}>{previsaoFormatura}</div>
-            <div className="text-[var(--text-secondary)] text-sm">Conclusão Prevista</div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <div className="text-center p-4 rounded-md bg-[var(--accent-bg10)] border border-[var(--accent-ring)]">
+            <div className="text-3xl font-bold mb-1" style={{ color: 'var(--accent-400)' }}>{previsaoFormatura}</div>
+            <div className="text-[var(--text-muted)] text-xs">Conclusão Prevista</div>
           </div>
-          <div className="text-center p-5 rounded-2xl bg-gradient-to-br from-amber-500/10 to-orange-500/10 border border-amber-500/20">
-            <div className="text-4xl font-bold text-amber-400 mb-1">{calcularAnosAteFormar()}</div>
-            <div className="text-[var(--text-secondary)] text-sm">Anos até Formar</div>
+          <div className="text-center p-4 rounded-md bg-[var(--bg-input)] border border-[var(--border-input)]">
+            <div className="text-3xl font-bold text-amber-400 mb-1">{calcularAnosAteFormar()}</div>
+            <div className="text-[var(--text-muted)] text-xs">Anos até Formar</div>
           </div>
-          <div className="text-center p-5 rounded-2xl bg-gradient-to-br from-emerald-500/10 to-green-500/10 border border-emerald-500/20">
-            <div className="text-4xl font-bold text-emerald-400 mb-1">{progressoTotal.toFixed(0)}%</div>
-            <div className="text-[var(--text-secondary)] text-sm">Progresso do Curso</div>
+          <div className="text-center p-4 rounded-md bg-[var(--bg-input)] border border-[var(--border-input)]">
+            <div className="text-3xl font-bold text-emerald-400 mb-1">{progressoTotal.toFixed(0)}%</div>
+            <div className="text-[var(--text-muted)] text-xs">Progresso do Curso</div>
           </div>
         </div>
       </GlassCard>
 
-      {/* Planejamento */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
-        {/* Lista Editável */}
-        <GlassCard className="p-6" hover={false}>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-5">
+        <GlassCard className="p-5" hover={false}>
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold flex items-center gap-2">
-              <Edit2 size={20} className="text-[var(--text-secondary)]" />
+            <h3 className="text-sm font-medium text-[var(--text-secondary)] flex items-center gap-2">
+              <Edit2 size={16} />
               Planejamento por Semestre
             </h3>
-            <button onClick={resetarPlanejamento} className="text-xs text-[var(--text-secondary)] flex items-center gap-1 px-3 py-1.5 rounded-lg hover:bg-[var(--bg-input)] transition-all" onMouseEnter={(e) => e.currentTarget.style.color = 'var(--accent-400)'} onMouseLeave={(e) => e.currentTarget.style.color = ''}>
-              <RefreshCw size={14} />Resetar
+            <button onClick={resetarPlanejamento} className="text-xs text-[var(--text-muted)] flex items-center gap-1 px-2 py-1 rounded-md hover:bg-[var(--bg-hover)] hover:text-[var(--text-secondary)] transition-colors">
+              <RefreshCw size={12} />Resetar
             </button>
           </div>
 
-          <div className="space-y-2 max-h-80 overflow-y-auto pr-2">
+          <div className="space-y-2 max-h-80 overflow-y-auto pr-1">
             {planejamentoSemestres.map((sem, index) => {
               const isAtual = index === 0;
               return (
-                <div key={index} className={`flex items-center gap-3 p-3 rounded-xl ${isAtual ? 'bg-blue-500/10 border border-blue-500/30' : 'bg-[var(--bg-input)] border border-[var(--border-input)]'}`}>
+                <div key={index} className={`flex items-center gap-2 p-2.5 rounded-md ${isAtual ? 'bg-blue-500/8 border border-blue-500/20' : 'bg-[var(--bg-input)] border border-[var(--border-input)]'}`}>
                   <div className="flex items-center gap-1">
-                    <input type="text" value={sem.periodo} onChange={e => atualizarPeriodo(index, e.target.value)} className={`w-20 px-2 py-1.5 bg-[var(--bg-input)] rounded-lg text-center text-sm font-medium border border-[var(--border-input)] focus:border-[var(--accent-500)] focus:outline-none ${isAtual ? 'text-blue-400' : 'text-[var(--text-secondary)]'}`} />
-                    {isAtual && <span className="text-xs text-blue-400">(atual)</span>}
+                    <input type="text" value={sem.periodo} onChange={e => atualizarPeriodo(index, e.target.value)} className={`w-18 px-2 py-1 bg-[var(--bg-input)] rounded-md text-center text-sm font-medium border border-[var(--border-input)] focus:border-[var(--accent-500)] focus:outline-none ${isAtual ? 'text-blue-400' : 'text-[var(--text-secondary)]'}`} />
+                    {isAtual && <span className="text-[10px] text-blue-400">(atual)</span>}
                   </div>
-                  <div className="flex items-center gap-2 flex-1">
-                    <button onClick={() => atualizarQuantidade(index, sem.quantidade - 1)} disabled={sem.quantidade <= 0} className="w-8 h-8 rounded-lg bg-[var(--bg-input)] hover:bg-[var(--bg-hover)] border border-[var(--border-input)] flex items-center justify-center text-lg font-bold disabled:opacity-30 transition-all">-</button>
-                    <input type="number" value={sem.quantidade} onChange={e => atualizarQuantidade(index, parseInt(e.target.value) || 0)} className="w-14 px-2 py-1.5 bg-[var(--bg-input)] rounded-lg text-center font-bold text-lg border border-[var(--border-input)] focus:border-[var(--accent-500)] focus:outline-none" min="0" max="10" />
-                    <button onClick={() => atualizarQuantidade(index, sem.quantidade + 1)} disabled={sem.quantidade >= 10} className="w-8 h-8 rounded-lg bg-[var(--bg-input)] hover:bg-[var(--bg-hover)] border border-[var(--border-input)] flex items-center justify-center text-lg font-bold disabled:opacity-30 transition-all">+</button>
+                  <div className="flex items-center gap-1.5 flex-1">
+                    <button onClick={() => atualizarQuantidade(index, sem.quantidade - 1)} disabled={sem.quantidade <= 0} className="w-7 h-7 rounded-md bg-[var(--bg-input)] hover:bg-[var(--bg-hover)] border border-[var(--border-input)] flex items-center justify-center text-sm font-bold disabled:opacity-30 transition-colors">-</button>
+                    <input type="number" value={sem.quantidade} onChange={e => atualizarQuantidade(index, parseInt(e.target.value) || 0)} className="w-12 px-1 py-1 bg-[var(--bg-input)] rounded-md text-center font-bold text-base border border-[var(--border-input)] focus:border-[var(--accent-500)] focus:outline-none" min="0" max="10" />
+                    <button onClick={() => atualizarQuantidade(index, sem.quantidade + 1)} disabled={sem.quantidade >= 10} className="w-7 h-7 rounded-md bg-[var(--bg-input)] hover:bg-[var(--bg-hover)] border border-[var(--border-input)] flex items-center justify-center text-sm font-bold disabled:opacity-30 transition-colors">+</button>
                   </div>
                   {planejamentoSemestres.length > 1 && (
-                    <button onClick={() => removerSemestre(index)} className="p-2 text-red-400 hover:bg-red-500/20 rounded-lg transition-all"><Trash2 size={16} /></button>
+                    <button onClick={() => removerSemestre(index)} className="p-1.5 text-red-400 hover:bg-red-500/10 rounded-md transition-colors"><Trash2 size={14} /></button>
                   )}
                 </div>
               );
             })}
           </div>
 
-          <button onClick={adicionarSemestre} className="mt-4 w-full py-3 border-2 border-dashed border-[var(--border-input)] rounded-xl text-[var(--text-secondary)] flex items-center justify-center gap-2 transition-all" onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'var(--accent-ring)'; e.currentTarget.style.color = 'var(--accent-400)'; }} onMouseLeave={(e) => { e.currentTarget.style.borderColor = ''; e.currentTarget.style.color = ''; }}>
-            <Plus size={18} />Adicionar Semestre
+          <button onClick={adicionarSemestre} className="mt-3 w-full py-2.5 border border-dashed border-[var(--border-input)] rounded-md text-[var(--text-muted)] text-sm flex items-center justify-center gap-1.5 hover:border-[var(--accent-ring)] hover:text-[var(--accent-400)] transition-colors">
+            <Plus size={16} />Adicionar Semestre
           </button>
         </GlassCard>
 
-        {/* Tabela Resumo */}
-        <GlassCard className="p-6" hover={false}>
-          <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-            <TrendingUp size={20} className="text-[var(--text-secondary)]" />
+        <GlassCard className="p-5" hover={false}>
+          <h3 className="text-sm font-medium text-[var(--text-secondary)] mb-4 flex items-center gap-2">
+            <TrendingUp size={16} />
             Resumo do Planejamento
           </h3>
 
@@ -191,71 +187,70 @@ export default function FormaturaTab({
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-[var(--border-input)]">
-                  <th className="text-left py-2 px-3 text-[var(--text-secondary)] font-medium">Semestre</th>
-                  <th className="text-center py-2 px-3 text-[var(--text-secondary)] font-medium">Qtd</th>
-                  <th className="text-center py-2 px-3 text-[var(--text-secondary)] font-medium">Acum.</th>
-                  <th className="text-right py-2 px-3 text-[var(--text-secondary)] font-medium">%</th>
+                  <th className="text-left py-2 px-2 text-[var(--text-muted)] text-xs font-medium">Semestre</th>
+                  <th className="text-center py-2 px-2 text-[var(--text-muted)] text-xs font-medium">Qtd</th>
+                  <th className="text-center py-2 px-2 text-[var(--text-muted)] text-xs font-medium">Acum.</th>
+                  <th className="text-right py-2 px-2 text-[var(--text-muted)] text-xs font-medium">%</th>
                 </tr>
               </thead>
               <tbody>
-                <tr className="border-b border-white/5">
-                  <td className="py-2 px-3 text-emerald-400">✓ Aprovadas</td>
-                  <td className="text-center py-2 px-3 font-bold text-emerald-400">{disciplinasAprovadas}</td>
-                  <td className="text-center py-2 px-3 text-[var(--text-secondary)]">{disciplinasAprovadas}</td>
-                  <td className="text-right py-2 px-3 text-[var(--text-secondary)]">{totalDisciplinas > 0 ? ((disciplinasAprovadas / totalDisciplinas) * 100).toFixed(0) : 0}%</td>
+                <tr className="border-b border-[var(--border-card)]">
+                  <td className="py-2 px-2 text-emerald-400 text-xs">Aprovadas</td>
+                  <td className="text-center py-2 px-2 font-bold text-emerald-400">{disciplinasAprovadas}</td>
+                  <td className="text-center py-2 px-2 text-[var(--text-muted)]">{disciplinasAprovadas}</td>
+                  <td className="text-right py-2 px-2 text-[var(--text-muted)]">{totalDisciplinas > 0 ? ((disciplinasAprovadas / totalDisciplinas) * 100).toFixed(0) : 0}%</td>
                 </tr>
                 {planejamentoSemestres.map((sem, index) => {
                   const acumulado = calcularAcumulado(index);
                   const percentual = totalDisciplinas > 0 ? (acumulado / totalDisciplinas) * 100 : 0;
                   const isAtual = index === 0;
                   return (
-                    <tr key={index} className={`border-b border-white/5 ${isAtual ? 'bg-blue-500/5' : ''}`}>
-                      <td className={`py-2 px-3 ${isAtual ? 'text-blue-400' : 'text-[var(--text-secondary)]'}`}>{sem.periodo} {isAtual && '(atual)'}</td>
-                      <td className="text-center py-2 px-3 font-bold">{sem.quantidade}</td>
-                      <td className="text-center py-2 px-3 text-[var(--text-secondary)]">{acumulado}</td>
-                      <td className="text-right py-2 px-3 text-[var(--text-secondary)]">{percentual.toFixed(0)}%</td>
+                    <tr key={index} className={`border-b border-[var(--border-card)] ${isAtual ? 'bg-blue-500/5' : ''}`}>
+                      <td className={`py-2 px-2 text-xs ${isAtual ? 'text-blue-400' : 'text-[var(--text-secondary)]'}`}>{sem.periodo} {isAtual && '(atual)'}</td>
+                      <td className="text-center py-2 px-2 font-bold">{sem.quantidade}</td>
+                      <td className="text-center py-2 px-2 text-[var(--text-muted)]">{acumulado}</td>
+                      <td className="text-right py-2 px-2 text-[var(--text-muted)]">{percentual.toFixed(0)}%</td>
                     </tr>
                   );
                 })}
                 <tr className="bg-[var(--bg-input)] font-bold">
-                  <td className="py-3 px-3" style={{ color: 'var(--accent-400)' }}>Total Planejado</td>
-                  <td className="text-center py-3 px-3" style={{ color: 'var(--accent-400)' }}>{totalPlanejado}</td>
-                  <td className="text-center py-3 px-3">{disciplinasAprovadas + totalPlanejado}</td>
-                  <td className="text-right py-3 px-3" style={{ color: 'var(--accent-400)' }}>{totalDisciplinas > 0 ? (((disciplinasAprovadas + totalPlanejado) / totalDisciplinas) * 100).toFixed(0) : 0}%</td>
+                  <td className="py-2.5 px-2 text-xs" style={{ color: 'var(--accent-400)' }}>Total Planejado</td>
+                  <td className="text-center py-2.5 px-2" style={{ color: 'var(--accent-400)' }}>{totalPlanejado}</td>
+                  <td className="text-center py-2.5 px-2">{disciplinasAprovadas + totalPlanejado}</td>
+                  <td className="text-right py-2.5 px-2" style={{ color: 'var(--accent-400)' }}>{totalDisciplinas > 0 ? (((disciplinasAprovadas + totalPlanejado) / totalDisciplinas) * 100).toFixed(0) : 0}%</td>
                 </tr>
               </tbody>
             </table>
           </div>
 
           {disciplinasFaltando > 0 && (
-            <div className="mt-4 p-3 bg-amber-500/10 border border-amber-500/30 rounded-xl flex items-center gap-2">
-              <AlertCircle className="text-amber-400" size={18} />
-              <span className="text-sm text-amber-200">Faltam <strong>{disciplinasFaltando}</strong> disciplinas no planejamento</span>
+            <div className="mt-3 p-2.5 bg-amber-500/8 border border-amber-500/20 rounded-md flex items-center gap-2">
+              <AlertCircle className="text-amber-400 shrink-0" size={16} />
+              <span className="text-xs text-amber-300">Faltam <strong>{disciplinasFaltando}</strong> disciplinas no planejamento</span>
             </div>
           )}
           {disciplinasFaltando < 0 && (
-            <div className="mt-4 p-3 bg-red-500/10 border border-red-500/30 rounded-xl flex items-center gap-2">
-              <AlertCircle className="text-red-400" size={18} />
-              <span className="text-sm text-red-200">Planejamento excede em <strong>{Math.abs(disciplinasFaltando)}</strong> disciplinas</span>
+            <div className="mt-3 p-2.5 bg-red-500/8 border border-red-500/20 rounded-md flex items-center gap-2">
+              <AlertCircle className="text-red-400 shrink-0" size={16} />
+              <span className="text-xs text-red-300">Planejamento excede em <strong>{Math.abs(disciplinasFaltando)}</strong> disciplinas</span>
             </div>
           )}
           {disciplinasFaltando === 0 && (
-            <div className="mt-4 p-3 bg-emerald-500/10 border border-emerald-500/30 rounded-xl flex items-center gap-2">
-              <CheckCircle className="text-emerald-400" size={18} />
-              <span className="text-sm text-emerald-200">Planejamento completo!</span>
+            <div className="mt-3 p-2.5 bg-emerald-500/8 border border-emerald-500/20 rounded-md flex items-center gap-2">
+              <CheckCircle className="text-emerald-400 shrink-0" size={16} />
+              <span className="text-xs text-emerald-300">Planejamento completo!</span>
             </div>
           )}
         </GlassCard>
       </div>
 
-      {/* Dica */}
-      <GlassCard className="p-4" hover={false}>
-        <div className="flex items-start gap-3">
-          <AlertCircle className="shrink-0 mt-0.5" size={20} style={{ color: 'var(--accent-400)' }} />
-          <div className="text-sm text-[var(--text-secondary)]">
+      <GlassCard className="p-3.5" hover={false}>
+        <div className="flex items-start gap-2.5">
+          <AlertCircle className="shrink-0 mt-0.5" size={16} style={{ color: 'var(--accent-400)' }} />
+          <p className="text-xs text-[var(--text-muted)]">
             <strong className="text-[var(--text-secondary)]">Dica:</strong> Ajuste a quantidade de disciplinas por semestre usando os botões + e -.
             O sistema calcula automaticamente sua previsão de formatura baseado no planejamento.
-          </div>
+          </p>
         </div>
       </GlassCard>
     </div>

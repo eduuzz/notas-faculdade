@@ -14,20 +14,20 @@ export default function AddDisciplinaModal({
   periodos,
 }) {
   return (
-    <div className="fixed inset-0 bg-[var(--bg-modal-overlay)] backdrop-blur-sm flex items-center justify-center z-50 p-4">
+    <div className="fixed inset-0 bg-[var(--bg-modal-overlay)] flex items-center justify-center z-50 p-4">
       <GlassCard className="w-full max-w-lg" hover={false}>
-        <div className="p-6">
-          <div className="flex items-center justify-between mb-6">
-            <h3 className="text-xl font-semibold">Adicionar Cadeira</h3>
-            <button onClick={onClose} className="p-2 rounded-lg hover:bg-[var(--bg-hover)] transition-all">
-              <X size={20} className="text-[var(--text-secondary)]" />
+        <div className="p-5">
+          <div className="flex items-center justify-between mb-5">
+            <h3 className="text-base font-semibold">Adicionar Cadeira</h3>
+            <button onClick={onClose} className="p-1.5 rounded-md hover:bg-[var(--bg-hover)] transition-colors">
+              <X size={18} className="text-[var(--text-muted)]" />
             </button>
           </div>
 
-          <div className="flex gap-2 mb-6">
+          <div className="flex gap-2 mb-5">
             <button
               onClick={() => setModoAdicionar('uma')}
-              className={`flex-1 py-2 px-4 rounded-xl text-sm font-medium transition-all ${
+              className={`flex-1 py-1.5 px-3 rounded-md text-sm font-medium transition-colors ${
                 modoAdicionar === 'uma' ? 'bg-[var(--accent-bg10)] text-[var(--accent-400)] border border-[var(--accent-ring)]' : 'bg-[var(--bg-input)] text-[var(--text-secondary)] border border-[var(--border-input)] hover:bg-[var(--bg-hover)]'
               }`}
             >
@@ -35,7 +35,7 @@ export default function AddDisciplinaModal({
             </button>
             <button
               onClick={() => setModoAdicionar('varias')}
-              className={`flex-1 py-2 px-4 rounded-xl text-sm font-medium transition-all ${
+              className={`flex-1 py-1.5 px-3 rounded-md text-sm font-medium transition-colors ${
                 modoAdicionar === 'varias' ? 'bg-[var(--accent-bg10)] text-[var(--accent-400)] border border-[var(--accent-ring)]' : 'bg-[var(--bg-input)] text-[var(--text-secondary)] border border-[var(--border-input)] hover:bg-[var(--bg-hover)]'
               }`}
             >
@@ -44,92 +44,92 @@ export default function AddDisciplinaModal({
           </div>
 
           {modoAdicionar === 'uma' ? (
-            <div className="space-y-4">
+            <div className="space-y-3">
               <div>
-                <label className="text-sm text-[var(--text-secondary)] block mb-2">Nome da Cadeira</label>
+                <label className="text-xs text-[var(--text-muted)] block mb-1.5">Nome da Cadeira</label>
                 <input
                   type="text"
                   value={novaDisciplina.nome}
                   onChange={(e) => setNovaDisciplina({ ...novaDisciplina, nome: e.target.value.slice(0, 100) })}
-                  className="w-full px-4 py-3 rounded-xl bg-[var(--bg-input)] border border-[var(--border-input)] text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent-500)]"
+                  className="w-full px-3 py-2 rounded-md bg-[var(--bg-input)] border border-[var(--border-input)] text-[var(--text-primary)] text-sm focus:outline-none focus:border-[var(--accent-500)] transition-colors"
                   placeholder="Ex: Cálculo I"
                   maxLength={100}
                 />
               </div>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                 <div>
-                  <label className="text-sm text-[var(--text-secondary)] block mb-2">Semestre</label>
+                  <label className="text-xs text-[var(--text-muted)] block mb-1.5">Semestre</label>
                   <select
                     value={novaDisciplina.periodo}
                     onChange={(e) => setNovaDisciplina({ ...novaDisciplina, periodo: parseInt(e.target.value) })}
-                    className="w-full px-4 py-3 rounded-xl bg-[var(--bg-input)] border border-[var(--border-input)] text-[var(--text-primary)] focus:outline-none"
+                    className="w-full px-3 py-2 rounded-md bg-[var(--bg-input)] border border-[var(--border-input)] text-[var(--text-primary)] text-sm focus:outline-none cursor-pointer"
                   >
-                    {periodos.map(p => (<option key={p} value={p} className="bg-slate-800">{p}º</option>))}
+                    {periodos.map(p => (<option key={p} value={p}>{p}º</option>))}
                   </select>
                 </div>
                 <div>
-                  <label className="text-sm text-[var(--text-secondary)] block mb-2">Tipo</label>
+                  <label className="text-xs text-[var(--text-muted)] block mb-1.5">Tipo</label>
                   <select
                     value={novaDisciplina.tipo}
                     onChange={(e) => setNovaDisciplina({ ...novaDisciplina, tipo: e.target.value })}
-                    className="w-full px-4 py-3 rounded-xl bg-[var(--bg-input)] border border-[var(--border-input)] text-[var(--text-primary)] focus:outline-none"
+                    className="w-full px-3 py-2 rounded-md bg-[var(--bg-input)] border border-[var(--border-input)] text-[var(--text-primary)] text-sm focus:outline-none cursor-pointer"
                   >
-                    <option value="obrigatoria" className="bg-slate-800">Obrigatória</option>
-                    <option value="optativa" className="bg-slate-800">Optativa</option>
+                    <option value="obrigatoria">Obrigatória</option>
+                    <option value="optativa">Optativa</option>
                   </select>
                 </div>
                 <div>
-                  <label className="text-sm text-[var(--text-secondary)] block mb-2">Créditos</label>
+                  <label className="text-xs text-[var(--text-muted)] block mb-1.5">Créditos</label>
                   <input
                     type="number"
                     min="1" max="30"
                     value={novaDisciplina.creditos}
                     onChange={(e) => { const v = parseInt(e.target.value); if (!isNaN(v)) setNovaDisciplina({ ...novaDisciplina, creditos: Math.min(30, Math.max(1, v)) }); }}
-                    className="w-full px-4 py-3 rounded-xl bg-[var(--bg-input)] border border-[var(--border-input)] text-[var(--text-primary)] focus:outline-none"
+                    className="w-full px-3 py-2 rounded-md bg-[var(--bg-input)] border border-[var(--border-input)] text-[var(--text-primary)] text-sm focus:outline-none"
                   />
                 </div>
                 <div>
-                  <label className="text-sm text-[var(--text-secondary)] block mb-2">Carga H.</label>
+                  <label className="text-xs text-[var(--text-muted)] block mb-1.5">Carga H.</label>
                   <input
                     type="number"
                     min="1" max="600"
                     value={novaDisciplina.cargaHoraria}
                     onChange={(e) => { const v = parseInt(e.target.value); if (!isNaN(v)) setNovaDisciplina({ ...novaDisciplina, cargaHoraria: Math.min(600, Math.max(1, v)) }); }}
-                    className="w-full px-4 py-3 rounded-xl bg-[var(--bg-input)] border border-[var(--border-input)] text-[var(--text-primary)] focus:outline-none"
+                    className="w-full px-3 py-2 rounded-md bg-[var(--bg-input)] border border-[var(--border-input)] text-[var(--text-primary)] text-sm focus:outline-none"
                   />
                 </div>
               </div>
-              <div className="flex gap-3 mt-6">
+              <div className="flex gap-2.5 mt-5">
                 <GradientButton variant="secondary" className="flex-1" onClick={onClose}>Cancelar</GradientButton>
                 <GradientButton className="flex-1" onClick={handleAddDisciplina}>Adicionar</GradientButton>
               </div>
             </div>
           ) : (
-            <div className="space-y-4">
+            <div className="space-y-3">
               <div>
-                <label className="text-sm text-[var(--text-secondary)] block mb-2">Semestre</label>
+                <label className="text-xs text-[var(--text-muted)] block mb-1.5">Semestre</label>
                 <select
                   value={periodoMultiplas}
                   onChange={(e) => setPeriodoMultiplas(parseInt(e.target.value))}
-                  className="w-full px-4 py-3 rounded-xl bg-[var(--bg-input)] border border-[var(--border-input)] text-[var(--text-primary)] focus:outline-none"
+                  className="w-full px-3 py-2 rounded-md bg-[var(--bg-input)] border border-[var(--border-input)] text-[var(--text-primary)] text-sm focus:outline-none cursor-pointer"
                 >
-                  {periodos.map(p => (<option key={p} value={p} className="bg-slate-800">{p}º Semestre</option>))}
+                  {periodos.map(p => (<option key={p} value={p}>{p}º Semestre</option>))}
                 </select>
               </div>
               <div>
-                <label className="text-sm text-[var(--text-secondary)] block mb-2">Cadeiras (uma por linha)</label>
+                <label className="text-xs text-[var(--text-muted)] block mb-1.5">Cadeiras (uma por linha)</label>
                 <textarea
                   value={disciplinasMultiplas}
                   onChange={(e) => setDisciplinasMultiplas(e.target.value)}
-                  rows={6}
-                  className="w-full px-4 py-3 rounded-xl bg-[var(--bg-input)] border border-[var(--border-input)] text-[var(--text-primary)] focus:outline-none resize-none"
+                  rows={5}
+                  className="w-full px-3 py-2 rounded-md bg-[var(--bg-input)] border border-[var(--border-input)] text-[var(--text-primary)] text-sm focus:outline-none resize-none"
                   placeholder={"Cálculo I\nFísica I\nProgramação I\nÁlgebra Linear"}
                 />
               </div>
-              <p className="text-xs text-[var(--text-muted)]">
-                Cada linha será uma cadeira nova com 4 créditos e 60h de carga horária
+              <p className="text-[10px] text-[var(--text-muted)]">
+                Cada linha será uma cadeira nova com 4 créditos e 60h
               </p>
-              <div className="flex gap-3 mt-6">
+              <div className="flex gap-2.5 mt-5">
                 <GradientButton variant="secondary" className="flex-1" onClick={() => { onClose(); setDisciplinasMultiplas(''); }}>Cancelar</GradientButton>
                 <GradientButton className="flex-1" onClick={handleAddMultiplas}>
                   Adicionar {disciplinasMultiplas.split('\n').filter(l => l.trim()).length || ''} Cadeiras

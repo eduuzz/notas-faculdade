@@ -41,8 +41,8 @@ export default function SharedGrade({ token }) {
     return (
       <div className="min-h-screen bg-[#09090b] text-white flex items-center justify-center">
         <div className="text-center">
-          <div className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4 animate-pulse" style={{ background: 'linear-gradient(to bottom right, var(--accent-500), var(--accent-600))' }}>
-            <GraduationCap size={32} className="text-white" />
+          <div className="w-12 h-12 rounded-lg bg-[var(--accent-bg10)] flex items-center justify-center mx-auto mb-3 animate-pulse">
+            <GraduationCap size={24} style={{ color: 'var(--accent-400)' }} />
           </div>
           <p className="text-slate-400">Carregando grade...</p>
         </div>
@@ -54,8 +54,8 @@ export default function SharedGrade({ token }) {
     return (
       <div className="min-h-screen bg-[#09090b] text-white flex items-center justify-center p-4">
         <div className="text-center max-w-sm">
-          <div className="w-16 h-16 rounded-2xl bg-red-500/20 flex items-center justify-center mx-auto mb-4">
-            <GraduationCap size={32} className="text-red-400" />
+          <div className="w-12 h-12 rounded-lg bg-red-500/10 flex items-center justify-center mx-auto mb-3">
+            <GraduationCap size={24} className="text-red-400" />
           </div>
           <h1 className="text-xl font-semibold mb-2">Link invalido</h1>
           <p className="text-slate-400 text-sm">{error}</p>
@@ -69,8 +69,8 @@ export default function SharedGrade({ token }) {
       <div className="max-w-4xl mx-auto px-4 py-8">
         {/* Header */}
         <div className="flex items-center gap-4 mb-8">
-          <div className="w-14 h-14 rounded-2xl flex items-center justify-center shadow-xl" style={{ background: 'linear-gradient(to bottom right, var(--accent-500), var(--accent-600))', boxShadow: '0 20px 25px -5px var(--accent-ring)' }}>
-            <GraduationCap size={28} className="text-white" />
+          <div className="w-10 h-10 rounded-lg bg-[var(--accent-bg10)] flex items-center justify-center">
+            <GraduationCap size={20} style={{ color: 'var(--accent-400)' }} />
           </div>
           <div>
             <h1 className="text-2xl font-semibold">Grade Compartilhada</h1>
@@ -81,21 +81,14 @@ export default function SharedGrade({ token }) {
         {/* Stats */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-8">
           {[
-            { label: 'Aprovadas', value: stats.aprovadas, icon: CheckCircle, color: 'from-emerald-500 to-green-600' },
-            { label: 'Em Curso', value: stats.emCurso, icon: Clock, color: 'from-blue-500 to-indigo-600' },
-            { label: 'Progresso', value: `${stats.progresso.toFixed(0)}%`, icon: TrendingUp, accentGradient: true },
-            { label: 'Media', value: stats.media.toFixed(1), icon: Award, color: 'from-amber-500 to-orange-600' },
+            { label: 'Aprovadas', value: stats.aprovadas, icon: CheckCircle, color: 'text-emerald-400' },
+            { label: 'Em Curso', value: stats.emCurso, icon: Clock, color: 'text-blue-400' },
+            { label: 'Progresso', value: `${stats.progresso.toFixed(0)}%`, icon: TrendingUp, color: '' },
+            { label: 'Media', value: stats.media.toFixed(1), icon: Award, color: 'text-amber-400' },
           ].map((s, i) => (
-            <div key={i} className="p-4 rounded-2xl bg-white/[0.03] border border-white/10">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-slate-400 text-xs mb-1">{s.label}</p>
-                  <p className="text-2xl font-semibold">{s.value}</p>
-                </div>
-                <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${s.accentGradient ? '' : `bg-gradient-to-br ${s.color}`}`} style={s.accentGradient ? { background: 'linear-gradient(to bottom right, var(--accent-500), var(--accent-600))' } : {}}>
-                  <s.icon size={20} className="text-white" />
-                </div>
-              </div>
+            <div key={i} className="p-3 rounded-md bg-white/[0.03] border border-white/10">
+              <p className="text-slate-400 text-xs mb-1">{s.label}</p>
+              <p className="text-xl font-semibold">{s.value}</p>
             </div>
           ))}
         </div>
@@ -112,7 +105,7 @@ export default function SharedGrade({ token }) {
                   <h2 className="text-lg font-semibold">{periodo}. Semestre</h2>
                   <span className="text-sm text-slate-400">{aprovadas}/{discs.length} concluidas</span>
                 </div>
-                <div className="rounded-2xl bg-white/[0.03] border border-white/10 overflow-hidden">
+                <div className="rounded-md bg-white/[0.03] border border-white/10 overflow-hidden">
                   <table className="w-full">
                     <thead>
                       <tr className="border-b border-white/5">

@@ -643,55 +643,49 @@ export default function AdminPanel({ onClose }) {
       {/* MODAL: Editar Nome */}
       {modalEditar && (
         <div
-          className="fixed inset-0 bg-[var(--bg-modal-overlay)] backdrop-blur-sm flex items-center justify-center z-50 p-4"
+          className="fixed inset-0 bg-[var(--bg-modal-overlay)] flex items-center justify-center z-50 p-4"
           onClick={(e) => e.target === e.currentTarget && setModalEditar(null)}
         >
-          <div className="bg-[var(--bg-modal)] border border-[var(--border-card)] rounded-2xl p-6 max-w-md w-full shadow-2xl">
-            {/* Header */}
-            <div className="flex items-center gap-4 mb-6">
-              <div className="w-14 h-14 rounded-2xl flex items-center justify-center" style={{ background: 'var(--accent-bg10)' }}>
-                <Edit3 size={28} style={{ color: 'var(--accent-400)' }} />
+          <div className="bg-[var(--bg-modal)] border border-[var(--border-card)] rounded-lg p-5 max-w-md w-full">
+            <div className="flex items-center gap-3 mb-5">
+              <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ background: 'var(--accent-bg10)' }}>
+                <Edit3 size={20} style={{ color: 'var(--accent-400)' }} />
               </div>
               <div>
-                <h2 className="text-xl font-bold text-[var(--text-primary)]">Editar Usuário</h2>
-                <p className="text-[var(--text-secondary)] text-sm">{modalEditar.email}</p>
+                <h2 className="text-base font-semibold text-[var(--text-primary)]">Editar Usuário</h2>
+                <p className="text-[var(--text-muted)] text-xs">{modalEditar.email}</p>
               </div>
             </div>
 
-            {/* Campo de nome */}
-            <div className="mb-6">
-              <label className="block text-[var(--text-secondary)] text-sm mb-2">Nome do usuário</label>
+            <div className="mb-5">
+              <label className="block text-xs text-[var(--text-muted)] mb-1.5">Nome do usuário</label>
               <input
                 type="text"
                 value={editNome}
                 onChange={(e) => setEditNome(e.target.value)}
                 placeholder="Digite o nome..."
-                className="w-full px-4 py-3 bg-[var(--bg-input)] border border-[var(--border-input)] rounded-xl text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none transition-all"
-                onFocus={(e) => e.target.style.borderColor = 'var(--accent-500)'}
-                onBlur={(e) => e.target.style.borderColor = ''}
+                className="w-full px-3 py-2 bg-[var(--bg-input)] border border-[var(--border-input)] rounded-md text-[var(--text-primary)] text-sm placeholder-[var(--text-muted)] focus:outline-none focus:border-[var(--accent-500)] transition-colors"
                 autoFocus
               />
             </div>
 
-            {/* Botões */}
-            <div className="flex gap-3">
+            <div className="flex gap-2.5">
               <button
                 onClick={() => setModalEditar(null)}
-                className="flex-1 py-3 bg-[var(--bg-input)] hover:bg-[var(--bg-hover)] rounded-xl text-[var(--text-primary)] font-medium transition-colors border border-[var(--border-input)]"
+                className="flex-1 py-2 bg-[var(--bg-input)] hover:bg-[var(--bg-hover)] rounded-md text-[var(--text-secondary)] text-sm font-medium transition-colors border border-[var(--border-input)]"
               >
                 Cancelar
               </button>
               <button
                 onClick={salvarNome}
                 disabled={actionLoading === modalEditar.id}
-                className="flex-1 py-3 rounded-xl text-white font-medium transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
-                style={{ background: 'linear-gradient(to right, var(--accent-600), var(--accent-500))' }}
+                className="flex-1 py-2 rounded-md bg-[var(--accent-500)] hover:bg-[var(--accent-600)] text-white text-sm font-medium transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
               >
                 {actionLoading === modalEditar.id ? (
-                  <Loader2 className="animate-spin" size={20} />
+                  <Loader2 className="animate-spin" size={16} />
                 ) : (
                   <>
-                    <Save size={20} />
+                    <Save size={16} />
                     Salvar
                   </>
                 )}
@@ -704,26 +698,24 @@ export default function AdminPanel({ onClose }) {
       {/* MODAL: Confirmar Exclusão */}
       {modalExclusao && (
         <div
-          className="fixed inset-0 bg-[var(--bg-modal-overlay)] backdrop-blur-sm flex items-center justify-center z-50 p-4"
+          className="fixed inset-0 bg-[var(--bg-modal-overlay)] flex items-center justify-center z-50 p-4"
           onClick={(e) => e.target === e.currentTarget && setModalExclusao(null)}
         >
-          <div className="bg-[var(--bg-modal)] border border-[var(--border-card)] rounded-2xl p-6 max-w-md w-full shadow-2xl">
-            {/* Header */}
-            <div className="flex items-center gap-4 mb-6">
-              <div className="w-14 h-14 bg-red-500/20 rounded-2xl flex items-center justify-center">
-                <Trash2 className="text-red-400" size={28} />
+          <div className="bg-[var(--bg-modal)] border border-[var(--border-card)] rounded-lg p-5 max-w-md w-full">
+            <div className="flex items-center gap-3 mb-5">
+              <div className="w-10 h-10 bg-red-500/10 rounded-lg flex items-center justify-center">
+                <Trash2 className="text-red-400" size={20} />
               </div>
               <div>
-                <h2 className="text-xl font-bold text-[var(--text-primary)]">Excluir Usuário</h2>
-                <p className="text-[var(--text-secondary)] text-sm">Exclusão completa e permanente</p>
+                <h2 className="text-base font-semibold text-[var(--text-primary)]">Excluir Usuário</h2>
+                <p className="text-[var(--text-muted)] text-xs">Exclusão completa e permanente</p>
               </div>
             </div>
 
-            {/* Info do usuário */}
-            <div className="bg-[var(--bg-input)] rounded-xl p-4 mb-6">
+            <div className="bg-[var(--bg-input)] rounded-md p-3 mb-4">
               <div className="flex items-center gap-3">
-                <div className="w-12 h-12 bg-red-500/20 rounded-full flex items-center justify-center">
-                  <span className="text-xl font-bold text-red-400">
+                <div className="w-9 h-9 bg-red-500/10 rounded-md flex items-center justify-center">
+                  <span className="text-sm font-bold text-red-400">
                     {modalExclusao.email.charAt(0).toUpperCase()}
                   </span>
                 </div>
@@ -739,8 +731,7 @@ export default function AdminPanel({ onClose }) {
               </div>
             </div>
 
-            {/* O que será excluído */}
-            <div className="bg-[var(--bg-input)] rounded-xl p-4 mb-6">
+            <div className="bg-[var(--bg-input)] rounded-md p-3 mb-4">
               <p className="text-[var(--text-secondary)] text-sm mb-3 font-medium">Será removido automaticamente:</p>
               <div className="space-y-2">
                 <div className="flex items-center gap-2 text-sm">
@@ -762,8 +753,7 @@ export default function AdminPanel({ onClose }) {
               </div>
             </div>
 
-            {/* Aviso */}
-            <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-4 mb-6">
+            <div className="bg-red-500/5 border border-red-500/20 rounded-md p-3 mb-4">
               <div className="flex items-start gap-3">
                 <AlertTriangle className="text-red-400 flex-shrink-0 mt-0.5" size={20} />
                 <div>
@@ -775,24 +765,23 @@ export default function AdminPanel({ onClose }) {
               </div>
             </div>
 
-            {/* Botões */}
-            <div className="flex gap-3">
+            <div className="flex gap-2.5">
               <button
                 onClick={() => setModalExclusao(null)}
-                className="flex-1 py-3 bg-[var(--bg-input)] hover:bg-[var(--bg-hover)] rounded-xl text-[var(--text-primary)] font-medium transition-colors border border-[var(--border-input)]"
+                className="flex-1 py-2 bg-[var(--bg-input)] hover:bg-[var(--bg-hover)] rounded-md text-[var(--text-secondary)] text-sm font-medium transition-colors border border-[var(--border-input)]"
               >
                 Cancelar
               </button>
               <button
                 onClick={() => excluirUsuario(modalExclusao)}
                 disabled={actionLoading === modalExclusao.id}
-                className="flex-1 py-3 bg-red-600 hover:bg-red-500 rounded-xl text-white font-medium transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                className="flex-1 py-2 bg-red-600 hover:bg-red-700 rounded-md text-white text-sm font-medium transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
               >
                 {actionLoading === modalExclusao.id ? (
-                  <Loader2 className="animate-spin" size={20} />
+                  <Loader2 className="animate-spin" size={16} />
                 ) : (
                   <>
-                    <Trash2 size={20} />
+                    <Trash2 size={16} />
                     Excluir Tudo
                   </>
                 )}
