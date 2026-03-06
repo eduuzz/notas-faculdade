@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useEffect, useCallback, Suspense } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Plus, BookOpen, GraduationCap, Clock, RefreshCw, Wifi, WifiOff, TrendingUp } from 'lucide-react';
 import { useNotas } from './useNotas';
 import { useAuth } from './AuthContext';
@@ -9,6 +10,7 @@ import Sidebar from './components/Sidebar';
 
 import { exportarPDF as exportarPDFUtil } from './utils/exportPDF';
 import { checkReminders } from './utils/notifications';
+import { pageTransition } from './utils/animations';
 
 // Lazy-loaded tabs
 const GradeTab = React.lazy(() => import('./components/tabs/GradeTab'));
@@ -421,53 +423,71 @@ export default function SistemaNotas({ onOpenAdmin }) {
             )}
           </div>
 
-          {activeTab === 'grade' && (<Suspense fallback={null}>
-            <GradeTab
-              estatisticas={estatisticas}
-              busca={busca} setBusca={setBusca}
-              filtroStatus={filtroStatus} setFiltroStatus={setFiltroStatus}
-              exportarPDF={exportarPDF}
-              setShowImportModal={setShowImportModal}
-              setShowAddDisciplina={setShowAddDisciplina}
-              setShowShareModal={setShowShareModal}
-              modoCompacto={modoCompacto} setModoCompacto={setModoCompacto}
-              expandedPeriodos={expandedPeriodos} togglePeriodo={togglePeriodo} toggleAllPeriodos={toggleAllPeriodos}
-              periodos={periodos}
-              addSemestre={addSemestre} removeSemestre={removeSemestre}
-              numSemestres={numSemestres} disciplinas={disciplinas}
-              disciplinasPorPeriodo={disciplinasPorPeriodo}
-              abaSemestre={abaSemestre} setAbaSemestre={setAbaSemestre}
-              setShowIniciarModal={setShowIniciarModal}
-              setShowDeleteMenu={setShowDeleteMenu}
-              startEditNotas={startEditNotas}
-            />
-          </Suspense>)}
+          <AnimatePresence mode="wait">
+            {activeTab === 'grade' && (
+              <motion.div key="grade" {...pageTransition}>
+                <Suspense fallback={null}>
+                  <GradeTab
+                    estatisticas={estatisticas}
+                    busca={busca} setBusca={setBusca}
+                    filtroStatus={filtroStatus} setFiltroStatus={setFiltroStatus}
+                    exportarPDF={exportarPDF}
+                    setShowImportModal={setShowImportModal}
+                    setShowAddDisciplina={setShowAddDisciplina}
+                    setShowShareModal={setShowShareModal}
+                    modoCompacto={modoCompacto} setModoCompacto={setModoCompacto}
+                    expandedPeriodos={expandedPeriodos} togglePeriodo={togglePeriodo} toggleAllPeriodos={toggleAllPeriodos}
+                    periodos={periodos}
+                    addSemestre={addSemestre} removeSemestre={removeSemestre}
+                    numSemestres={numSemestres} disciplinas={disciplinas}
+                    disciplinasPorPeriodo={disciplinasPorPeriodo}
+                    abaSemestre={abaSemestre} setAbaSemestre={setAbaSemestre}
+                    setShowIniciarModal={setShowIniciarModal}
+                    setShowDeleteMenu={setShowDeleteMenu}
+                    startEditNotas={startEditNotas}
+                  />
+                </Suspense>
+              </motion.div>
+            )}
 
-          {activeTab === 'emCurso' && (<Suspense fallback={null}>
-            <EmCursoTab
-              disciplinas={disciplinas}
-              setShowSimulador={setShowSimulador}
-              startEditNotas={startEditNotas}
-            />
-          </Suspense>)}
+            {activeTab === 'emCurso' && (
+              <motion.div key="emCurso" {...pageTransition}>
+                <Suspense fallback={null}>
+                  <EmCursoTab
+                    disciplinas={disciplinas}
+                    setShowSimulador={setShowSimulador}
+                    startEditNotas={startEditNotas}
+                  />
+                </Suspense>
+              </motion.div>
+            )}
 
-          {activeTab === 'dashboard' && (<Suspense fallback={null}>
-            <DashboardTab
-              dadosGrafico={dadosGrafico}
-              dadosPorPeriodo={dadosPorPeriodo}
-              estatisticas={estatisticas}
-            />
-          </Suspense>)}
+            {activeTab === 'dashboard' && (
+              <motion.div key="dashboard" {...pageTransition}>
+                <Suspense fallback={null}>
+                  <DashboardTab
+                    dadosGrafico={dadosGrafico}
+                    dadosPorPeriodo={dadosPorPeriodo}
+                    estatisticas={estatisticas}
+                  />
+                </Suspense>
+              </motion.div>
+            )}
 
-          {activeTab === 'formatura' && (<Suspense fallback={null}>
-            <FormaturaTab
-              disciplinas={disciplinas}
-              semestreAtualAno={semestreAtualAno}
-              semestreAtualNum={semestreAtualNum}
-              planejamentoSemestres={planejamentoSemestres}
-              setPlanejamentoSemestres={setPlanejamentoSemestres}
-            />
-          </Suspense>)}
+            {activeTab === 'formatura' && (
+              <motion.div key="formatura" {...pageTransition}>
+                <Suspense fallback={null}>
+                  <FormaturaTab
+                    disciplinas={disciplinas}
+                    semestreAtualAno={semestreAtualAno}
+                    semestreAtualNum={semestreAtualNum}
+                    planejamentoSemestres={planejamentoSemestres}
+                    setPlanejamentoSemestres={setPlanejamentoSemestres}
+                  />
+                </Suspense>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </main>
 
         {/* FAB Mobile */}

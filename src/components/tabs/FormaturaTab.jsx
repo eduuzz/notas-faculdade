@@ -1,6 +1,8 @@
 import React, { useCallback } from 'react';
+import { motion } from 'framer-motion';
 import { Plus, Trash2, TrendingUp, AlertCircle, CheckCircle, GraduationCap, Edit2, RefreshCw } from 'lucide-react';
 import GlassCard from '../ui/GlassCard';
+import { staggerContainer, staggerItem } from '../../utils/animations';
 
 export default function FormaturaTab({
   disciplinas,
@@ -113,8 +115,8 @@ export default function FormaturaTab({
   };
 
   return (
-    <div className="space-y-5">
-      <GlassCard className="p-5" hover={false}>
+    <motion.div className="space-y-5" variants={staggerContainer} initial="initial" animate="animate">
+      <motion.div variants={staggerItem}><GlassCard className="p-5" hover={false}>
         <div className="flex items-center gap-3 mb-5">
           <div className="w-10 h-10 rounded-lg bg-[var(--accent-bg10)] flex items-center justify-center">
             <GraduationCap size={20} style={{ color: 'var(--accent-400)' }} />
@@ -136,9 +138,9 @@ export default function FormaturaTab({
             <div className="text-[var(--text-muted)] text-xs">Progresso do Curso</div>
           </div>
         </div>
-      </GlassCard>
+      </GlassCard></motion.div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-5">
+      <motion.div variants={staggerItem}><div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-5">
         <GlassCard className="p-5" hover={false}>
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-sm font-medium text-[var(--text-secondary)] flex items-center gap-2">
@@ -242,9 +244,9 @@ export default function FormaturaTab({
             </div>
           )}
         </GlassCard>
-      </div>
+      </div></motion.div>
 
-      <GlassCard className="p-3.5" hover={false}>
+      <motion.div variants={staggerItem}><GlassCard className="p-3.5" hover={false}>
         <div className="flex items-start gap-2.5">
           <AlertCircle className="shrink-0 mt-0.5" size={16} style={{ color: 'var(--accent-400)' }} />
           <p className="text-xs text-[var(--text-muted)]">
@@ -252,7 +254,7 @@ export default function FormaturaTab({
             O sistema calcula automaticamente sua previsão de formatura baseado no planejamento.
           </p>
         </div>
-      </GlassCard>
-    </div>
+      </GlassCard></motion.div>
+    </motion.div>
   );
 }

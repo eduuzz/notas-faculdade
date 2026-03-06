@@ -1,14 +1,16 @@
 import React from 'react';
+import { motion } from 'framer-motion';
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import GlassCard from '../ui/GlassCard';
+import { staggerContainer, staggerItem } from '../../utils/animations';
 
 const tooltipStyle = { backgroundColor: '#141415', border: '1px solid #1f1f23', borderRadius: '6px' };
 
 export default function DashboardTab({ dadosGrafico, dadosPorPeriodo, estatisticas }) {
   return (
-    <div className="space-y-5">
+    <motion.div className="space-y-5" variants={staggerContainer} initial="initial" animate="animate">
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-        <GlassCard className="p-5" hover={false}>
+        <motion.div variants={staggerItem}><GlassCard className="p-5" hover={false}>
           <h3 className="text-sm font-medium text-[var(--text-secondary)] mb-4">Distribuição por Status</h3>
           <ResponsiveContainer width="100%" height={250}>
             <PieChart>
@@ -19,8 +21,8 @@ export default function DashboardTab({ dadosGrafico, dadosPorPeriodo, estatistic
               <Legend />
             </PieChart>
           </ResponsiveContainer>
-        </GlassCard>
-        <GlassCard className="p-5" hover={false}>
+        </GlassCard></motion.div>
+        <motion.div variants={staggerItem}><GlassCard className="p-5" hover={false}>
           <h3 className="text-sm font-medium text-[var(--text-secondary)] mb-4">Progresso por Semestre</h3>
           <ResponsiveContainer width="100%" height={250}>
             <BarChart data={dadosPorPeriodo}>
@@ -33,9 +35,9 @@ export default function DashboardTab({ dadosGrafico, dadosPorPeriodo, estatistic
               <Bar dataKey="pendentes" fill="#5c5c60" radius={[3, 3, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
-        </GlassCard>
+        </GlassCard></motion.div>
       </div>
-      <GlassCard className="p-5" hover={false}>
+      <motion.div variants={staggerItem}><GlassCard className="p-5" hover={false}>
         <h3 className="text-sm font-medium text-[var(--text-secondary)] mb-4">Resumo Geral</h3>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           <div className="text-center p-3 rounded-md bg-[var(--bg-input)]"><p className="text-2xl font-bold text-emerald-400">{estatisticas.aprovadas}</p><p className="text-xs text-[var(--text-muted)] mt-1">Aprovadas</p></div>
@@ -48,7 +50,7 @@ export default function DashboardTab({ dadosGrafico, dadosPorPeriodo, estatistic
           <div className="p-3 rounded-md bg-[var(--bg-input)] border border-[var(--border-input)]"><p className="text-xs text-[var(--text-muted)] mb-1">Média Geral</p><p className="text-xl font-bold text-[var(--text-primary)]">{estatisticas.mediaGeral.toFixed(2)}</p></div>
           <div className="p-3 rounded-md bg-[var(--bg-input)] border border-[var(--border-input)]"><p className="text-xs text-[var(--text-muted)] mb-1">Progresso</p><p className="text-xl font-bold text-[var(--text-primary)]">{estatisticas.progresso.toFixed(1)}%</p></div>
         </div>
-      </GlassCard>
-    </div>
+      </GlassCard></motion.div>
+    </motion.div>
   );
 }
