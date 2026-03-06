@@ -1,5 +1,8 @@
 import React from 'react';
-import { Calculator } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { Calculator, X } from 'lucide-react';
+import GradientButton from '../ui/GradientButton';
+import { modalOverlay, modalContent } from '../../utils/animations';
 
 export default function SimuladorModal({
   disciplinas,
@@ -17,81 +20,112 @@ export default function SimuladorModal({
   const aprovado = mediaFinal >= notaMinima;
 
   return (
-    <div className="fixed inset-0 bg-[var(--bg-modal-overlay)] backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={(e) => e.target === e.currentTarget && onClose()}>
-      <div className="bg-[var(--bg-modal)] border border-amber-500/30 rounded-3xl p-8 max-w-lg w-full shadow-2xl">
-        <div className="flex items-center gap-4 mb-6">
-          <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center shadow-lg shadow-amber-500/30">
-            <Calculator size={28} className="text-white" />
+    <motion.div
+      className="fixed inset-0 bg-[var(--bg-modal-overlay)] backdrop-blur-sm flex items-center justify-center z-50 p-4"
+      {...modalOverlay}
+      onClick={onClose}
+    >
+      <motion.div
+        className="w-full max-w-md rounded-xl bg-[var(--bg-modal)] border border-[var(--border-card)] shadow-xl"
+        {...modalContent}
+        onClick={e => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between p-5 pb-0">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-lg bg-amber-500/10 flex items-center justify-center shrink-0">
+              <Calculator size={18} className="text-amber-400" />
+            </div>
+            <div>
+              <h3 className="text-base font-semibold text-[var(--text-primary)]">Simulador de Notas</h3>
+              <p className="text-xs text-[var(--text-muted)]">Calcule suas notas</p>
+            </div>
           </div>
-          <div>
-            <h2 className="text-xl font-bold text-[var(--text-primary)]">Simulador de Notas</h2>
-            <p className="text-amber-400 text-sm">Calcule suas notas</p>
-          </div>
+          <button onClick={onClose} className="p-1.5 rounded-md hover:bg-[var(--bg-hover)] text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors">
+            <X size={16} />
+          </button>
         </div>
 
-        <div className="mb-6">
-          <label className="text-sm text-[var(--text-secondary)] block mb-2">Disciplina</label>
-          <select
-            value={simuladorDisciplina || ''}
-            onChange={(e) => {
-              const d = disciplinas.find(x => x.id === e.target.value);
-              setSimuladorDisciplina(e.target.value);
-              setSimuladorGA(d?.ga?.toString() || '');
-              setSimuladorGB(d?.gb?.toString() || '');
-            }}
-            className="w-full px-4 py-3 rounded-xl bg-[var(--bg-input)] border border-[var(--border-input)] text-[var(--text-primary)] focus:outline-none focus:border-amber-500"
-          >
-            <option value="" className="bg-slate-800">Selecione uma disciplina</option>
-            {disciplinas.filter(d => d.status === 'EM_CURSO').map(d => (
-              <option key={d.id} value={d.id} className="bg-slate-800">{d.nome}</option>
-            ))}
-          </select>
-        </div>
-
-        <div className="grid grid-cols-2 gap-4 mb-6">
+        <div className="p-5 space-y-4">
+          {/* Disciplina */}
           <div>
-            <label className="text-sm text-[var(--text-secondary)] block mb-2">Nota GA (atual ou esperada)</label>
-            <input type="number" step="0.1" min="0" max="10" value={simuladorGA} onChange={(e) => setSimuladorGA(e.target.value)} onBlur={() => { if (simuladorGA !== '') { const n = parseFloat(simuladorGA); if (!isNaN(n)) setSimuladorGA(Math.min(10, Math.max(0, n)).toString()); } }} className="w-full px-4 py-3 rounded-xl bg-[var(--bg-input)] border border-[var(--border-input)] text-[var(--text-primary)] focus:outline-none focus:border-amber-500 text-center text-xl" placeholder="0.0" />
+            <label className="text-[11px] font-medium text-[var(--text-muted)] tracking-wider block mb-1.5">Disciplina</label>
+            <select
+              value={simuladorDisciplina || ''}
+              onChange={(e) => {
+                const d = disciplinas.find(x => x.id === e.target.value);
+                setSimuladorDisciplina(e.target.value);
+                setSimuladorGA(d?.ga?.toString() || '');
+                setSimuladorGB(d?.gb?.toString() || '');
+              }}
+              className="w-full px-3 py-2.5 rounded-lg bg-[var(--bg-input)] border border-[var(--border-input)] text-[var(--text-primary)] text-sm focus:outline-none focus:border-[var(--accent-500)] focus:ring-1 focus:ring-[var(--accent-ring)] transition-colors cursor-pointer"
+            >
+              <option value="">Selecione uma disciplina</option>
+              {disciplinas.filter(d => d.status === 'EM_CURSO').map(d => (
+                <option key={d.id} value={d.id}>{d.nome}</option>
+              ))}
+            </select>
           </div>
-          <div>
-            <label className="text-sm text-[var(--text-secondary)] block mb-2">Nota GB (atual ou esperada)</label>
-            <input type="number" step="0.1" min="0" max="10" value={simuladorGB} onChange={(e) => setSimuladorGB(e.target.value)} onBlur={() => { if (simuladorGB !== '') { const n = parseFloat(simuladorGB); if (!isNaN(n)) setSimuladorGB(Math.min(10, Math.max(0, n)).toString()); } }} className="w-full px-4 py-3 rounded-xl bg-[var(--bg-input)] border border-[var(--border-input)] text-[var(--text-primary)] focus:outline-none focus:border-amber-500 text-center text-xl" placeholder="0.0" />
-          </div>
-        </div>
 
-        {(simuladorGA || simuladorGB) && (
-          <div className="mb-6">
-            <div className={`p-4 rounded-xl border ${aprovado ? 'bg-emerald-500/10 border-emerald-500/30' : 'bg-red-500/10 border-red-500/30'}`}>
-              <div className="flex items-center justify-between mb-3">
-                <span className="text-[var(--text-secondary)]">Média calculada:</span>
-                <span className={`text-2xl font-bold ${aprovado ? 'text-emerald-400' : 'text-red-400'}`}>{mediaFinal.toFixed(1)}</span>
+          {/* GA / GB */}
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-[11px] font-medium text-[var(--text-muted)] tracking-wider block mb-1.5">Nota GA</label>
+              <input
+                type="number" step="0.1" min="0" max="10"
+                value={simuladorGA}
+                onChange={(e) => setSimuladorGA(e.target.value)}
+                onBlur={() => { if (simuladorGA !== '') { const n = parseFloat(simuladorGA); if (!isNaN(n)) setSimuladorGA(Math.min(10, Math.max(0, n)).toString()); } }}
+                className="w-full px-3 py-2.5 rounded-lg bg-[var(--bg-input)] border border-[var(--border-input)] text-[var(--text-primary)] text-sm tabular-nums focus:outline-none focus:border-[var(--accent-500)] focus:ring-1 focus:ring-[var(--accent-ring)] transition-colors"
+                placeholder="0.0"
+              />
+            </div>
+            <div>
+              <label className="text-[11px] font-medium text-[var(--text-muted)] tracking-wider block mb-1.5">Nota GB</label>
+              <input
+                type="number" step="0.1" min="0" max="10"
+                value={simuladorGB}
+                onChange={(e) => setSimuladorGB(e.target.value)}
+                onBlur={() => { if (simuladorGB !== '') { const n = parseFloat(simuladorGB); if (!isNaN(n)) setSimuladorGB(Math.min(10, Math.max(0, n)).toString()); } }}
+                className="w-full px-3 py-2.5 rounded-lg bg-[var(--bg-input)] border border-[var(--border-input)] text-[var(--text-primary)] text-sm tabular-nums focus:outline-none focus:border-[var(--accent-500)] focus:ring-1 focus:ring-[var(--accent-ring)] transition-colors"
+                placeholder="0.0"
+              />
+            </div>
+          </div>
+
+          {/* Result */}
+          {(simuladorGA || simuladorGB) && (
+            <div className={`p-3 rounded-lg border ${aprovado ? 'bg-emerald-500/5 border-emerald-500/20' : 'bg-red-500/5 border-red-500/20'}`}>
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-xs text-[var(--text-muted)]">Média calculada</span>
+                <span className={`text-lg font-bold tabular-nums ${aprovado ? 'text-emerald-400' : 'text-red-400'}`}>{mediaFinal.toFixed(1)}</span>
               </div>
               {simuladorGA && !simuladorGB && (
-                <div className="pt-3 border-t border-[var(--border-input)]">
-                  <p className="text-sm text-[var(--text-secondary)] mb-1">Para atingir média {notaMinima}:</p>
-                  <p className="text-lg font-semibold text-amber-400">Você precisa de {precisaNaGB.toFixed(1)} na GB</p>
-                  {precisaNaGB > 10 && <p className="text-xs text-red-400 mt-1">Nota necessária maior que 10</p>}
+                <div className="pt-2 mt-2 border-t border-[var(--border-card)]">
+                  <p className="text-xs text-[var(--text-muted)] mb-0.5">Para atingir média {notaMinima}:</p>
+                  <p className="text-sm font-semibold text-amber-400">Precisa de {precisaNaGB.toFixed(1)} na GB</p>
+                  {precisaNaGB > 10 && <p className="text-[11px] text-red-400 mt-1">Nota necessária maior que 10</p>}
                 </div>
               )}
               {simuladorGA && simuladorGB && (
-                <p className={`text-sm font-medium ${aprovado ? 'text-emerald-400' : 'text-red-400'}`}>
-                  {aprovado ? 'Aprovado!' : 'Reprovado - média abaixo de ' + notaMinima}
+                <p className={`text-xs font-medium ${aprovado ? 'text-emerald-400' : 'text-red-400'}`}>
+                  {aprovado ? 'Aprovado!' : `Reprovado - média abaixo de ${notaMinima}`}
                 </p>
               )}
             </div>
+          )}
+
+          {/* Tip */}
+          <div className="p-2.5 rounded-lg bg-[var(--bg-input)] border border-[var(--border-input)]">
+            <p className="text-[11px] text-[var(--text-muted)]">
+              <strong className="text-[var(--text-secondary)]">Dica:</strong> Digite apenas a nota da GA para descobrir quanto precisa tirar na GB.
+            </p>
           </div>
-        )}
 
-        <div className="bg-[var(--bg-input)] rounded-xl p-3 mb-6">
-          <p className="text-xs text-[var(--text-secondary)]">
-            <strong>Dica:</strong> Digite apenas a nota da GA para descobrir quanto você precisa tirar na GB para passar.
-          </p>
+          {/* Close */}
+          <GradientButton variant="secondary" className="w-full" onClick={onClose}>Fechar</GradientButton>
         </div>
-
-        <button onClick={onClose} className="w-full py-3 rounded-xl bg-[var(--bg-input)] border border-[var(--border-input)] text-[var(--text-secondary)] font-medium hover:bg-[var(--bg-hover)] transition-colors">
-          Fechar
-        </button>
-      </div>
-    </div>
+      </motion.div>
+    </motion.div>
   );
 }
