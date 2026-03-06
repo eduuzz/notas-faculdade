@@ -229,6 +229,31 @@ export const AuthProvider = ({ children }) => {
     };
   }, [verificarAutorizacao, autoCreateUser, loading]);
 
+  // Auto-refresh token before it expires (every 4 min, refreshes if < 10 min left)
+  useEffect(() => {
+    if (!user || !supabase) return;
+
+    const refreshToken = async () => {
+      try {
+        const ref = supabase.supabaseUrl?.match(/https:\/\/([^.]+)/)?.[1];
+        if (!ref) return;
+        const stored = localStorage.getItem(`sb-${ref}-auth-token`);
+        if (!stored) return;
+        const session = JSON.parse(stored);
+        const expiresAt = session?.expires_at;
+        if (!expiresAt) return;
+        const now = Math.floor(Date.now() / 1000);
+        // Refresh if less than 10 minutes remaining
+        if (expiresAt - now < 600 && session?.refresh_token) {
+          await supabase.auth.refreshSession({ refresh_token: session.refresh_token });
+        }
+      } catch { /* silent */ }
+    };
+
+    const interval = setInterval(refreshToken, 4 * 60 * 1000); // every 4 min
+    return () => clearInterval(interval);
+  }, [user]);
+
   const signInWithEmail = async (email, password) => {
     if (!supabase) return { data: null, error: { message: 'Supabase não configurado' } };
     setAuthError(null);
