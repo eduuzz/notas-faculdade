@@ -10,21 +10,22 @@ const router = Router();
  */
 router.post('/historico', async (req, res, next) => {
   try {
-    const { ra, senha } = req.body;
+    const { ra, senha, cursoIndex } = req.body;
 
     if (!ra || !senha) {
       return res.status(400).json({
-        error: { message: 'RA e senha são obrigatórios' },
+        error: 'RA e senha são obrigatórios',
       });
     }
 
     if (typeof ra !== 'string' || typeof senha !== 'string' || ra.length > 50 || senha.length > 100) {
       return res.status(400).json({
-        error: { message: 'Formato de credenciais inválido' },
+        error: 'Formato de credenciais inválido',
       });
     }
 
-    const result = await PortalService.fetchHistorico(ra.trim(), senha);
+    const ci = cursoIndex !== undefined && cursoIndex !== null ? parseInt(cursoIndex, 10) : null;
+    const result = await PortalService.fetchHistorico(ra.trim(), senha, ci);
 
     res.json({
       success: true,

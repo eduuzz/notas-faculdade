@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useRef } from 'react';
-import { X, Upload, AlertCircle, CheckCircle, ChevronDown, ChevronUp, File, Loader2, Eye, EyeOff, Sparkles, Globe, RefreshCw, ShieldCheck } from 'lucide-react';
+import { X, Upload, AlertCircle, CheckCircle, ChevronDown, ChevronUp, File, Loader2, Eye, EyeOff, Sparkles, Globe, RefreshCw, ShieldCheck, GraduationCap } from 'lucide-react';
 import { supabase } from './supabaseClient';
 import { getFreshToken } from './useNotas';
 
@@ -26,6 +26,8 @@ export default function ImportModal({ onClose, onImport, onUpdate, disciplinasEx
   const [erroPortal, setErroPortal] = useState(null);
   const [importando, setImportando] = useState(false);
   const [importProgress, setImportProgress] = useState({ current: 0, total: 0, step: '' });
+  const [cursosDisponiveis, setCursosDisponiveis] = useState(null); // null = not checked, [] = single course
+  const [cursoSelecionado, setCursoSelecionado] = useState(null); // index
 
   // Análise inteligente com IA (via backend)
   const analisarComIA = useCallback(async (textoParaAnalisar) => {
@@ -409,16 +411,18 @@ export default function ImportModal({ onClose, onImport, onUpdate, disciplinasEx
 
   const [statusPortal, setStatusPortal] = useState('');
 
-  const buscarDoPortal = useCallback(async () => {
+  const buscarDoPortal = useCallback(async (forceIndex = null) => {
     setBuscandoPortal(true);
     setErroPortal(null);
     setDisciplinasPreview([]);
     setStatusPortal('');
 
+    const selectedCurso = forceIndex ?? cursoSelecionado;
+
+    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+
     try {
       const token = supabase ? await getFreshToken(supabase) : null;
-
-      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
       // Etapa 1: Verificar se o servidor está acessível
       setStatusPortal('Ligando o servidor...');
@@ -448,11 +452,45 @@ export default function ImportModal({ onClose, onImport, onUpdate, disciplinasEx
         }
       }
 
-      // Etapa 2: Conectando ao portal TOTVS
-      setStatusPortal('Conectando ao portal UNISINOS...');
-      await new Promise(r => setTimeout(r, 500)); // breve pausa visual
+      // Etapa 2: Detectar cursos (se ainda não selecionou)
+      if (selectedCurso === null && cursosDisponiveis === null) {
+        setStatusPortal('Verificando seus cursos...');
+        const cursosRes = await fetch(`${apiUrl}/api/portal/cursos`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
+          body: JSON.stringify({ ra: ra.trim(), senha }),
+          signal: AbortSignal.timeout(180000),
+        });
 
-      // Etapa 3: Buscar dados
+        if (!cursosRes.ok) {
+          const err = await cursosRes.json().catch(() => ({}));
+          const msg = typeof err.error === 'string' ? err.error : err.error?.message;
+          throw new Error(msg || `Erro HTTP ${cursosRes.status}`);
+        }
+
+        const cursosJson = await cursosRes.json();
+        const cursos = cursosJson.cursos || [];
+
+        if (cursos.length > 1) {
+          // Multiple courses — show picker and stop
+          setCursosDisponiveis(cursos);
+          setBuscandoPortal(false);
+          setStatusPortal('');
+          return;
+        }
+
+        // Single course or no modal — continue normally
+        setCursosDisponiveis(cursos);
+      }
+
+      // Etapa 3: Conectando ao portal TOTVS
+      setStatusPortal('Conectando ao portal UNISINOS...');
+      await new Promise(r => setTimeout(r, 500));
+
+      // Etapa 4: Buscar dados
       setStatusPortal('Acessando suas notas e disciplinas...');
       const res = await fetch(`${apiUrl}/api/portal/historico`, {
         method: 'POST',
@@ -460,13 +498,14 @@ export default function ImportModal({ onClose, onImport, onUpdate, disciplinasEx
           'Content-Type': 'application/json',
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
-        body: JSON.stringify({ ra: ra.trim(), senha }),
-        signal: AbortSignal.timeout(180000), // 3 minutos
+        body: JSON.stringify({ ra: ra.trim(), senha, cursoIndex: selectedCurso }),
+        signal: AbortSignal.timeout(180000),
       });
 
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
-        throw new Error(err.error?.message || `Erro HTTP ${res.status}`);
+        const msg = typeof err.error === 'string' ? err.error : err.error?.message;
+        throw new Error(msg || `Erro HTTP ${res.status}`);
       }
 
       const { data: disciplinas } = await res.json();
@@ -564,7 +603,7 @@ export default function ImportModal({ onClose, onImport, onUpdate, disciplinasEx
               'Content-Type': 'application/json',
               ...(token ? { Authorization: `Bearer ${token}` } : {}),
             },
-            body: JSON.stringify({ ra: ra.trim(), senha }),
+            body: JSON.stringify({ ra: ra.trim(), senha, cursoIndex: selectedCurso }),
             signal: AbortSignal.timeout(180000),
           });
           if (hRes.ok) {
@@ -613,7 +652,7 @@ export default function ImportModal({ onClose, onImport, onUpdate, disciplinasEx
     } finally {
       setBuscandoPortal(false);
     }
-  }, [ra, senha, ehTrilha]);
+  }, [ra, senha, ehTrilha, cursoSelecionado, cursosDisponiveis]);
 
   const verificarDuplicata = (d) => {
     return disciplinasExistentes.some(existente =>
@@ -905,7 +944,7 @@ export default function ImportModal({ onClose, onImport, onUpdate, disciplinasEx
                   <input
                     type="text"
                     value={ra}
-                    onChange={e => setRa(e.target.value)}
+                    onChange={e => { setRa(e.target.value); setCursosDisponiveis(null); setCursoSelecionado(null); }}
                     placeholder="Ex: sobrenomenome"
                     disabled={buscandoPortal}
                     className="w-full px-4 py-3 rounded-xl bg-[var(--bg-input)] border border-[var(--border-input)] text-[var(--text-primary)] text-sm focus:outline-none focus:border-cyan-500/50 disabled:opacity-50"
@@ -917,7 +956,7 @@ export default function ImportModal({ onClose, onImport, onUpdate, disciplinasEx
                     <input
                       type={mostrarSenhaPortal ? 'text' : 'password'}
                       value={senha}
-                      onChange={e => setSenha(e.target.value)}
+                      onChange={e => { setSenha(e.target.value); setCursosDisponiveis(null); setCursoSelecionado(null); }}
                       placeholder="Sua senha do portal.unisinos.br"
                       disabled={buscandoPortal}
                       className="w-full px-4 py-3 rounded-xl bg-[var(--bg-input)] border border-[var(--border-input)] text-[var(--text-primary)] text-sm focus:outline-none focus:border-cyan-500/50 pr-12 disabled:opacity-50"
@@ -933,15 +972,44 @@ export default function ImportModal({ onClose, onImport, onUpdate, disciplinasEx
                 </div>
               </div>
 
-              {!buscandoPortal ? (
+              {/* Course selector — shown when multiple courses detected */}
+              {cursosDisponiveis && cursosDisponiveis.length > 1 && (
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <GraduationCap size={16} className="text-cyan-400" />
+                    <p className="text-sm font-medium text-[var(--text-secondary)]">Selecione o curso para importar</p>
+                  </div>
+                  <div className="space-y-1.5">
+                    {cursosDisponiveis.map((curso, i) => (
+                      <button
+                        key={i}
+                        onClick={() => {
+                          setCursoSelecionado(i);
+                          buscarDoPortal(i);
+                        }}
+                        disabled={buscandoPortal}
+                        className={`w-full text-left px-3 py-2.5 rounded-lg border text-sm transition-colors disabled:opacity-50 ${
+                          cursoSelecionado === i
+                            ? 'border-cyan-500/50 bg-cyan-500/10 text-cyan-300'
+                            : 'border-[var(--border-input)] bg-[var(--bg-input)] text-[var(--text-secondary)] hover:border-cyan-500/30 hover:bg-cyan-500/5'
+                        }`}
+                      >
+                        {curso.label || `Curso ${i + 1}`}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {!buscandoPortal && !(cursosDisponiveis && cursosDisponiveis.length > 1) ? (
                 <button
-                  onClick={buscarDoPortal}
+                  onClick={() => buscarDoPortal()}
                   disabled={!ra.trim() || !senha.trim()}
                   className="w-full py-2 rounded-md bg-cyan-600 hover:bg-cyan-700 text-white text-sm font-medium transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
                 >
                   <Globe size={18} /> Buscar do Portal
                 </button>
-              ) : (
+              ) : buscandoPortal ? (
                 <div className="w-full py-4 rounded-xl bg-[var(--bg-input)] border border-cyan-500/30">
                   <div className="flex items-center justify-center gap-3 px-4">
                     <Loader2 size={20} className="animate-spin text-cyan-400 flex-shrink-0" />
@@ -953,7 +1021,7 @@ export default function ImportModal({ onClose, onImport, onUpdate, disciplinasEx
                     </div>
                   </div>
                 </div>
-              )}
+              ) : null}
 
               {erroPortal && (
                 <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-3 space-y-2">
@@ -962,7 +1030,7 @@ export default function ImportModal({ onClose, onImport, onUpdate, disciplinasEx
                     <p className="text-red-400 text-sm">{erroPortal}</p>
                   </div>
                   <button
-                    onClick={() => { setErroPortal(null); buscarDoPortal(); }}
+                    onClick={() => { setErroPortal(null); setCursosDisponiveis(null); setCursoSelecionado(null); buscarDoPortal(); }}
                     className="text-xs text-cyan-400 hover:text-cyan-300 flex items-center gap-1 transition-colors"
                   >
                     <RefreshCw size={12} /> Tentar novamente

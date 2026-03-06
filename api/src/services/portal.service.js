@@ -18,21 +18,54 @@ async function getChromium() {
 }
 
 /**
+ * Lê as opções do modal de seleção de contexto (cursos/habilitações).
+ * Retorna array de { label, index } ou [] se não houver modal.
+ */
+async function readModalOptions(page) {
+  return page.evaluate(() => {
+    const radios = [...document.querySelectorAll('input[type="radio"]')];
+    if (radios.length === 0) return [];
+    return radios.map((radio, index) => {
+      const container =
+        radio.closest('li, .po-field-option, label') ?? radio.parentElement;
+      return {
+        label: (container?.textContent || '').trim(),
+        index,
+        checked: radio.checked,
+      };
+    });
+  });
+}
+
+/**
  * Fecha o modal de seleção de contexto via JS nativo.
  *
  * O PO-UI (biblioteca TOTVS) esconde os <input type="radio"> visualmente,
  * por isso Playwright não consegue clicar — usamos page.evaluate com
  * native .click() nos containers pai.
+ *
+ * @param {object} page - Playwright page
+ * @param {string|null} preferPeriod - Texto para selecionar no modal (período ou curso)
+ * @param {number|null} selectIndex - Índice da opção a selecionar (0-based)
  */
-async function dismissModal(page, preferPeriod = null) {
+async function dismissModal(page, preferPeriod = null, selectIndex = null) {
   const hasRadios = await page.evaluate(() =>
     document.querySelectorAll('input[type="radio"]').length > 0
   );
   if (!hasRadios) return false;
 
-  await page.evaluate((preferPeriod) => {
-    if (preferPeriod) {
-      const radios = [...document.querySelectorAll('input[type="radio"]')];
+  await page.evaluate(({ preferPeriod, selectIndex }) => {
+    const radios = [...document.querySelectorAll('input[type="radio"]')];
+
+    // Select by index if provided
+    if (selectIndex !== null && radios[selectIndex]) {
+      const radio = radios[selectIndex];
+      const container =
+        radio.closest('li, .po-field-option, label') ?? radio.parentElement;
+      (container.querySelector('label') ?? container).click();
+      radio.checked = true;
+      radio.dispatchEvent(new Event('change', { bubbles: true }));
+    } else if (preferPeriod) {
       for (const radio of radios) {
         const container =
           radio.closest('li, .po-field-option, label') ?? radio.parentElement;
@@ -51,7 +84,7 @@ async function dismissModal(page, preferPeriod = null) {
       )
     );
     if (btn) btn.click();
-  }, preferPeriod);
+  }, { preferPeriod, selectIndex });
 
   await page.waitForTimeout(1000);
   return true;
@@ -84,9 +117,11 @@ async function waitForCapture(captured, keywords, timeoutMs = 15000) {
  * @param {string} ra - RA ou login do aluno
  * @param {string} senha - Senha do portal
  * @param {{ route: string, preferPeriod?: string, waitFor?: string[] }[]} navigations
- * @returns {Object} Mapa de path → { data, warn, status }
+ * @param {{ cursoIndex?: number, detectCursos?: boolean }} options
+ * @returns {Object} Mapa de path → { data, warn, status } (+ _cursos se detectCursos=true)
  */
-async function withPortalSession(ra, senha, navigations) {
+async function withPortalSession(ra, senha, navigations, options = {}) {
+  const { cursoIndex = null, detectCursos = false } = options;
   const ch = await getChromium();
   const browser = await ch.launch({
     headless: true,
@@ -175,8 +210,23 @@ async function withPortalSession(ra, senha, navigations) {
       throw new PortalAuthError();
     }
 
-    // Fechar modal inicial (sem preferência de período)
-    await dismissModal(page);
+    // Detectar cursos disponíveis no modal (se houver)
+    const cursos = await readModalOptions(page);
+    if (cursos.length > 0) {
+      logger.info(`Modal com ${cursos.length} opções:`, cursos.map(c => c.label));
+    }
+
+    // Se pediu para detectar cursos e há mais de 1, retornar sem navegar
+    if (detectCursos && cursos.length > 1) {
+      await dismissModal(page, null, cursoIndex ?? 0);
+      await page.waitForLoadState('networkidle', { timeout: 8000 }).catch(() => {});
+      try { await page.close(); } catch {}
+      try { await ctx.close(); } catch {}
+      return { _cursos: cursos };
+    }
+
+    // Fechar modal inicial (com seleção de curso se especificado)
+    await dismissModal(page, null, cursoIndex);
     await page.waitForLoadState('networkidle', { timeout: 8000 }).catch(() => {});
 
     logger.info('Login bem-sucedido no portal');
@@ -258,16 +308,31 @@ export class PortalService {
   }
 
   /**
+   * Detecta cursos/habilitações disponíveis para o aluno.
+   * Retorna { cursos: [{ label, index }] } — se length <= 1, aluno tem curso único.
+   */
+  static async fetchCursos(ra, senha) {
+    try {
+      const result = await withPortalSession(ra, senha, [], { detectCursos: true });
+      return { cursos: result._cursos || [] };
+    } catch (err) {
+      if (err instanceof PortalAuthError) throw err;
+      logger.error('Erro ao detectar cursos', err.message);
+      throw new PortalConnectionError(`Falha ao detectar cursos: ${err.message}`);
+    }
+  }
+
+  /**
    * Busca notas do semestre atual.
    * Navega para #/notas (captura DisciplinasAlunoPeriodoLetivo) e
    * #/grade-curricular (captura GradeCurricular/EnsinoSuperior como fallback).
    */
-  static async fetchNotas(ra, senha) {
+  static async fetchNotas(ra, senha, cursoIndex = null) {
     try {
       const captured = await withPortalSession(ra, senha, [
         { route: 'notas', waitFor: ['DisciplinasAluno'] },
         { route: 'grade-curricular', waitFor: ['GradeCurricular'] },
-      ]);
+      ], { cursoIndex });
 
       const disciplinas = findCaptured(captured, 'DisciplinasAluno');
       const grade = findCaptured(
@@ -304,13 +369,13 @@ export class PortalService {
    * Nota: navegar para #/notas primeiro estabelece o contexto AngularJS necessário
    * para que #/grade-curricular carregue os dados.
    */
-  static async fetchHistorico(ra, senha, _attempt = 1) {
+  static async fetchHistorico(ra, senha, cursoIndex = null, _attempt = 1) {
     const MAX_ATTEMPTS = 2;
     try {
       const captured = await withPortalSession(ra, senha, [
         { route: 'notas' },
         { route: 'grade-curricular', waitFor: ['GradeCurricular'] },
-      ]);
+      ], { cursoIndex });
 
       logger.info('Endpoints capturados:', Object.keys(captured));
 
@@ -325,7 +390,7 @@ export class PortalService {
       // Se não encontrou disciplinas e ainda tem tentativas, retry
       if (data.length === 0 && _attempt < MAX_ATTEMPTS) {
         logger.warn(`fetchHistorico: 0 disciplinas na tentativa ${_attempt}, retentando...`);
-        return this.fetchHistorico(ra, senha, _attempt + 1);
+        return this.fetchHistorico(ra, senha, cursoIndex, _attempt + 1);
       }
 
       return {
@@ -338,7 +403,7 @@ export class PortalService {
       // Se falhou e ainda tem tentativas, retry
       if (_attempt < MAX_ATTEMPTS) {
         logger.warn(`fetchHistorico: erro na tentativa ${_attempt}, retentando...`, err.message);
-        return this.fetchHistorico(ra, senha, _attempt + 1);
+        return this.fetchHistorico(ra, senha, cursoIndex, _attempt + 1);
       }
       if (err.name === 'TimeoutError' || err.message?.includes('timeout') || err.message?.includes('Timeout')) {
         throw new PortalTimeoutError('Portal demorou para responder ao buscar histórico');
@@ -351,12 +416,12 @@ export class PortalService {
   /**
    * Busca grade curricular do curso (todas as disciplinas da grade, com status).
    */
-  static async fetchCadeiras(ra, senha) {
+  static async fetchCadeiras(ra, senha, cursoIndex = null) {
     try {
       const captured = await withPortalSession(ra, senha, [
         { route: 'notas' },
         { route: 'grade-curricular', waitFor: ['GradeCurricular'] },
-      ]);
+      ], { cursoIndex });
 
       const grade = findCaptured(
         captured,
@@ -383,12 +448,12 @@ export class PortalService {
    * Busca quadro de horários do semestre atual.
    * Navega para #/notas (contexto) e #/quadro-horario (captura QuadroHorarioAluno).
    */
-  static async fetchHorarios(ra, senha) {
+  static async fetchHorarios(ra, senha, cursoIndex = null) {
     try {
       const captured = await withPortalSession(ra, senha, [
         { route: 'notas' },
         { route: 'quadro-horario', waitFor: ['QuadroHorarioAluno'] },
-      ]);
+      ], { cursoIndex });
 
       const quadro = findCaptured(captured, 'QuadroHorarioAluno');
 

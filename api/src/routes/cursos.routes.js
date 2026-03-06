@@ -4,13 +4,14 @@ import { PortalService } from '../services/portal.service.js';
 const router = Router();
 
 /**
- * POST /api/portal/horarios
- * Busca quadro de horários do semestre atual.
+ * POST /api/portal/cursos
+ * Detecta cursos/habilitações disponíveis para o aluno.
  * Body: { ra: string, senha: string }
+ * Returns: { cursos: [{ label, index }] }
  */
-router.post('/horarios', async (req, res, next) => {
+router.post('/cursos', async (req, res, next) => {
   try {
-    const { ra, senha, cursoIndex } = req.body;
+    const { ra, senha } = req.body;
 
     if (!ra || !senha) {
       return res.status(400).json({
@@ -24,14 +25,12 @@ router.post('/horarios', async (req, res, next) => {
       });
     }
 
-    const ci = cursoIndex !== undefined && cursoIndex !== null ? parseInt(cursoIndex, 10) : null;
-    const result = await PortalService.fetchHorarios(ra.trim(), senha, ci);
+    const result = await PortalService.fetchCursos(ra.trim(), senha);
 
     res.json({
       success: true,
-      method: result.method,
-      count: result.data.length,
-      data: result.data,
+      count: result.cursos.length,
+      cursos: result.cursos,
     });
   } catch (err) {
     next(err);
