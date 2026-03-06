@@ -48,7 +48,8 @@ export default function EmCursoTab({ disciplinas, setShowSimulador, startEditNot
 
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
-        throw new Error(err.error || 'Erro ao buscar horários');
+        const msg = typeof err.error === 'string' ? err.error : err.error?.message;
+        throw new Error(msg || 'Erro ao buscar horários');
       }
 
       const json = await res.json();
