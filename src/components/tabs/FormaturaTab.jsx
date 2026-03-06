@@ -146,7 +146,7 @@ export default function FormaturaTab({
             </button>
           </div>
 
-          <div className="space-y-1.5 max-h-56 overflow-y-auto pr-1">
+          <div className="space-y-1.5 max-h-72 overflow-y-auto pr-1">
             {planejamentoSemestres.map((sem, index) => {
               const isAtual = index === 0;
               return (
