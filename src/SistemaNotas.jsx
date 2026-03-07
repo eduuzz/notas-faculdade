@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect, useCallback, Suspense } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, BookOpen, GraduationCap, Clock, RefreshCw, Wifi, WifiOff, TrendingUp } from 'lucide-react';
+import { Plus, BookOpen, GraduationCap, Clock, RefreshCw, Wifi, WifiOff, TrendingUp, Settings } from 'lucide-react';
 import { useNotas } from './useNotas';
 import { useAuth } from './AuthContext';
 import ConfirmModal from './ConfirmModal';
@@ -435,6 +435,9 @@ export default function SistemaNotas({ onOpenAdmin }) {
             </div>
             <button onClick={forceSync} disabled={syncing || !isOnline} className="p-1.5 rounded-md hover:bg-[var(--bg-hover)] transition-colors disabled:opacity-50">
               <RefreshCw size={15} className={`text-[var(--text-muted)] ${syncing ? 'animate-spin' : ''}`} />
+            </button>
+            <button onClick={openSettings} className="lg:hidden p-1.5 rounded-md hover:bg-[var(--bg-hover)] transition-colors">
+              <Settings size={15} className="text-[var(--text-muted)]" />
             </button>
           </div>
         </header>

@@ -93,11 +93,16 @@ export default function SettingsModal({
   };
 
   return (
-    <div className="fixed inset-0 bg-[var(--bg-modal-overlay)] flex items-center justify-center z-50 p-4" onClick={(e) => e.target === e.currentTarget && onClose()}>
-      <div className="bg-[var(--bg-modal)] border border-[var(--border-input)] rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 bg-[var(--bg-modal-overlay)] flex items-end sm:items-center justify-center z-50 sm:p-4" onClick={(e) => e.target === e.currentTarget && onClose()}>
+      <div className="bg-[var(--bg-modal)] border border-[var(--border-input)] rounded-t-xl sm:rounded-lg max-w-2xl w-full max-h-[95vh] sm:max-h-[90vh] overflow-y-auto">
+
+        {/* Mobile drag handle */}
+        <div className="sm:hidden flex justify-center pt-2 pb-1">
+          <div className="w-10 h-1 rounded-full bg-[var(--text-muted)]/30" />
+        </div>
 
         {/* Header */}
-        <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--border-input)]">
+        <div className="flex items-center justify-between px-4 py-2 sm:py-3 border-b border-[var(--border-input)]">
           <div className="flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: 'var(--accent-bg10)' }}>
               <Settings size={16} style={{ color: 'var(--accent-400)' }} />
@@ -113,7 +118,7 @@ export default function SettingsModal({
         </div>
 
         {/* Body */}
-        <div className="p-4">
+        <div className="p-3 sm:p-4">
           {/* Perfil + Tema lado a lado */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
 
