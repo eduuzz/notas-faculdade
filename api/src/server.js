@@ -9,8 +9,13 @@ import routes from './routes/index.js';
 
 const app = express();
 
-// Segurança
-app.use(helmet());
+// Segurança — desabilita CSP apenas para o admin dashboard (inline scripts)
+app.use((req, res, next) => {
+  if (req.path === '/api/admin/dashboard') {
+    return helmet({ contentSecurityPolicy: false })(req, res, next);
+  }
+  return helmet()(req, res, next);
+});
 
 // CORS - permite requisições do frontend
 app.use(cors({
