@@ -22,6 +22,8 @@ const supabase =
 router.get('/dashboard', (req, res) => {
   try {
     const html = readFileSync(join(__dirname, '../admin/dashboard.html'), 'utf-8');
+    // Remove CSP set by helmet to allow inline scripts
+    res.removeHeader('Content-Security-Policy');
     res.type('html').send(html);
   } catch {
     res.status(500).send('Dashboard HTML not found');
