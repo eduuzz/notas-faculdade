@@ -13,7 +13,7 @@
     --blue: #60a5fa; --purple: #a78bfa; --cyan: #22d3ee;
   }
   body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
-  .container { max-width: 1200px; margin: 0 auto; padding: 16px; }
+  .container { max-width: 1400px; margin: 0 auto; padding: 16px; }
   header { display: flex; align-items: center; justify-content: space-between; padding: 12px 0 20px; border-bottom: 1px solid var(--border); margin-bottom: 20px; flex-wrap: wrap; gap: 10px; }
   header h1 { font-size: 18px; font-weight: 700; display: flex; align-items: center; gap: 8px; }
   header h1 span { color: var(--cyan); }
@@ -21,11 +21,19 @@
   .badge { font-size: 11px; padding: 3px 8px; border-radius: 6px; font-weight: 500; }
   .badge-online { background: rgba(52,211,153,.15); color: var(--green); }
   .badge-offline { background: rgba(248,113,113,.15); color: var(--red); }
+  .badge-warn { background: rgba(251,191,36,.15); color: var(--yellow); }
   .btn { background: var(--bg3); border: 1px solid var(--border); color: var(--text); padding: 6px 14px; border-radius: 8px; cursor: pointer; font-size: 13px; transition: .15s; }
   .btn:hover { background: var(--border); }
+  .btn-sm { padding: 3px 10px; font-size: 11px; }
+  .btn-danger { border-color: rgba(248,113,113,.3); color: var(--red); }
+  .btn-danger:hover { background: rgba(248,113,113,.15); }
+  .btn-success { border-color: rgba(52,211,153,.3); color: var(--green); }
+  .btn-success:hover { background: rgba(52,211,153,.15); }
   .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; margin-bottom: 16px; }
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 16px; }
   .card { background: var(--bg2); border: 1px solid var(--border); border-radius: 12px; padding: 16px; }
-  .card-title { font-size: 13px; color: var(--muted); font-weight: 500; margin-bottom: 12px; text-transform: uppercase; letter-spacing: .5px; display: flex; align-items: center; gap: 6px; }
+  .card-title { font-size: 13px; color: var(--muted); font-weight: 500; margin-bottom: 12px; text-transform: uppercase; letter-spacing: .5px; display: flex; align-items: center; justify-content: space-between; gap: 6px; }
+  .card-title .left { display: flex; align-items: center; gap: 6px; }
   .service-row { display: flex; align-items: center; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--border); }
   .service-row:last-child { border: none; }
   .service-name { font-size: 14px; font-weight: 500; }
@@ -37,6 +45,7 @@
   .stat-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
   .stat-item { text-align: center; padding: 10px; background: var(--bg3); border-radius: 8px; }
   .stat-value { font-size: 24px; font-weight: 700; color: var(--text); }
+  .stat-value-sm { font-size: 18px; }
   .stat-label { font-size: 11px; color: var(--muted); margin-top: 2px; }
   .meter { height: 6px; background: var(--bg3); border-radius: 3px; margin-top: 8px; overflow: hidden; }
   .meter-fill { height: 100%; border-radius: 3px; transition: width .5s; }
@@ -46,20 +55,49 @@
   td { padding: 6px 8px; border-bottom: 1px solid rgba(42,46,61,.5); }
   tr:hover td { background: rgba(42,46,61,.3); }
   .status-2 { color: var(--green); }
+  .status-3 { color: var(--blue); }
   .status-4 { color: var(--yellow); }
   .status-5 { color: var(--red); }
   .refresh-info { font-size: 11px; color: var(--muted); }
-  .user-list { max-height: 300px; overflow-y: auto; }
-  .user-row { display: flex; align-items: center; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid rgba(42,46,61,.5); font-size: 13px; }
+  .user-list { max-height: 350px; overflow-y: auto; }
+  .user-row { display: flex; align-items: center; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid rgba(42,46,61,.5); font-size: 13px; gap: 8px; }
   .user-row:last-child { border: none; }
   .user-email { color: var(--text); }
   .user-curso { color: var(--muted); font-size: 11px; }
+  .user-actions { display: flex; gap: 4px; align-items: center; flex-shrink: 0; }
   .skeleton { background: linear-gradient(90deg, var(--bg3) 25%, var(--border) 50%, var(--bg3) 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; border-radius: 6px; height: 20px; }
+  .chart-container { height: 120px; display: flex; align-items: flex-end; gap: 2px; padding-top: 8px; }
+  .chart-bar { flex: 1; min-width: 4px; border-radius: 2px 2px 0 0; transition: height .3s; position: relative; }
+  .chart-bar:hover { opacity: .8; }
+  .chart-bar .tooltip { display: none; position: absolute; bottom: 100%; left: 50%; transform: translateX(-50%); background: var(--bg3); border: 1px solid var(--border); padding: 4px 8px; border-radius: 6px; font-size: 10px; white-space: nowrap; z-index: 10; }
+  .chart-bar:hover .tooltip { display: block; }
+  .chart-labels { display: flex; justify-content: space-between; font-size: 10px; color: var(--muted); margin-top: 4px; }
+  .env-row { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid rgba(42,46,61,.5); font-size: 13px; }
+  .env-row:last-child { border: none; }
+  .env-key { color: var(--muted); font-family: monospace; font-size: 12px; }
+  .env-val { color: var(--text); font-family: monospace; font-size: 12px; word-break: break-all; }
+  .test-step { display: flex; align-items: center; gap: 8px; padding: 6px 0; border-bottom: 1px solid rgba(42,46,61,.5); font-size: 13px; }
+  .test-step:last-child { border: none; }
+  .tabs { display: flex; gap: 4px; margin-bottom: 12px; }
+  .tab { padding: 6px 12px; border-radius: 6px; font-size: 12px; cursor: pointer; color: var(--muted); background: transparent; border: none; transition: .15s; }
+  .tab.active { background: var(--bg3); color: var(--text); }
+  .tab:hover { color: var(--text); }
+  .tab-content { display: none; }
+  .tab-content.active { display: block; }
+  .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.6); z-index: 100; align-items: center; justify-content: center; }
+  .modal-overlay.open { display: flex; }
+  .modal { background: var(--bg2); border: 1px solid var(--border); border-radius: 12px; padding: 20px; width: 90%; max-width: 400px; }
+  .modal h3 { font-size: 16px; margin-bottom: 12px; }
+  .modal input { width: 100%; padding: 8px 12px; background: var(--bg3); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: 13px; margin-bottom: 10px; outline: none; }
+  .modal input:focus { border-color: var(--cyan); }
+  .modal-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 12px; }
+  .status-code-grid { display: flex; gap: 8px; flex-wrap: wrap; }
+  .status-code-item { padding: 6px 12px; background: var(--bg3); border-radius: 8px; font-size: 12px; }
   @keyframes shimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
-  @media (max-width: 640px) {
+  @media (max-width: 768px) {
     .container { padding: 10px; }
     .grid { grid-template-columns: 1fr; }
-    .stat-grid { grid-template-columns: repeat(2, 1fr); }
+    .grid-2 { grid-template-columns: 1fr; }
     header h1 { font-size: 16px; }
   }
 </style>
@@ -70,81 +108,147 @@
     <h1><span>&#9670;</span> Semestry Admin</h1>
     <div class="header-actions">
       <span class="refresh-info" id="lastRefresh">--</span>
+      <button class="btn btn-sm" onclick="runTest()">Testar Servicos</button>
       <button class="btn" onclick="refreshAll()">Atualizar</button>
     </div>
   </header>
 
-  <!-- Services -->
+  <!-- Row 1: Services + Users + Resources + Requests -->
   <div class="grid">
     <div class="card">
-      <div class="card-title">&#9889; Status dos Servicos</div>
+      <div class="card-title"><span class="left">&#9889; Status dos Servicos</span></div>
       <div id="services"><div class="skeleton" style="height:120px"></div></div>
     </div>
-
     <div class="card">
-      <div class="card-title">&#128101; Usuarios</div>
+      <div class="card-title">
+        <span class="left">&#128101; Usuarios</span>
+        <button class="btn btn-sm btn-success" onclick="openAddUser()">+ Novo</button>
+      </div>
       <div id="users"><div class="skeleton" style="height:120px"></div></div>
     </div>
-
     <div class="card">
-      <div class="card-title">&#128200; Recursos</div>
+      <div class="card-title"><span class="left">&#128200; Recursos</span></div>
       <div id="resources"><div class="skeleton" style="height:120px"></div></div>
     </div>
-
     <div class="card">
-      <div class="card-title">&#128202; Requests</div>
+      <div class="card-title"><span class="left">&#128202; Requests</span></div>
       <div id="reqStats"><div class="skeleton" style="height:120px"></div></div>
     </div>
   </div>
 
-  <!-- Logs -->
-  <div class="card">
-    <div class="card-title">&#128220; Logs Recentes</div>
-    <div class="table-wrap" id="logs"><div class="skeleton" style="height:200px"></div></div>
+  <!-- Row 2: Charts -->
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-title"><span class="left">&#128200; Requests/Hora</span></div>
+      <div id="hourlyChart"><div class="skeleton" style="height:140px"></div></div>
+    </div>
+    <div class="card">
+      <div class="card-title"><span class="left">&#128202; Status Codes + Top Endpoints</span></div>
+      <div id="analytics"><div class="skeleton" style="height:140px"></div></div>
+    </div>
   </div>
 
-  <!-- Users list -->
+  <!-- Row 3: Top Users + Env -->
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-title"><span class="left">&#128081; Top Usuarios (por requests)</span></div>
+      <div id="topUsers"><div class="skeleton" style="height:140px"></div></div>
+    </div>
+    <div class="card">
+      <div class="card-title"><span class="left">&#128274; Environment</span></div>
+      <div id="envInfo"><div class="skeleton" style="height:140px"></div></div>
+    </div>
+  </div>
+
+  <!-- Row 4: Logs with tabs -->
+  <div class="card">
+    <div class="card-title">
+      <span class="left">&#128220; Logs</span>
+      <button class="btn btn-sm btn-danger" onclick="clearAllLogs()">Limpar Logs</button>
+    </div>
+    <div class="tabs" id="logTabs">
+      <button class="tab active" data-tab="recent">Recentes</button>
+      <button class="tab" data-tab="errors">Erros</button>
+    </div>
+    <div id="tab-recent" class="tab-content active">
+      <div class="table-wrap" id="logs"><div class="skeleton" style="height:200px"></div></div>
+    </div>
+    <div id="tab-errors" class="tab-content">
+      <div class="table-wrap" id="errorLogs"><div class="skeleton" style="height:200px"></div></div>
+    </div>
+  </div>
+
+  <!-- Row 5: User list -->
   <div class="card" style="margin-top:14px">
-    <div class="card-title">&#128100; Usuarios Recentes</div>
+    <div class="card-title"><span class="left">&#128100; Todos os Usuarios</span></div>
     <div class="user-list" id="userList"><div class="skeleton" style="height:150px"></div></div>
+  </div>
+
+  <!-- Row 6: Test results (hidden until used) -->
+  <div class="card" style="margin-top:14px;display:none" id="testCard">
+    <div class="card-title"><span class="left">&#128295; Resultado do Teste</span></div>
+    <div id="testResults"></div>
+  </div>
+</div>
+
+<!-- Add User Modal -->
+<div class="modal-overlay" id="addUserModal">
+  <div class="modal">
+    <h3>Adicionar Usuario</h3>
+    <input type="email" id="newUserEmail" placeholder="Email">
+    <input type="text" id="newUserNome" placeholder="Nome (opcional)">
+    <div class="modal-actions">
+      <button class="btn" onclick="closeAddUser()">Cancelar</button>
+      <button class="btn btn-success" onclick="addUser()">Adicionar</button>
+    </div>
   </div>
 </div>
 
 <script>
-const BASE = window.location.origin + '/api/admin';
-const params = new URLSearchParams(window.location.search);
-const token = params.get('token') || '';
-const headers = token ? { Authorization: 'Bearer ' + token } : {};
+var BASE = window.location.origin + '/api/admin';
+var params = new URLSearchParams(window.location.search);
+var token = params.get('token') || '';
 
-async function fetchJSON(path) {
-  const url = BASE + path + (token ? (path.includes('?') ? '&' : '?') + 'token=' + token : '');
-  const res = await fetch(url, { headers });
-  if (!res.ok) throw new Error('HTTP ' + res.status);
-  return res.json();
+function api(path, opts) {
+  opts = opts || {};
+  var url = BASE + path + (token ? (path.indexOf('?') >= 0 ? '&' : '?') + 'token=' + token : '');
+  var h = { 'Content-Type': 'application/json' };
+  if (token) h['Authorization'] = 'Bearer ' + token;
+  if (opts.headers) { for (var k in opts.headers) h[k] = opts.headers[k]; }
+  return fetch(url, {
+    method: opts.method || 'GET',
+    headers: h,
+    body: opts.body || undefined,
+  }).then(function(r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); });
 }
 
+/* ── Render helpers ── */
 function dot(status) {
-  const cls = status === 'online' ? 'dot-green' : status === 'error' ? 'dot-yellow' : 'dot-red';
+  var cls = status === 'online' ? 'dot-green' : status === 'error' ? 'dot-yellow' : 'dot-red';
   return '<span class="dot ' + cls + '"></span>';
 }
 
 function statusBadge(status) {
-  const cls = status === 'online' ? 'badge-online' : 'badge-offline';
-  const label = status === 'online' ? 'Online' : status === 'error' ? 'Erro' : 'Offline';
+  var cls = status === 'online' ? 'badge-online' : 'badge-offline';
+  var label = status === 'online' ? 'Online' : status === 'error' ? 'Erro' : 'Offline';
   return '<span class="badge ' + cls + '">' + label + '</span>';
 }
 
+function esc(s) { var d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+
+/* ── Services ── */
 function renderServices(data) {
-  const services = [
+  var services = [
     { key: 'railway', name: 'Railway (API)', icon: '&#9881;' },
     { key: 'supabase', name: 'Supabase', icon: '&#128280;' },
     { key: 'vercel', name: 'Vercel (Frontend)', icon: '&#9650;' },
     { key: 'portal', name: 'Portal TOTVS', icon: '&#127891;' },
   ];
-  let html = '';
-  for (const s of services) {
-    const d = data[s.key] || { status: 'unknown' };
-    const rt = d.responseTime ? d.responseTime + 'ms' : d.uptime || '';
+  var html = '';
+  for (var i = 0; i < services.length; i++) {
+    var s = services[i];
+    var d = data[s.key] || { status: 'unknown' };
+    var rt = d.responseTime ? d.responseTime + 'ms' : d.uptime || '';
     html += '<div class="service-row">'
       + '<div>' + dot(d.status) + '<span class="service-name">' + s.icon + ' ' + s.name + '</span></div>'
       + '<div style="display:flex;align-items:center;gap:8px"><span class="service-meta">' + rt + '</span>' + statusBadge(d.status) + '</div>'
@@ -153,104 +257,292 @@ function renderServices(data) {
   document.getElementById('services').innerHTML = html;
 }
 
+/* ── Users stats ── */
 function renderUsers(data) {
-  const stats = [
+  var stats = [
     { value: data.total, label: 'Total' },
     { value: data.active, label: 'Ativos' },
     { value: data.withProfile, label: 'Com Perfil' },
     { value: data.total - data.active, label: 'Inativos' },
   ];
-  let html = '<div class="stat-grid">';
-  for (const s of stats) {
-    html += '<div class="stat-item"><div class="stat-value">' + (s.value || 0) + '</div><div class="stat-label">' + s.label + '</div></div>';
+  var html = '<div class="stat-grid">';
+  for (var i = 0; i < stats.length; i++) {
+    html += '<div class="stat-item"><div class="stat-value">' + (stats[i].value || 0) + '</div><div class="stat-label">' + stats[i].label + '</div></div>';
   }
   html += '</div>';
   document.getElementById('users').innerHTML = html;
-
-  // User list
-  let listHtml = '';
-  for (const u of (data.recent || [])) {
-    listHtml += '<div class="user-row">'
-      + '<div><div class="user-email">' + (u.nome || u.email) + '</div>'
-      + '<div class="user-curso">' + (u.curso || 'Sem curso') + '</div></div>'
-      + '<span class="badge ' + (u.ativo ? 'badge-online' : 'badge-offline') + '">' + (u.ativo ? 'Ativo' : 'Inativo') + '</span>'
-      + '</div>';
-  }
-  document.getElementById('userList').innerHTML = listHtml || '<div class="service-meta">Nenhum usuario</div>';
+  renderUserList(data.recent || []);
 }
 
-function renderResources(data) {
-  const mem = data.memory || {};
-  const sys = data.system || {};
-  const heapPct = mem.heapTotalRaw > 0 ? Math.round((mem.heapUsedRaw / mem.heapTotalRaw) * 100) : 0;
-  const memColor = heapPct > 80 ? 'var(--red)' : heapPct > 60 ? 'var(--yellow)' : 'var(--green)';
+function renderUserList(list) {
+  var html = '';
+  for (var i = 0; i < list.length; i++) {
+    var u = list[i];
+    var name = esc(u.nome || u.email);
+    var email = esc(u.email || '');
+    var curso = esc(u.curso || 'Sem curso');
+    var ativoBtn = u.ativo
+      ? '<button class="btn btn-sm btn-danger" onclick="toggleUser(\'' + u.id + '\',false)">Desativar</button>'
+      : '<button class="btn btn-sm btn-success" onclick="toggleUser(\'' + u.id + '\',true)">Ativar</button>';
+    var delBtn = '<button class="btn btn-sm btn-danger" onclick="deleteUser(\'' + u.id + '\',\'' + email.replace(/'/g, "\\'") + '\')">&#10005;</button>';
+    html += '<div class="user-row">'
+      + '<div style="min-width:0"><div class="user-email">' + name + '</div>'
+      + '<div class="user-curso">' + curso + ' &middot; ' + email + '</div></div>'
+      + '<div class="user-actions">'
+      + '<span class="badge ' + (u.ativo ? 'badge-online' : 'badge-offline') + '">' + (u.ativo ? 'Ativo' : 'Inativo') + '</span>'
+      + ativoBtn + delBtn
+      + '</div></div>';
+  }
+  document.getElementById('userList').innerHTML = html || '<div class="service-meta">Nenhum usuario</div>';
+}
 
-  let html = '<div style="margin-bottom:12px">'
+/* ── Resources ── */
+function renderResources(data) {
+  var mem = data.memory || {};
+  var sys = data.system || {};
+  var heapPct = mem.heapTotalRaw > 0 ? Math.round((mem.heapUsedRaw / mem.heapTotalRaw) * 100) : 0;
+  var memColor = heapPct > 80 ? 'var(--red)' : heapPct > 60 ? 'var(--yellow)' : 'var(--green)';
+
+  var html = '<div style="margin-bottom:12px">'
     + '<div style="display:flex;justify-content:space-between;font-size:13px"><span>Heap: ' + mem.heapUsed + ' / ' + mem.heapTotal + '</span><span>' + heapPct + '%</span></div>'
     + '<div class="meter"><div class="meter-fill" style="width:' + heapPct + '%;background:' + memColor + '"></div></div>'
     + '</div>';
 
   html += '<div class="stat-grid">'
-    + '<div class="stat-item"><div class="stat-value" style="font-size:18px">' + (data.uptimeFormatted || '--') + '</div><div class="stat-label">Uptime</div></div>'
-    + '<div class="stat-item"><div class="stat-value" style="font-size:18px">' + mem.rss + '</div><div class="stat-label">RSS</div></div>'
-    + '<div class="stat-item"><div class="stat-value" style="font-size:18px">' + sys.nodeVersion + '</div><div class="stat-label">Node</div></div>'
-    + '<div class="stat-item"><div class="stat-value" style="font-size:18px">' + sys.cpus + ' cores</div><div class="stat-label">CPUs</div></div>'
+    + '<div class="stat-item"><div class="stat-value stat-value-sm">' + (data.uptimeFormatted || '--') + '</div><div class="stat-label">Uptime</div></div>'
+    + '<div class="stat-item"><div class="stat-value stat-value-sm">' + (mem.rss || '--') + '</div><div class="stat-label">RSS</div></div>'
+    + '<div class="stat-item"><div class="stat-value stat-value-sm">' + (sys.nodeVersion || '--') + '</div><div class="stat-label">Node</div></div>'
+    + '<div class="stat-item"><div class="stat-value stat-value-sm">' + (sys.cpus || '--') + ' cores</div><div class="stat-label">CPUs</div></div>'
     + '</div>';
 
   document.getElementById('resources').innerHTML = html;
 }
 
+/* ── Request stats ── */
 function renderReqStats(data) {
-  const html = '<div class="stat-grid">'
+  document.getElementById('reqStats').innerHTML = '<div class="stat-grid">'
     + '<div class="stat-item"><div class="stat-value">' + data.totalRequests + '</div><div class="stat-label">Total Requests</div></div>'
     + '<div class="stat-item"><div class="stat-value">' + data.requestsLastMinute + '</div><div class="stat-label">Ultimo Minuto</div></div>'
     + '<div class="stat-item"><div class="stat-value">' + data.avgResponseTime + 'ms</div><div class="stat-label">Tempo Medio</div></div>'
     + '<div class="stat-item"><div class="stat-value">' + data.errorRate + '%</div><div class="stat-label">Taxa de Erro</div></div>'
     + '</div>';
-  document.getElementById('reqStats').innerHTML = html;
 }
 
-function renderLogs(data) {
+/* ── Hourly chart ── */
+function renderHourlyChart(data) {
   if (!data || data.length === 0) {
-    document.getElementById('logs').innerHTML = '<div class="service-meta" style="padding:20px;text-align:center">Nenhum log ainda</div>';
+    document.getElementById('hourlyChart').innerHTML = '<div class="service-meta" style="padding:20px;text-align:center">Sem dados ainda</div>';
     return;
   }
-  let html = '<table><thead><tr><th>Hora</th><th>Metodo</th><th>Rota</th><th>Status</th><th>Tempo</th><th>Usuario</th></tr></thead><tbody>';
-  for (const l of data) {
-    const time = new Date(l.timestamp).toLocaleTimeString('pt-BR');
-    const statusCls = 'status-' + String(l.status)[0];
+  var maxReqs = 1;
+  for (var i = 0; i < data.length; i++) { if (data[i].requests > maxReqs) maxReqs = data[i].requests; }
+  var bars = '';
+  for (var i = 0; i < data.length; i++) {
+    var h = data[i];
+    var height = Math.max((h.requests / maxReqs) * 100, 2);
+    var hour = h.hour.split('T')[1] || h.hour;
+    bars += '<div class="chart-bar" style="height:' + height + '%;background:var(--blue)">'
+      + '<div class="tooltip">' + hour + '<br>' + h.requests + ' reqs, ' + h.errors + ' erros, ' + h.avgDuration + 'ms</div>'
+      + '</div>';
+  }
+  var first = data[0].hour.split('T')[1] || '';
+  var last = data[data.length - 1].hour.split('T')[1] || '';
+  document.getElementById('hourlyChart').innerHTML =
+    '<div class="chart-container">' + bars + '</div>'
+    + '<div class="chart-labels"><span>' + first + '</span><span>' + last + '</span></div>';
+}
+
+/* ── Analytics: status codes + top endpoints ── */
+function renderAnalytics(data) {
+  var html = '';
+  var sb = data.statusBreakdown || {};
+  var sbKeys = Object.keys(sb);
+  if (sbKeys.length > 0) {
+    html += '<div style="margin-bottom:12px"><div style="font-size:12px;color:var(--muted);margin-bottom:6px">Status Codes</div><div class="status-code-grid">';
+    var colors = { '2xx': 'var(--green)', '3xx': 'var(--blue)', '4xx': 'var(--yellow)', '5xx': 'var(--red)' };
+    for (var i = 0; i < sbKeys.length; i++) {
+      var code = sbKeys[i];
+      html += '<div class="status-code-item" style="border-left:3px solid ' + (colors[code] || 'var(--muted)') + '">' + code + ': <strong>' + sb[code] + '</strong></div>';
+    }
+    html += '</div></div>';
+  }
+  var te = data.topEndpoints || [];
+  if (te.length > 0) {
+    html += '<div style="font-size:12px;color:var(--muted);margin-bottom:6px">Top Endpoints (5min)</div>';
+    var max5 = Math.min(te.length, 5);
+    for (var i = 0; i < max5; i++) {
+      var pct = data.requestsLast5Min > 0 ? Math.round((te[i].count / data.requestsLast5Min) * 100) : 0;
+      html += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;font-size:12px">'
+        + '<span style="flex:1;font-family:monospace;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + esc(te[i].endpoint) + '</span>'
+        + '<span style="color:var(--muted);flex-shrink:0">' + te[i].count + '</span>'
+        + '<div style="width:60px;height:4px;background:var(--bg3);border-radius:2px;flex-shrink:0"><div style="height:100%;width:' + pct + '%;background:var(--cyan);border-radius:2px"></div></div>'
+        + '</div>';
+    }
+  }
+  document.getElementById('analytics').innerHTML = html || '<div class="service-meta" style="padding:20px;text-align:center">Sem dados</div>';
+}
+
+/* ── Top users ── */
+function renderTopUsers(data) {
+  var tu = data.topUsers || [];
+  if (tu.length === 0) {
+    document.getElementById('topUsers').innerHTML = '<div class="service-meta" style="padding:20px;text-align:center">Sem dados</div>';
+    return;
+  }
+  var maxCount = tu[0].count;
+  var html = '';
+  for (var i = 0; i < tu.length; i++) {
+    var pct = Math.round((tu[i].count / maxCount) * 100);
+    html += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;font-size:13px">'
+      + '<span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + esc(tu[i].user) + '</span>'
+      + '<span style="color:var(--muted);flex-shrink:0">' + tu[i].count + ' reqs</span>'
+      + '<div style="width:80px;height:4px;background:var(--bg3);border-radius:2px;flex-shrink:0"><div style="height:100%;width:' + pct + '%;background:var(--purple);border-radius:2px"></div></div>'
+      + '</div>';
+  }
+  document.getElementById('topUsers').innerHTML = html;
+}
+
+/* ── Environment ── */
+function renderEnv(data) {
+  var html = '';
+  var keys = Object.keys(data);
+  for (var i = 0; i < keys.length; i++) {
+    html += '<div class="env-row"><span class="env-key">' + esc(keys[i]) + '</span><span class="env-val">' + esc(String(data[keys[i]])) + '</span></div>';
+  }
+  document.getElementById('envInfo').innerHTML = html;
+}
+
+/* ── Logs table ── */
+function renderLogsTable(data, targetId) {
+  var el = document.getElementById(targetId);
+  if (!data || data.length === 0) {
+    el.innerHTML = '<div class="service-meta" style="padding:20px;text-align:center">Nenhum log</div>';
+    return;
+  }
+  var html = '<table><thead><tr><th>Hora</th><th>Metodo</th><th>Rota</th><th>Status</th><th>Tempo</th><th>Usuario</th></tr></thead><tbody>';
+  for (var i = 0; i < data.length; i++) {
+    var l = data[i];
+    var time = new Date(l.timestamp).toLocaleTimeString('pt-BR');
+    var statusCls = 'status-' + String(l.status)[0];
     html += '<tr>'
       + '<td>' + time + '</td>'
       + '<td><strong>' + l.method + '</strong></td>'
-      + '<td>' + l.path + '</td>'
+      + '<td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + esc(l.path) + '</td>'
       + '<td class="' + statusCls + '">' + l.status + '</td>'
       + '<td>' + l.duration + 'ms</td>'
-      + '<td style="color:var(--muted)">' + (l.user || '-') + '</td>'
+      + '<td style="color:var(--muted)">' + esc(l.user || '-') + '</td>'
       + '</tr>';
   }
   html += '</tbody></table>';
-  document.getElementById('logs').innerHTML = html;
+  el.innerHTML = html;
 }
 
-async function refreshAll() {
+/* ── Tab switching ── */
+document.getElementById('logTabs').addEventListener('click', function(e) {
+  if (!e.target.classList.contains('tab')) return;
+  var tabs = this.querySelectorAll('.tab');
+  for (var i = 0; i < tabs.length; i++) tabs[i].classList.remove('active');
+  e.target.classList.add('active');
+  var tabName = e.target.getAttribute('data-tab');
+  var contents = document.querySelectorAll('.tab-content');
+  for (var i = 0; i < contents.length; i++) contents[i].classList.remove('active');
+  document.getElementById('tab-' + tabName).classList.add('active');
+});
+
+/* ── User management ── */
+function toggleUser(id, ativo) {
+  api('/users/' + id, { method: 'PATCH', body: JSON.stringify({ ativo: ativo }) })
+    .then(function() { refreshUsers(); })
+    .catch(function(err) { alert('Erro: ' + err.message); });
+}
+
+function deleteUser(id, email) {
+  if (!confirm('Remover usuario ' + email + '?')) return;
+  api('/users/' + id, { method: 'DELETE' })
+    .then(function() { refreshUsers(); })
+    .catch(function(err) { alert('Erro: ' + err.message); });
+}
+
+function openAddUser() { document.getElementById('addUserModal').classList.add('open'); }
+function closeAddUser() { document.getElementById('addUserModal').classList.remove('open'); }
+
+function addUser() {
+  var email = document.getElementById('newUserEmail').value.trim();
+  var nome = document.getElementById('newUserNome').value.trim();
+  if (!email) return alert('Email obrigatorio');
+  api('/users', { method: 'POST', body: JSON.stringify({ email: email, nome: nome || undefined }) })
+    .then(function() {
+      closeAddUser();
+      document.getElementById('newUserEmail').value = '';
+      document.getElementById('newUserNome').value = '';
+      refreshUsers();
+    })
+    .catch(function(err) { alert('Erro: ' + err.message); });
+}
+
+/* ── Clear logs ── */
+function clearAllLogs() {
+  if (!confirm('Limpar todos os logs e contadores?')) return;
+  api('/logs', { method: 'DELETE' })
+    .then(function() { refreshAll(); })
+    .catch(function(err) { alert('Erro: ' + err.message); });
+}
+
+/* ── Test services ── */
+function runTest() {
+  var card = document.getElementById('testCard');
+  card.style.display = 'block';
+  document.getElementById('testResults').innerHTML = '<div class="skeleton" style="height:80px"></div>';
+  card.scrollIntoView({ behavior: 'smooth' });
+  api('/test-portal', { method: 'POST' })
+    .then(function(data) {
+      var html = '<div style="margin-bottom:8px"><span class="badge ' + (data.overall === 'ok' ? 'badge-online' : 'badge-warn') + '">' + (data.overall === 'ok' ? 'Tudo OK' : 'Problemas detectados') + '</span></div>';
+      for (var i = 0; i < data.steps.length; i++) {
+        var s = data.steps[i];
+        var icon = s.status === 'ok' ? '<span style="color:var(--green)">&#10003;</span>'
+          : s.status === 'fail' ? '<span style="color:var(--red)">&#10007;</span>'
+          : s.status === 'skip' ? '<span style="color:var(--muted)">&#8722;</span>'
+          : '<span style="color:var(--yellow)">&#9888;</span>';
+        html += '<div class="test-step">' + icon + ' <strong>' + esc(s.name) + '</strong> <span class="service-meta">' + esc(s.detail) + '</span></div>';
+      }
+      document.getElementById('testResults').innerHTML = html;
+    })
+    .catch(function(err) {
+      document.getElementById('testResults').innerHTML = '<div style="color:var(--red)">Erro: ' + esc(err.message) + '</div>';
+    });
+}
+
+/* ── Refresh ── */
+function refreshUsers() {
+  api('/users').catch(function() { return { total: 0, active: 0, withProfile: 0, recent: [] }; }).then(renderUsers);
+}
+
+function refreshAll() {
   document.getElementById('lastRefresh').textContent = 'Atualizando...';
-  try {
-    const [services, health, users, logs, stats] = await Promise.all([
-      fetchJSON('/services').catch(() => ({})),
-      fetchJSON('/health').catch(() => ({})),
-      fetchJSON('/users').catch(() => ({ total: 0, active: 0, withProfile: 0, recent: [] })),
-      fetchJSON('/logs?limit=100').catch(() => []),
-      fetchJSON('/stats').catch(() => ({})),
-    ]);
-    renderServices(services);
-    renderResources(health);
-    renderUsers(users);
-    renderLogs(logs);
-    renderReqStats(stats);
+  Promise.all([
+    api('/services').catch(function() { return {}; }),
+    api('/health').catch(function() { return {}; }),
+    api('/users').catch(function() { return { total: 0, active: 0, withProfile: 0, recent: [] }; }),
+    api('/logs?limit=100').catch(function() { return []; }),
+    api('/errors?limit=50').catch(function() { return []; }),
+    api('/stats').catch(function() { return {}; }),
+    api('/stats/hourly').catch(function() { return []; }),
+    api('/env').catch(function() { return {}; }),
+  ]).then(function(results) {
+    renderServices(results[0]);
+    renderResources(results[1]);
+    renderUsers(results[2]);
+    renderLogsTable(results[3], 'logs');
+    renderLogsTable(results[4], 'errorLogs');
+    renderReqStats(results[5]);
+    renderHourlyChart(results[6]);
+    renderAnalytics(results[5]);
+    renderTopUsers(results[5]);
+    renderEnv(results[7]);
     document.getElementById('lastRefresh').textContent = 'Atualizado ' + new Date().toLocaleTimeString('pt-BR');
-  } catch (err) {
+  }).catch(function(err) {
     document.getElementById('lastRefresh').textContent = 'Erro: ' + err.message;
-  }
+  });
 }
 
 // Initial load + auto-refresh every 30s
