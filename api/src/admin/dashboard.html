@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Semestry Admin</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  :root {
+    --bg: #0f1117; --bg2: #1a1d27; --bg3: #242836;
+    --border: #2a2e3d; --text: #e2e8f0; --muted: #8892a8;
+    --green: #34d399; --red: #f87171; --yellow: #fbbf24;
+    --blue: #60a5fa; --purple: #a78bfa; --cyan: #22d3ee;
+  }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+  .container { max-width: 1200px; margin: 0 auto; padding: 16px; }
+  header { display: flex; align-items: center; justify-content: space-between; padding: 12px 0 20px; border-bottom: 1px solid var(--border); margin-bottom: 20px; flex-wrap: wrap; gap: 10px; }
+  header h1 { font-size: 18px; font-weight: 700; display: flex; align-items: center; gap: 8px; }
+  header h1 span { color: var(--cyan); }
+  .header-actions { display: flex; align-items: center; gap: 10px; }
+  .badge { font-size: 11px; padding: 3px 8px; border-radius: 6px; font-weight: 500; }
+  .badge-online { background: rgba(52,211,153,.15); color: var(--green); }
+  .badge-offline { background: rgba(248,113,113,.15); color: var(--red); }
+  .btn { background: var(--bg3); border: 1px solid var(--border); color: var(--text); padding: 6px 14px; border-radius: 8px; cursor: pointer; font-size: 13px; transition: .15s; }
+  .btn:hover { background: var(--border); }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; margin-bottom: 16px; }
+  .card { background: var(--bg2); border: 1px solid var(--border); border-radius: 12px; padding: 16px; }
+  .card-title { font-size: 13px; color: var(--muted); font-weight: 500; margin-bottom: 12px; text-transform: uppercase; letter-spacing: .5px; display: flex; align-items: center; gap: 6px; }
+  .service-row { display: flex; align-items: center; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--border); }
+  .service-row:last-child { border: none; }
+  .service-name { font-size: 14px; font-weight: 500; }
+  .service-meta { font-size: 12px; color: var(--muted); }
+  .dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 6px; }
+  .dot-green { background: var(--green); box-shadow: 0 0 6px var(--green); }
+  .dot-red { background: var(--red); box-shadow: 0 0 6px var(--red); }
+  .dot-yellow { background: var(--yellow); box-shadow: 0 0 6px var(--yellow); }
+  .stat-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+  .stat-item { text-align: center; padding: 10px; background: var(--bg3); border-radius: 8px; }
+  .stat-value { font-size: 24px; font-weight: 700; color: var(--text); }
+  .stat-label { font-size: 11px; color: var(--muted); margin-top: 2px; }
+  .meter { height: 6px; background: var(--bg3); border-radius: 3px; margin-top: 8px; overflow: hidden; }
+  .meter-fill { height: 100%; border-radius: 3px; transition: width .5s; }
+  .table-wrap { overflow-x: auto; max-height: 400px; overflow-y: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  th { text-align: left; padding: 8px; color: var(--muted); font-weight: 500; position: sticky; top: 0; background: var(--bg2); border-bottom: 1px solid var(--border); }
+  td { padding: 6px 8px; border-bottom: 1px solid rgba(42,46,61,.5); }
+  tr:hover td { background: rgba(42,46,61,.3); }
+  .status-2 { color: var(--green); }
+  .status-4 { color: var(--yellow); }
+  .status-5 { color: var(--red); }
+  .refresh-info { font-size: 11px; color: var(--muted); }
+  .user-list { max-height: 300px; overflow-y: auto; }
+  .user-row { display: flex; align-items: center; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid rgba(42,46,61,.5); font-size: 13px; }
+  .user-row:last-child { border: none; }
+  .user-email { color: var(--text); }
+  .user-curso { color: var(--muted); font-size: 11px; }
+  .skeleton { background: linear-gradient(90deg, var(--bg3) 25%, var(--border) 50%, var(--bg3) 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; border-radius: 6px; height: 20px; }
+  @keyframes shimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
+  @media (max-width: 640px) {
+    .container { padding: 10px; }
+    .grid { grid-template-columns: 1fr; }
+    .stat-grid { grid-template-columns: repeat(2, 1fr); }
+    header h1 { font-size: 16px; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <h1><span>&#9670;</span> Semestry Admin</h1>
+    <div class="header-actions">
+      <span class="refresh-info" id="lastRefresh">--</span>
+      <button class="btn" onclick="refreshAll()">Atualizar</button>
+    </div>
+  </header>
+
+  <!-- Services -->
+  <div class="grid">
+    <div class="card">
+      <div class="card-title">&#9889; Status dos Servicos</div>
+      <div id="services"><div class="skeleton" style="height:120px"></div></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">&#128101; Usuarios</div>
+      <div id="users"><div class="skeleton" style="height:120px"></div></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">&#128200; Recursos</div>
+      <div id="resources"><div class="skeleton" style="height:120px"></div></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">&#128202; Requests</div>
+      <div id="reqStats"><div class="skeleton" style="height:120px"></div></div>
+    </div>
+  </div>
+
+  <!-- Logs -->
+  <div class="card">
+    <div class="card-title">&#128220; Logs Recentes</div>
+    <div class="table-wrap" id="logs"><div class="skeleton" style="height:200px"></div></div>
+  </div>
+
+  <!-- Users list -->
+  <div class="card" style="margin-top:14px">
+    <div class="card-title">&#128100; Usuarios Recentes</div>
+    <div class="user-list" id="userList"><div class="skeleton" style="height:150px"></div></div>
+  </div>
+</div>
+
+<script>
+const BASE = window.location.origin + '/api/admin';
+const params = new URLSearchParams(window.location.search);
+const token = params.get('token') || '';
+const headers = token ? { Authorization: 'Bearer ' + token } : {};
+
+async function fetchJSON(path) {
+  const url = BASE + path + (token ? (path.includes('?') ? '&' : '?') + 'token=' + token : '');
+  const res = await fetch(url, { headers });
+  if (!res.ok) throw new Error('HTTP ' + res.status);
+  return res.json();
+}
+
+function dot(status) {
+  const cls = status === 'online' ? 'dot-green' : status === 'error' ? 'dot-yellow' : 'dot-red';
+  return '<span class="dot ' + cls + '"></span>';
+}
+
+function statusBadge(status) {
+  const cls = status === 'online' ? 'badge-online' : 'badge-offline';
+  const label = status === 'online' ? 'Online' : status === 'error' ? 'Erro' : 'Offline';
+  return '<span class="badge ' + cls + '">' + label + '</span>';
+}
+
+function renderServices(data) {
+  const services = [
+    { key: 'railway', name: 'Railway (API)', icon: '&#9881;' },
+    { key: 'supabase', name: 'Supabase', icon: '&#128280;' },
+    { key: 'vercel', name: 'Vercel (Frontend)', icon: '&#9650;' },
+    { key: 'portal', name: 'Portal TOTVS', icon: '&#127891;' },
+  ];
+  let html = '';
+  for (const s of services) {
+    const d = data[s.key] || { status: 'unknown' };
+    const rt = d.responseTime ? d.responseTime + 'ms' : d.uptime || '';
+    html += '<div class="service-row">'
+      + '<div>' + dot(d.status) + '<span class="service-name">' + s.icon + ' ' + s.name + '</span></div>'
+      + '<div style="display:flex;align-items:center;gap:8px"><span class="service-meta">' + rt + '</span>' + statusBadge(d.status) + '</div>'
+      + '</div>';
+  }
+  document.getElementById('services').innerHTML = html;
+}
+
+function renderUsers(data) {
+  const stats = [
+    { value: data.total, label: 'Total' },
+    { value: data.active, label: 'Ativos' },
+    { value: data.withProfile, label: 'Com Perfil' },
+    { value: data.total - data.active, label: 'Inativos' },
+  ];
+  let html = '<div class="stat-grid">';
+  for (const s of stats) {
+    html += '<div class="stat-item"><div class="stat-value">' + (s.value || 0) + '</div><div class="stat-label">' + s.label + '</div></div>';
+  }
+  html += '</div>';
+  document.getElementById('users').innerHTML = html;
+
+  // User list
+  let listHtml = '';
+  for (const u of (data.recent || [])) {
+    listHtml += '<div class="user-row">'
+      + '<div><div class="user-email">' + (u.nome || u.email) + '</div>'
+      + '<div class="user-curso">' + (u.curso || 'Sem curso') + '</div></div>'
+      + '<span class="badge ' + (u.ativo ? 'badge-online' : 'badge-offline') + '">' + (u.ativo ? 'Ativo' : 'Inativo') + '</span>'
+      + '</div>';
+  }
+  document.getElementById('userList').innerHTML = listHtml || '<div class="service-meta">Nenhum usuario</div>';
+}
+
+function renderResources(data) {
+  const mem = data.memory || {};
+  const sys = data.system || {};
+  const heapPct = mem.heapTotalRaw > 0 ? Math.round((mem.heapUsedRaw / mem.heapTotalRaw) * 100) : 0;
+  const memColor = heapPct > 80 ? 'var(--red)' : heapPct > 60 ? 'var(--yellow)' : 'var(--green)';
+
+  let html = '<div style="margin-bottom:12px">'
+    + '<div style="display:flex;justify-content:space-between;font-size:13px"><span>Heap: ' + mem.heapUsed + ' / ' + mem.heapTotal + '</span><span>' + heapPct + '%</span></div>'
+    + '<div class="meter"><div class="meter-fill" style="width:' + heapPct + '%;background:' + memColor + '"></div></div>'
+    + '</div>';
+
+  html += '<div class="stat-grid">'
+    + '<div class="stat-item"><div class="stat-value" style="font-size:18px">' + (data.uptimeFormatted || '--') + '</div><div class="stat-label">Uptime</div></div>'
+    + '<div class="stat-item"><div class="stat-value" style="font-size:18px">' + mem.rss + '</div><div class="stat-label">RSS</div></div>'
+    + '<div class="stat-item"><div class="stat-value" style="font-size:18px">' + sys.nodeVersion + '</div><div class="stat-label">Node</div></div>'
+    + '<div class="stat-item"><div class="stat-value" style="font-size:18px">' + sys.cpus + ' cores</div><div class="stat-label">CPUs</div></div>'
+    + '</div>';
+
+  document.getElementById('resources').innerHTML = html;
+}
+
+function renderReqStats(data) {
+  const html = '<div class="stat-grid">'
+    + '<div class="stat-item"><div class="stat-value">' + data.totalRequests + '</div><div class="stat-label">Total Requests</div></div>'
+    + '<div class="stat-item"><div class="stat-value">' + data.requestsLastMinute + '</div><div class="stat-label">Ultimo Minuto</div></div>'
+    + '<div class="stat-item"><div class="stat-value">' + data.avgResponseTime + 'ms</div><div class="stat-label">Tempo Medio</div></div>'
+    + '<div class="stat-item"><div class="stat-value">' + data.errorRate + '%</div><div class="stat-label">Taxa de Erro</div></div>'
+    + '</div>';
+  document.getElementById('reqStats').innerHTML = html;
+}
+
+function renderLogs(data) {
+  if (!data || data.length === 0) {
+    document.getElementById('logs').innerHTML = '<div class="service-meta" style="padding:20px;text-align:center">Nenhum log ainda</div>';
+    return;
+  }
+  let html = '<table><thead><tr><th>Hora</th><th>Metodo</th><th>Rota</th><th>Status</th><th>Tempo</th><th>Usuario</th></tr></thead><tbody>';
+  for (const l of data) {
+    const time = new Date(l.timestamp).toLocaleTimeString('pt-BR');
+    const statusCls = 'status-' + String(l.status)[0];
+    html += '<tr>'
+      + '<td>' + time + '</td>'
+      + '<td><strong>' + l.method + '</strong></td>'
+      + '<td>' + l.path + '</td>'
+      + '<td class="' + statusCls + '">' + l.status + '</td>'
+      + '<td>' + l.duration + 'ms</td>'
+      + '<td style="color:var(--muted)">' + (l.user || '-') + '</td>'
+      + '</tr>';
+  }
+  html += '</tbody></table>';
+  document.getElementById('logs').innerHTML = html;
+}
+
+async function refreshAll() {
+  document.getElementById('lastRefresh').textContent = 'Atualizando...';
+  try {
+    const [services, health, users, logs, stats] = await Promise.all([
+      fetchJSON('/services').catch(() => ({})),
+      fetchJSON('/health').catch(() => ({})),
+      fetchJSON('/users').catch(() => ({ total: 0, active: 0, withProfile: 0, recent: [] })),
+      fetchJSON('/logs?limit=100').catch(() => []),
+      fetchJSON('/stats').catch(() => ({})),
+    ]);
+    renderServices(services);
+    renderResources(health);
+    renderUsers(users);
+    renderLogs(logs);
+    renderReqStats(stats);
+    document.getElementById('lastRefresh').textContent = 'Atualizado ' + new Date().toLocaleTimeString('pt-BR');
+  } catch (err) {
+    document.getElementById('lastRefresh').textContent = 'Erro: ' + err.message;
+  }
+}
+
+// Initial load + auto-refresh every 30s
+refreshAll();
+setInterval(refreshAll, 30000);
+</script>
+</body>
+</html>

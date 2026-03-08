@@ -4,6 +4,7 @@ import helmet from 'helmet';
 import { config } from './config/index.js';
 import { errorHandler } from './utils/errors.js';
 import { logger } from './utils/logger.js';
+import { requestLogger } from './middleware/requestLogger.js';
 import routes from './routes/index.js';
 
 const app = express();
@@ -19,6 +20,9 @@ app.use(cors({
 
 // Body parser
 app.use(express.json());
+
+// Request logging (in-memory buffer for admin dashboard)
+app.use(requestLogger);
 
 // Health check na raiz (Railway verifica / por padrão)
 app.get('/', (req, res) => res.json({ status: 'ok' }));

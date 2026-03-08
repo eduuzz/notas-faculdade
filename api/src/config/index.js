@@ -7,4 +7,5 @@ export const config = {
   portalBaseUrl: process.env.PORTAL_BASE_URL || 'https://portal.asav.org.br',
   corsOrigin: process.env.CORS_ORIGIN || 'http://localhost:5173',
   anthropicApiKey: process.env.ANTHROPIC_API_KEY || '',
+  adminSecret: process.env.ADMIN_SECRET || '',
 };
