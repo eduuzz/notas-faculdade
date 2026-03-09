@@ -23,7 +23,7 @@ export default function ResetModal({
           <div className="flex items-start gap-2.5">
             <Trash2 size={16} className="text-red-400 mt-0.5 shrink-0" />
             <p className="text-xs text-red-300/70">
-              Você perderá todas as disciplinas, notas, status de aprovação e planejamento.
+              Você perderá todas as disciplinas, notas, horários, status de aprovação e planejamento.
             </p>
           </div>
         </div>

@@ -350,9 +350,10 @@ export default function SistemaNotas({ onOpenAdmin }) {
     setResettingAll(true);
     try {
       for (const disc of disciplinas) await removerDisciplina(disc.id);
+      saveHorarios([]);
       setShowResetModal(false);
       setResetConfirmText('');
-      toast.success('Todas as disciplinas foram removidas.');
+      toast.success('Todas as disciplinas e horários foram removidos.');
     } catch (error) {
       console.error('Erro ao resetar cadeiras:', error);
       toast.error('Erro ao resetar disciplinas. Tente novamente.');
@@ -612,6 +613,7 @@ export default function SistemaNotas({ onOpenAdmin }) {
           disciplinas={disciplinas} setDisciplinas={setDisciplinas}
           setConfirmState={setConfirmState}
           abrirModalReset={abrirModalReset} toast={toast}
+          horarios={horarios} onClearHorarios={() => saveHorarios([])}
         />
       )}
 

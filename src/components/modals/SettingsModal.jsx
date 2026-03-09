@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Settings, Save, Download, Upload as UploadIcon, Trash2, AlertCircle, Database, RefreshCw, Bell, Palette, X } from 'lucide-react';
+import { Settings, Save, Download, Upload as UploadIcon, Trash2, AlertCircle, Database, RefreshCw, Bell, Palette, X, Clock } from 'lucide-react';
 import { useTheme, ACCENT_PRESETS } from '../../ThemeContext';
 import { getNotificationSettings, setNotificationSettings, requestNotificationPermission } from '../../utils/notifications';
 
@@ -10,6 +10,7 @@ export default function SettingsModal({
   savingSettings, onSave, onClose,
   disciplinas, setDisciplinas, setConfirmState,
   abrirModalReset, toast,
+  horarios, onClearHorarios,
 }) {
   const { accentColor, setAccentColor } = useTheme();
   const [notifSettings, setNotifSettings] = useState(() => getNotificationSettings());
@@ -225,13 +226,22 @@ export default function SettingsModal({
                 <AlertCircle size={14} className="text-red-400" />
                 <h4 className="font-medium text-red-400 text-sm">Zona de Perigo</h4>
               </div>
-              <button
-                onClick={() => { onClose(); abrirModalReset(); }}
-                disabled={disciplinas.length === 0}
-                className="w-full flex items-center justify-center gap-1.5 py-1.5 rounded-md bg-red-500/20 text-red-400 hover:bg-red-500/30 text-xs font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <Trash2 size={13} />Excluir Todas ({disciplinas.length})
-              </button>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => { onClose(); abrirModalReset(); }}
+                  disabled={disciplinas.length === 0}
+                  className="flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-md bg-red-500/20 text-red-400 hover:bg-red-500/30 text-xs font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <Trash2 size={13} />Cadeiras ({disciplinas.length})
+                </button>
+                <button
+                  onClick={() => { onClearHorarios(); toast.success('Horários excluídos.'); }}
+                  disabled={!horarios || horarios.length === 0}
+                  className="flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-md bg-red-500/20 text-red-400 hover:bg-red-500/30 text-xs font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <Clock size={13} />Horários ({horarios?.length || 0})
+                </button>
+              </div>
             </div>
           </div>
 
