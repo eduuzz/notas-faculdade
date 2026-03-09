@@ -9,6 +9,8 @@ const router = Router();
  * Body: { ra: string, senha: string }
  */
 router.post('/historico', async (req, res, next) => {
+  req.setTimeout(180000);
+  res.setTimeout(180000);
   try {
     const { ra, senha, cursoIndex } = req.body;
 

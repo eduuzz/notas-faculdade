@@ -10,6 +10,8 @@ const router = Router();
  * Returns: { cursos: [{ label, index }] }
  */
 router.post('/cursos', async (req, res, next) => {
+  req.setTimeout(180000);
+  res.setTimeout(180000);
   try {
     const { ra, senha } = req.body;
 

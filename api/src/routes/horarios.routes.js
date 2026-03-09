@@ -9,6 +9,9 @@ const router = Router();
  * Body: { ra: string, senha: string }
  */
 router.post('/horarios', async (req, res, next) => {
+  // Playwright scraping can take 60-120s
+  req.setTimeout(180000);
+  res.setTimeout(180000);
   try {
     const { ra, senha, cursoIndex } = req.body;
 
