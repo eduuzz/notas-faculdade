@@ -12,9 +12,11 @@ export function getProcessStats() {
       heapTotal: formatBytes(mem.heapTotal),
       rss: formatBytes(mem.rss),
       external: formatBytes(mem.external),
+      arrayBuffers: formatBytes(mem.arrayBuffers || 0),
       heapUsedRaw: mem.heapUsed,
       heapTotalRaw: mem.heapTotal,
       rssRaw: mem.rss,
+      externalRaw: mem.external,
     },
     system: {
       platform: process.platform,
@@ -23,6 +25,7 @@ export function getProcessStats() {
       totalMem: formatBytes(os.totalmem()),
       totalMemRaw: os.totalmem(),
       freeMem: formatBytes(os.freemem()),
+      freeMemRaw: os.freemem(),
       loadAvg: os.loadavg().map(v => v.toFixed(2)),
     },
   };

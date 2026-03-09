@@ -307,42 +307,80 @@ function renderUserList(list) {
 }
 
 /* ── Resources ── */
+function fmtMB(raw) { return raw ? (raw / (1024*1024)).toFixed(1) + ' MB' : '--'; }
+
 function renderResources(data) {
   var mem = data.memory || {};
   var sys = data.system || {};
+  var html = '';
 
-  // RSS = real memory used by the process. Compare against total system memory.
+  // ── Section: Memoria ──
+  html += '<div style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:8px">Memoria</div>';
+
+  // Row helper
+  function memRow(label, value, desc, color, pct) {
+    var r = '<div style="display:flex;align-items:center;gap:10px;padding:8px 10px;background:var(--bg3);border-radius:8px;margin-bottom:6px">';
+    r += '<div style="flex:1;min-width:0">';
+    r += '<div style="display:flex;justify-content:space-between;align-items:center">';
+    r += '<span style="font-size:12px;font-weight:500;color:var(--text)">' + label + '</span>';
+    r += '<span style="font-size:13px;font-weight:700;color:' + (color || 'var(--text)') + '">' + value + '</span>';
+    r += '</div>';
+    r += '<div style="font-size:10px;color:var(--muted);margin-top:2px">' + desc + '</div>';
+    if (typeof pct === 'number') {
+      var barColor = pct > 80 ? 'var(--red)' : pct > 50 ? 'var(--yellow)' : 'var(--green)';
+      r += '<div class="meter" style="margin-top:5px"><div class="meter-fill" style="width:' + pct + '%;background:' + barColor + '"></div></div>';
+    }
+    r += '</div></div>';
+    return r;
+  }
+
+  // RSS - uso real
   var rssRaw = mem.rssRaw || 0;
   var totalMemRaw = sys.totalMemRaw || 0;
-  // Railway free tier = 512 MB container. Use totalMem from os if available, fallback 512MB.
   var containerMem = totalMemRaw > 0 ? totalMemRaw : 512 * 1024 * 1024;
   var rssPct = containerMem > 0 ? Math.round((rssRaw / containerMem) * 100) : 0;
   var rssColor = rssPct > 80 ? 'var(--red)' : rssPct > 50 ? 'var(--yellow)' : 'var(--green)';
+  html += memRow(
+    '&#128994; Em Uso (RSS)',
+    (mem.rss || '--') + ' <span style="font-size:10px;font-weight:400;color:var(--muted)">/ ' + (sys.totalMem || '--') + '</span>',
+    'Memoria total ocupada pelo processo no sistema operacional (' + rssPct + '%)',
+    rssColor, rssPct
+  );
 
-  var html = '';
-
-  // Main metric: RSS (real memory usage)
-  html += '<div style="margin-bottom:10px">'
-    + '<div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:3px">'
-    + '<span style="font-weight:500">Memoria (RSS)</span>'
-    + '<span style="color:' + rssColor + ';font-weight:600">' + (mem.rss || '--') + ' / ' + (sys.totalMem || '512 MB') + '</span></div>'
-    + '<div class="meter"><div class="meter-fill" style="width:' + rssPct + '%;background:' + rssColor + '"></div></div>'
-    + '<div style="font-size:10px;color:var(--muted);margin-top:3px">Uso real do processo no container (' + rssPct + '%)</div>'
-    + '</div>';
-
-  // Secondary: Heap info (smaller, non-alarming)
+  // Heap - alocado pelo V8
   var heapPct = mem.heapTotalRaw > 0 ? Math.round((mem.heapUsedRaw / mem.heapTotalRaw) * 100) : 0;
-  html += '<div style="display:flex;justify-content:space-between;font-size:11px;color:var(--muted);margin-bottom:10px;padding:6px 8px;background:var(--bg3);border-radius:6px">'
-    + '<span>Heap V8: ' + (mem.heapUsed || '--') + ' / ' + (mem.heapTotal || '--') + ' (' + heapPct + '%)</span>'
-    + '<span style="color:var(--muted)" title="O V8 expande o heap automaticamente conforme necessario. Valores altos aqui sao normais.">&#9432; normal</span>'
-    + '</div>';
+  html += memRow(
+    '&#128311; Heap Alocado (V8)',
+    (mem.heapUsed || '--') + ' <span style="font-size:10px;font-weight:400;color:var(--muted)">/ ' + (mem.heapTotal || '--') + '</span>',
+    'Memoria usada pelo motor JavaScript. O V8 expande automaticamente — valores altos sao normais (' + heapPct + '%)',
+    'var(--blue)', null
+  );
 
-  // Stats grid
+  // External + ArrayBuffers
+  html += memRow(
+    '&#128312; Memoria Externa',
+    (mem.external || '--'),
+    'Buffers C++ e ArrayBuffers alocados fora do heap V8 (ex: Playwright, streams)',
+    'var(--purple)', null
+  );
+
+  // Free memory
+  var freeMemRaw = sys.freeMemRaw || 0;
+  var freePct = totalMemRaw > 0 ? Math.round((freeMemRaw / totalMemRaw) * 100) : 0;
+  html += memRow(
+    '&#9898; Disponivel (Sistema)',
+    (sys.freeMem || '--') + ' <span style="font-size:10px;font-weight:400;color:var(--muted)">/ ' + (sys.totalMem || '--') + '</span>',
+    'Memoria livre no container Railway (' + freePct + '% livre)',
+    'var(--green)', null
+  );
+
+  // ── Section: Sistema ──
+  html += '<div style="font-size:12px;font-weight:600;color:var(--text);margin:12px 0 8px">Sistema</div>';
   html += '<div class="stat-grid">'
-    + '<div class="stat-item"><div class="stat-value stat-value-sm">' + (data.uptimeFormatted || '--') + '</div><div class="stat-label">Uptime</div></div>'
-    + '<div class="stat-item"><div class="stat-value stat-value-sm">' + (sys.nodeVersion || '--') + '</div><div class="stat-label">Node</div></div>'
-    + '<div class="stat-item"><div class="stat-value stat-value-sm">' + (sys.cpus || '--') + ' cores</div><div class="stat-label">CPUs</div></div>'
-    + '<div class="stat-item"><div class="stat-value stat-value-sm">' + (sys.loadAvg ? sys.loadAvg[0] : '--') + '</div><div class="stat-label">Load Avg</div></div>'
+    + '<div class="stat-item"><div class="stat-value stat-value-sm">' + (data.uptimeFormatted || '--') + '</div><div class="stat-label">Uptime</div><div style="font-size:9px;color:var(--muted)">Tempo online</div></div>'
+    + '<div class="stat-item"><div class="stat-value stat-value-sm">' + (sys.nodeVersion || '--') + '</div><div class="stat-label">Node.js</div><div style="font-size:9px;color:var(--muted)">Versao do runtime</div></div>'
+    + '<div class="stat-item"><div class="stat-value stat-value-sm">' + (sys.cpus || '--') + '</div><div class="stat-label">CPUs</div><div style="font-size:9px;color:var(--muted)">Nucleos disponiveis</div></div>'
+    + '<div class="stat-item"><div class="stat-value stat-value-sm">' + (sys.loadAvg ? sys.loadAvg[0] : '--') + '</div><div class="stat-label">Load Avg</div><div style="font-size:9px;color:var(--muted)">Carga media 1min</div></div>'
     + '</div>';
 
   document.getElementById('resources').innerHTML = html;
