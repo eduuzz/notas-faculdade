@@ -21,6 +21,7 @@ export function getProcessStats() {
       nodeVersion: process.version,
       cpus: os.cpus().length,
       totalMem: formatBytes(os.totalmem()),
+      totalMemRaw: os.totalmem(),
       freeMem: formatBytes(os.freemem()),
       loadAvg: os.loadavg().map(v => v.toFixed(2)),
     },

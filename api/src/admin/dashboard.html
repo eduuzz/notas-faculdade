@@ -310,19 +310,39 @@ function renderUserList(list) {
 function renderResources(data) {
   var mem = data.memory || {};
   var sys = data.system || {};
-  var heapPct = mem.heapTotalRaw > 0 ? Math.round((mem.heapUsedRaw / mem.heapTotalRaw) * 100) : 0;
-  var memColor = heapPct > 80 ? 'var(--red)' : heapPct > 60 ? 'var(--yellow)' : 'var(--green)';
 
-  var html = '<div style="margin-bottom:12px">'
-    + '<div style="display:flex;justify-content:space-between;font-size:13px"><span>Heap: ' + mem.heapUsed + ' / ' + mem.heapTotal + '</span><span>' + heapPct + '%</span></div>'
-    + '<div class="meter"><div class="meter-fill" style="width:' + heapPct + '%;background:' + memColor + '"></div></div>'
+  // RSS = real memory used by the process. Compare against total system memory.
+  var rssRaw = mem.rssRaw || 0;
+  var totalMemRaw = sys.totalMemRaw || 0;
+  // Railway free tier = 512 MB container. Use totalMem from os if available, fallback 512MB.
+  var containerMem = totalMemRaw > 0 ? totalMemRaw : 512 * 1024 * 1024;
+  var rssPct = containerMem > 0 ? Math.round((rssRaw / containerMem) * 100) : 0;
+  var rssColor = rssPct > 80 ? 'var(--red)' : rssPct > 50 ? 'var(--yellow)' : 'var(--green)';
+
+  var html = '';
+
+  // Main metric: RSS (real memory usage)
+  html += '<div style="margin-bottom:10px">'
+    + '<div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:3px">'
+    + '<span style="font-weight:500">Memoria (RSS)</span>'
+    + '<span style="color:' + rssColor + ';font-weight:600">' + (mem.rss || '--') + ' / ' + (sys.totalMem || '512 MB') + '</span></div>'
+    + '<div class="meter"><div class="meter-fill" style="width:' + rssPct + '%;background:' + rssColor + '"></div></div>'
+    + '<div style="font-size:10px;color:var(--muted);margin-top:3px">Uso real do processo no container (' + rssPct + '%)</div>'
     + '</div>';
 
+  // Secondary: Heap info (smaller, non-alarming)
+  var heapPct = mem.heapTotalRaw > 0 ? Math.round((mem.heapUsedRaw / mem.heapTotalRaw) * 100) : 0;
+  html += '<div style="display:flex;justify-content:space-between;font-size:11px;color:var(--muted);margin-bottom:10px;padding:6px 8px;background:var(--bg3);border-radius:6px">'
+    + '<span>Heap V8: ' + (mem.heapUsed || '--') + ' / ' + (mem.heapTotal || '--') + ' (' + heapPct + '%)</span>'
+    + '<span style="color:var(--muted)" title="O V8 expande o heap automaticamente conforme necessario. Valores altos aqui sao normais.">&#9432; normal</span>'
+    + '</div>';
+
+  // Stats grid
   html += '<div class="stat-grid">'
     + '<div class="stat-item"><div class="stat-value stat-value-sm">' + (data.uptimeFormatted || '--') + '</div><div class="stat-label">Uptime</div></div>'
-    + '<div class="stat-item"><div class="stat-value stat-value-sm">' + (mem.rss || '--') + '</div><div class="stat-label">RSS</div></div>'
     + '<div class="stat-item"><div class="stat-value stat-value-sm">' + (sys.nodeVersion || '--') + '</div><div class="stat-label">Node</div></div>'
     + '<div class="stat-item"><div class="stat-value stat-value-sm">' + (sys.cpus || '--') + ' cores</div><div class="stat-label">CPUs</div></div>'
+    + '<div class="stat-item"><div class="stat-value stat-value-sm">' + (sys.loadAvg ? sys.loadAvg[0] : '--') + '</div><div class="stat-label">Load Avg</div></div>'
     + '</div>';
 
   document.getElementById('resources').innerHTML = html;
