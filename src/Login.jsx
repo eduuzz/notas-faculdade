@@ -3,6 +3,28 @@ import { Mail, Lock, Eye, EyeOff, AlertCircle, ArrowLeft, CheckCircle } from 'lu
 import { useAuth } from './AuthContext';
 import { supabase } from './supabaseClient';
 
+function traduzirErro(msg) {
+  if (!msg) return 'Erro desconhecido.';
+  const m = msg.toLowerCase();
+  if (m.includes('invalid login credentials') || m.includes('invalid credentials'))
+    return 'Email ou senha incorretos.';
+  if (m.includes('email not confirmed'))
+    return 'Email não confirmado. Verifique sua caixa de entrada.';
+  if (m.includes('too many requests') || m.includes('rate limit'))
+    return 'Muitas tentativas. Aguarde alguns minutos.';
+  if (m.includes('user already registered') || m.includes('already been registered'))
+    return 'Este email já possui uma conta. Faça login.';
+  if (m.includes('password') && m.includes('least'))
+    return 'A senha deve ter no mínimo 6 caracteres.';
+  if (m.includes('invalid email') || m.includes('unable to validate'))
+    return 'Email inválido. Verifique o formato.';
+  if (m.includes('network') || m.includes('fetch'))
+    return 'Erro de conexão. Verifique sua internet.';
+  if (m.includes('not authorized') || m.includes('not allowed'))
+    return 'Usuário não autorizado. Contate o administrador.';
+  return msg;
+}
+
 export default function Login() {
   const { signInWithEmail, signInWithGoogle, signUpWithEmail, authError, clearAuthError } = useAuth();
   const [isLogin, setIsLogin] = useState(true);
@@ -35,15 +57,7 @@ export default function Login() {
       if (isLogin) {
         const { error } = await signInWithEmail(formData.email, formData.password);
         if (error) {
-          if (error.message.includes('Invalid login credentials')) {
-            setError('Email ou senha incorretos');
-          } else if (error.message.includes('Email not confirmed')) {
-            setError('Email não confirmado. Verifique sua caixa de entrada.');
-          } else if (error.message.includes('Too many requests')) {
-            setError('Muitas tentativas. Aguarde alguns minutos.');
-          } else {
-            setError(error.message);
-          }
+          setError(traduzirErro(error.message));
         }
       } else {
         if (formData.password !== formData.confirmPassword) {
@@ -52,7 +66,7 @@ export default function Login() {
           return;
         }
         const { error } = await signUpWithEmail(formData.email, formData.password);
-        if (error) setError(error.message);
+        if (error) setError(traduzirErro(error.message));
         else setSuccess('Conta criada com sucesso! Faça login para começar.');
       }
     } catch (err) {
@@ -74,7 +88,7 @@ export default function Login() {
       });
 
       if (error) {
-        setError(error.message);
+        setError(traduzirErro(error.message));
       } else {
         setSuccess('Email de recuperação enviado! Verifique sua caixa de entrada.');
       }
@@ -89,7 +103,7 @@ export default function Login() {
     setLoading(true);
     try {
       const { error } = await signInWithGoogle();
-      if (error) setError(error.message);
+      if (error) setError(traduzirErro(error.message));
     } catch (err) {
       setError('Erro ao entrar com Google.');
     }
