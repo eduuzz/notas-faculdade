@@ -127,11 +127,11 @@
       <div id="users"><div class="skeleton" style="height:120px"></div></div>
     </div>
     <div class="card">
-      <div class="card-title"><span class="left">&#128200; Recursos</span></div>
+      <div class="card-title"><span class="left">&#128200; Recursos (Railway)</span></div>
       <div id="resources"><div class="skeleton" style="height:120px"></div></div>
     </div>
     <div class="card">
-      <div class="card-title"><span class="left">&#128202; Requests</span></div>
+      <div class="card-title"><span class="left">&#128202; Requests (API)</span></div>
       <div id="reqStats"><div class="skeleton" style="height:120px"></div></div>
     </div>
   </div>
@@ -139,11 +139,11 @@
   <!-- Row 2: Charts -->
   <div class="grid-2">
     <div class="card">
-      <div class="card-title"><span class="left">&#128200; Requests/Hora</span></div>
+      <div class="card-title"><span class="left">&#128200; Requests/Hora (API)</span></div>
       <div id="hourlyChart"><div class="skeleton" style="height:140px"></div></div>
     </div>
     <div class="card">
-      <div class="card-title"><span class="left">&#128202; Status Codes + Top Endpoints</span></div>
+      <div class="card-title"><span class="left">&#128202; Status Codes + Top Endpoints (API)</span></div>
       <div id="analytics"><div class="skeleton" style="height:140px"></div></div>
     </div>
   </div>
@@ -151,11 +151,11 @@
   <!-- Row 3: Top Users + Env -->
   <div class="grid-2">
     <div class="card">
-      <div class="card-title"><span class="left">&#128081; Top Usuarios (por requests)</span></div>
+      <div class="card-title"><span class="left">&#128081; Top Usuarios (por requests API)</span></div>
       <div id="topUsers"><div class="skeleton" style="height:140px"></div></div>
     </div>
     <div class="card">
-      <div class="card-title"><span class="left">&#128274; Environment</span></div>
+      <div class="card-title"><span class="left">&#128274; Environment (Railway)</span></div>
       <div id="envInfo"><div class="skeleton" style="height:140px"></div></div>
     </div>
   </div>
@@ -163,7 +163,7 @@
   <!-- Row 4: Logs with tabs -->
   <div class="card">
     <div class="card-title">
-      <span class="left">&#128220; Logs</span>
+      <span class="left">&#128220; Logs (API)</span>
       <button class="btn btn-sm btn-danger" onclick="clearAllLogs()">Limpar Logs</button>
     </div>
     <div class="tabs" id="logTabs">
@@ -180,8 +180,8 @@
 
   <!-- Row 5: User list -->
   <div class="card" style="margin-top:14px">
-    <div class="card-title"><span class="left">&#128100; Todos os Usuarios</span></div>
-    <div class="user-list" id="userList"><div class="skeleton" style="height:150px"></div></div>
+    <div class="card-title"><span class="left">&#128100; Todos os Usuarios (Supabase)</span></div>
+    <div class="table-wrap" id="userList"><div class="skeleton" style="height:150px"></div></div>
   </div>
 
   <!-- Row 6: Test results (hidden until used) -->
@@ -275,25 +275,35 @@ function renderUsers(data) {
 }
 
 function renderUserList(list) {
-  var html = '';
+  if (!list || list.length === 0) {
+    document.getElementById('userList').innerHTML = '<div class="service-meta" style="padding:20px;text-align:center">Nenhum usuario cadastrado</div>';
+    return;
+  }
+  var html = '<table style="width:100%"><thead><tr>'
+    + '<th>Usuario</th><th>Email</th><th>Curso</th><th>Status</th><th>Cadastro</th><th>Acoes</th>'
+    + '</tr></thead><tbody>';
   for (var i = 0; i < list.length; i++) {
     var u = list[i];
-    var name = esc(u.nome || u.email);
+    var name = esc(u.nome || '-');
     var email = esc(u.email || '');
-    var curso = esc(u.curso || 'Sem curso');
+    var curso = esc(u.curso || '-');
+    var created = u.created_at ? new Date(u.created_at).toLocaleDateString('pt-BR') : '-';
+    var statusBadge = '<span class="badge ' + (u.ativo ? 'badge-online' : 'badge-offline') + '">' + (u.ativo ? 'Ativo' : 'Inativo') + '</span>';
     var ativoBtn = u.ativo
-      ? '<button class="btn btn-sm btn-danger" onclick="toggleUser(\'' + u.id + '\',false)">Desativar</button>'
-      : '<button class="btn btn-sm btn-success" onclick="toggleUser(\'' + u.id + '\',true)">Ativar</button>';
-    var delBtn = '<button class="btn btn-sm btn-danger" onclick="deleteUser(\'' + u.id + '\',\'' + email.replace(/'/g, "\\'") + '\')">&#10005;</button>';
-    html += '<div class="user-row">'
-      + '<div style="min-width:0"><div class="user-email">' + name + '</div>'
-      + '<div class="user-curso">' + curso + ' &middot; ' + email + '</div></div>'
-      + '<div class="user-actions">'
-      + '<span class="badge ' + (u.ativo ? 'badge-online' : 'badge-offline') + '">' + (u.ativo ? 'Ativo' : 'Inativo') + '</span>'
-      + ativoBtn + delBtn
-      + '</div></div>';
+      ? '<button class="btn btn-sm btn-danger" onclick="toggleUser(\'' + u.id + '\',false)" title="Bloquear acesso deste usuario">&#128683; Bloquear</button>'
+      : '<button class="btn btn-sm btn-success" onclick="toggleUser(\'' + u.id + '\',true)" title="Liberar acesso deste usuario">&#9989; Liberar</button>';
+    var delBtn = '<button class="btn btn-sm btn-danger" onclick="deleteUser(\'' + u.id + '\',\'' + email.replace(/'/g, "\\'") + '\')" title="Remover usuario permanentemente">&#128465; Remover</button>';
+    html += '<tr>'
+      + '<td><strong>' + name + '</strong></td>'
+      + '<td style="color:var(--muted)">' + email + '</td>'
+      + '<td style="color:var(--muted)">' + curso + '</td>'
+      + '<td>' + statusBadge + '</td>'
+      + '<td style="color:var(--muted)">' + created + '</td>'
+      + '<td><div style="display:flex;gap:4px">' + ativoBtn + delBtn + '</div></td>'
+      + '</tr>';
   }
-  document.getElementById('userList').innerHTML = html || '<div class="service-meta">Nenhum usuario</div>';
+  html += '</tbody></table>';
+  document.getElementById('userList').innerHTML = html;
 }
 
 /* ── Resources ── */
