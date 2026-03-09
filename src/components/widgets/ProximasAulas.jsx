@@ -38,11 +38,13 @@ export default function ProximasAulas({ horarios }) {
       }
     }
 
-    // Aulas de hoje: por data exata OU por dia da semana (se não tem data específica futura)
+    // Match by day of week, respecting date range if available
     const filtrarPorDia = (dia, dataStr) => {
       return todasAulas.filter(a => {
-        if (a.data) return a.data === dataStr;
-        return a.dia === dia;
+        if (a.dia !== dia) return false;
+        if (a.data && a.dataFim) return dataStr >= a.data && dataStr <= a.dataFim;
+        if (a.data) return dataStr >= a.data;
+        return true;
       });
     };
 

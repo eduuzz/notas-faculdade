@@ -114,7 +114,14 @@ export default function AulasHoje({ horarios }) {
     }
 
     const filtrarPorDia = (dia, dataStr) =>
-      todasAulas.filter(a => a.data ? a.data === dataStr : a.dia === dia);
+      todasAulas.filter(a => {
+        // Match by day of week
+        if (a.dia !== dia) return false;
+        // If date range exists, check if target date falls within it
+        if (a.data && a.dataFim) return dataStr >= a.data && dataStr <= a.dataFim;
+        if (a.data) return dataStr >= a.data;
+        return true;
+      });
 
     const aulasHoje = deduplicar(filtrarPorDia(hojeDia, hojeStr));
     const aulasAmanha = deduplicar(filtrarPorDia(amanhaDia, amanhaStr));
