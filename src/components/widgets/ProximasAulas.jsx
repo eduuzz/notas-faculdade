@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { motion } from 'framer-motion';
-import { Clock, MapPin, Monitor, ChevronRight } from 'lucide-react';
+import { Clock, MapPin, Monitor } from 'lucide-react';
 import GlassCard from '../ui/GlassCard';
 import { staggerItem } from '../../utils/animations';
 
@@ -125,7 +125,6 @@ export default function ProximasAulas({ horarios }) {
                   </div>
                 </div>
 
-                {isProxima && <ChevronRight size={16} className="text-[var(--accent-400)] shrink-0 self-center" />}
               </div>
             );
           })}

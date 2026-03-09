@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { Clock, MapPin, Monitor, Coffee, ChevronRight } from 'lucide-react';
+import { Clock, MapPin, Monitor, Coffee } from 'lucide-react';
 import GlassCard from '../ui/GlassCard';
 
 const DIAS_ORDEM = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sab'];
@@ -61,7 +61,6 @@ function AulaCard({ aula, isProxima }) {
           )}
         </div>
       </div>
-      {isProxima && <ChevronRight size={14} className="text-[var(--accent-400)] shrink-0 self-center" />}
     </div>
   );
 }
