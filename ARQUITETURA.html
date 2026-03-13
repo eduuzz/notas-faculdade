@@ -1,0 +1,580 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Arquitetura - Sistema de Notas Faculdade</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: #09090b;
+      color: #e2e8f0;
+      line-height: 1.7;
+      padding: 2rem;
+    }
+    .container { max-width: 960px; margin: 0 auto; }
+    h1 {
+      font-size: 2rem;
+      background: linear-gradient(135deg, #8b5cf6, #6366f1);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 0.5rem;
+    }
+    h1 + p { color: #94a3b8; margin-bottom: 2rem; }
+    h2 {
+      font-size: 1.4rem;
+      color: #c4b5fd;
+      margin-top: 3rem;
+      margin-bottom: 1rem;
+      padding-bottom: 0.5rem;
+      border-bottom: 1px solid rgba(255,255,255,0.1);
+    }
+    h3 { font-size: 1.1rem; color: #a5b4fc; margin-top: 1.5rem; margin-bottom: 0.75rem; }
+    p { margin-bottom: 1rem; color: #cbd5e1; }
+    strong { color: #f1f5f9; }
+    pre {
+      background: #111113;
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 12px;
+      padding: 1.25rem;
+      overflow-x: auto;
+      margin-bottom: 1.5rem;
+      font-family: 'JetBrains Mono', 'Fira Code', monospace;
+      font-size: 0.85rem;
+      line-height: 1.6;
+      color: #a5b4fc;
+    }
+    code {
+      background: rgba(139, 92, 246, 0.15);
+      padding: 0.15rem 0.4rem;
+      border-radius: 4px;
+      font-family: 'JetBrains Mono', 'Fira Code', monospace;
+      font-size: 0.88rem;
+      color: #c4b5fd;
+    }
+    pre code { background: none; padding: 0; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 1.5rem;
+      font-size: 0.92rem;
+    }
+    th {
+      background: rgba(139, 92, 246, 0.12);
+      color: #c4b5fd;
+      text-align: left;
+      padding: 0.75rem 1rem;
+      border-bottom: 1px solid rgba(255,255,255,0.1);
+    }
+    td {
+      padding: 0.65rem 1rem;
+      border-bottom: 1px solid rgba(255,255,255,0.05);
+      color: #cbd5e1;
+    }
+    tr:hover td { background: rgba(255,255,255,0.02); }
+    .card {
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 16px;
+      padding: 1.5rem;
+      margin-bottom: 1.5rem;
+    }
+    .infra-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+    }
+    .infra-card {
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 12px;
+      padding: 1.25rem;
+      text-align: center;
+    }
+    .infra-card .icon { font-size: 2rem; margin-bottom: 0.5rem; }
+    .infra-card .name { font-weight: 700; color: #f1f5f9; font-size: 1rem; }
+    .infra-card .url { font-size: 0.8rem; color: #8b5cf6; word-break: break-all; }
+    .infra-card .desc { font-size: 0.85rem; color: #94a3b8; margin-top: 0.25rem; }
+    .badge {
+      display: inline-block;
+      padding: 0.2rem 0.6rem;
+      border-radius: 6px;
+      font-size: 0.78rem;
+      font-weight: 600;
+    }
+    .badge-green { background: rgba(34,197,94,0.15); color: #4ade80; }
+    .badge-yellow { background: rgba(234,179,8,0.15); color: #facc15; }
+    .badge-blue { background: rgba(59,130,246,0.15); color: #60a5fa; }
+    .badge-red { background: rgba(239,68,68,0.15); color: #f87171; }
+    ul { margin-bottom: 1rem; padding-left: 1.5rem; }
+    li { margin-bottom: 0.4rem; color: #cbd5e1; }
+    li strong { color: #e2e8f0; }
+    .flow-step {
+      position: relative;
+      padding-left: 2.5rem;
+      margin-bottom: 1.5rem;
+    }
+    .flow-step::before {
+      content: attr(data-step);
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 1.8rem;
+      height: 1.8rem;
+      background: linear-gradient(135deg, #8b5cf6, #6366f1);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 0.85rem;
+      color: white;
+      text-align: center;
+      line-height: 1.8rem;
+    }
+    .divider { height: 1px; background: rgba(255,255,255,0.06); margin: 2rem 0; }
+    .toc { margin-bottom: 2rem; }
+    .toc a {
+      color: #8b5cf6;
+      text-decoration: none;
+      display: block;
+      padding: 0.3rem 0;
+      font-size: 0.95rem;
+    }
+    .toc a:hover { color: #a78bfa; text-decoration: underline; }
+  </style>
+</head>
+<body>
+  <div class="container">
+
+    <h1>Arquitetura Completa</h1>
+    <p>Sistema de Notas Faculdade &mdash; Documentacao tecnica do projeto</p>
+
+    <!-- Indice -->
+    <div class="card toc">
+      <h3>Indice</h3>
+      <a href="#infra">1. Infraestrutura</a>
+      <a href="#auth">2. Autenticacao</a>
+      <a href="#load">3. Carregamento Inicial</a>
+      <a href="#import">4. Importacao via Portal Auto</a>
+      <a href="#daily">5. Operacoes do Dia-a-Dia</a>
+      <a href="#security">6. Seguranca</a>
+      <a href="#files">7. Arquivos-Chave</a>
+      <a href="#env">8. Variaveis de Ambiente</a>
+      <a href="#limits">9. Limitacoes do Plano Free</a>
+      <a href="#totvs">10. Campos do Portal TOTVS</a>
+    </div>
+
+    <!-- 1. Infraestrutura -->
+    <h2 id="infra">1. Infraestrutura (3 servicos independentes)</h2>
+    <div class="infra-grid">
+      <div class="infra-card">
+        <div class="icon">&#9889;</div>
+        <div class="name">Vercel (Frontend)</div>
+        <div class="url">notas-faculdade-app.vercel.app</div>
+        <div class="desc">Site estatico React + Vite</div>
+      </div>
+      <div class="infra-card">
+        <div class="icon">&#9881;</div>
+        <div class="name">Render (Backend API)</div>
+        <div class="url">notas-faculdade-api.onrender.com</div>
+        <div class="desc">Express + Playwright (Docker)</div>
+      </div>
+      <div class="infra-card">
+        <div class="icon">&#128451;</div>
+        <div class="name">Supabase (Banco)</div>
+        <div class="url">tagjmtiiamdpkhltheyv.supabase.co</div>
+        <div class="desc">PostgreSQL + Auth + RLS</div>
+      </div>
+    </div>
+
+    <pre>
+Usuario (navegador)
+    |
+    |--- Vercel -----> Site estatico React (HTML/CSS/JS)
+    |
+    |--- Render -----> API Express + Playwright (scraping portal)
+    |
+    +--- Supabase ---> PostgreSQL (dados) + Auth (login)
+    </pre>
+
+    <!-- 2. Autenticacao -->
+    <h2 id="auth">2. Autenticacao (Supabase Auth)</h2>
+    <div class="card">
+      <pre>
+Usuario abre o site
+    |
+    v
+App.jsx verifica sessao ---> supabase.auth.getSession()
+    |
+    |-- Nao logado --> Login.jsx (email + senha)
+    |       |
+    |       v
+    |   supabase.auth.signInWithPassword()
+    |       |
+    |       v
+    |   Supabase retorna JWT token + user data
+    |       |
+    |       v
+    |   AuthContext.jsx salva user no React Context
+    |
+    +-- Logado --> SistemaNotas.jsx (tela principal)
+      </pre>
+    </div>
+    <ul>
+      <li><strong>Supabase Auth</strong> &mdash; gerencia usuarios, senhas, tokens JWT</li>
+      <li><strong>AuthContext.jsx</strong> &mdash; mantem o estado de autenticacao no React</li>
+      <li><strong>Row Level Security (RLS)</strong> &mdash; cada usuario so ve suas proprias disciplinas no banco</li>
+    </ul>
+
+    <!-- 3. Carregamento Inicial -->
+    <h2 id="load">3. Carregamento Inicial (useNotas.js)</h2>
+    <div class="card">
+      <pre>
+SistemaNotas monta
+    |
+    v
+useNotas() hook inicia
+    |
+    v
+loadDisciplinas()
+    |
+    v
+supabase.from('disciplinas').select('*').eq('user_id', user.id)
+    |
+    |-- Tem disciplinas --> setDisciplinasState(data)
+    |
+    +-- Novo usuario (0 disciplinas) --> criarDisciplinasExemplo()
+            |
+            v
+        Insere 4 disciplinas de exemplo no Supabase
+      </pre>
+    </div>
+
+    <h3>Tabela <code>disciplinas</code> no Supabase</h3>
+    <table>
+      <tr><th>Coluna</th><th>Tipo</th><th>Descricao</th></tr>
+      <tr><td>id</td><td>UUID</td><td>Chave primaria (auto)</td></tr>
+      <tr><td>user_id</td><td>UUID</td><td>Referencia ao usuario (auth.users)</td></tr>
+      <tr><td>nome</td><td>TEXT</td><td>Nome da disciplina</td></tr>
+      <tr><td>periodo</td><td>INT</td><td>Semestre na grade (1-8)</td></tr>
+      <tr><td>creditos</td><td>INT</td><td>Creditos (ex: 4)</td></tr>
+      <tr><td>cargaHoraria</td><td>INT</td><td>Carga horaria (ex: 60)</td></tr>
+      <tr><td>notaMinima</td><td>FLOAT</td><td>Nota minima para aprovacao (6.0)</td></tr>
+      <tr><td>status</td><td>TEXT</td><td>APROVADA, EM_CURSO, NAO_INICIADA, REPROVADA</td></tr>
+      <tr><td>ga</td><td>FLOAT</td><td>Nota GA (1a avaliacao)</td></tr>
+      <tr><td>gb</td><td>FLOAT</td><td>Nota GB (2a avaliacao)</td></tr>
+      <tr><td>notaFinal</td><td>FLOAT</td><td>Nota final</td></tr>
+      <tr><td>faltas</td><td>INT</td><td>Numero de faltas</td></tr>
+      <tr><td>semestreCursado</td><td>TEXT</td><td>Semestre cursado (ex: "2026/1")</td></tr>
+      <tr><td>observacao</td><td>TEXT</td><td>Observacoes livres</td></tr>
+      <tr><td>created_at</td><td>TIMESTAMP</td><td>Data de criacao</td></tr>
+      <tr><td>updated_at</td><td>TIMESTAMP</td><td>Data de atualizacao</td></tr>
+    </table>
+
+    <!-- 4. Importacao via Portal Auto -->
+    <h2 id="import">4. Importacao via Portal Auto (fluxo principal)</h2>
+    <p>Este e o fluxo mais complexo do sistema. Envolve os 3 servicos trabalhando juntos.</p>
+
+    <div class="flow-step" data-step="1">
+      <h3>Frontend pede dados ao Backend</h3>
+      <div class="card">
+        <pre>
+ImportModal.jsx --> aba "Portal Auto"
+    |
+    v
+Usuario digita RA + Senha do portal UNISINOS
+    |
+    v
+buscarDoPortal() dispara
+    |
+    v
+fetch('https://notas-faculdade-api.onrender.com/api/portal/historico', {
+    method: 'POST',
+    headers: {
+        'Authorization': 'Bearer &lt;JWT do Supabase&gt;',
+        'Content-Type': 'application/json'
+    },
+    body: { ra: 'usuario', senha: '***' }
+})
+        </pre>
+      </div>
+    </div>
+
+    <div class="flow-step" data-step="2">
+      <h3>Backend faz scraping do portal UNISINOS</h3>
+      <div class="card">
+        <pre>
+Render recebe POST /api/portal/historico
+    |
+    v
+auth.js middleware verifica JWT do Supabase
+    |
+    v
+PortalService.fetchHistorico(ra, senha)
+    |
+    v
+Playwright lanca Chromium headless (navegador invisivel)
+    |
+    v
+Navega para https://portal.asav.org.br (portal TOTVS RM)
+    |
+    v
+Preenche RA + Senha --> faz login real no portal
+    |
+    v
+Fecha modal de selecao de contexto (via JS nativo)
+    |
+    v
+Navega para #/notas (estabelece contexto AngularJS)
+    |
+    v
+Navega para #/grade-curricular
+    |
+    v
+Intercepta resposta da API TOTVS: GradeCurricular/EnsinoSuperior
+    |
+    v
+Recebe JSON com APRESENTACAOHISTORICO (99 registros brutos)
+    |
+    v
+ParserService.parseHistorico() processa cada registro:
+    |-- Extrai: codigo, nome, creditos, cargaHoraria, nota, status
+    |-- Mapeia status TOTVS --> status app (APROVADA, EM_CURSO, etc.)
+    |-- Le CODPERIODO --> periodo da grade (1-8)
+    |-- Le SUBGRUPO --> classifica tipo (obrigatoria/optativa)
+    +-- Retorna array de ~99 disciplinas parseadas
+    |
+    v
+Fecha Chromium --> retorna JSON ao frontend
+        </pre>
+      </div>
+      <p><strong>Por que Playwright?</strong> Requisicoes HTTP diretas (axios/fetch) ao portal retornam "Usuario sem permissao". O portal TOTVS valida que as requisicoes vem do AngularJS com contexto de sessao completo. So funciona navegando de verdade.</p>
+    </div>
+
+    <div class="flow-step" data-step="3">
+      <h3>Frontend deduplica e filtra</h3>
+      <div class="card">
+        <pre>
+Frontend recebe 99 disciplinas brutas
+    |
+    v
+Filtragem (remove lixo):
+    |-- Remove itens com "&lt;i&gt;" ou "Resumo" (metadados HTML)
+    |-- Remove itens com codigo vazio (atividades extracurriculares)
+    |-- Remove itens que comecam com "Modalidade:"
+    |
+    v
+Deduplicacao (99 --> ~64 unicas):
+    |-- Agrupa por nome (case-insensitive)
+    |-- Para cada grupo:
+    |   |-- Tem cursada COM nota? --> usa essa (ex: nota 8.6)
+    |   |-- Tem cursada SEM nota? --> usa essa (dispensa)
+    |   |-- So template? --> usa como "nao cursada"
+    |   +-- Copia periodo da grade do template
+    |
+    v
+Classificacao:
+    |-- tipo: "obrigatoria" (SUBGRUPO vazio)
+    |-- tipo: "optativa" (SUBGRUPO contem "optativ" ou "eletiv")
+    |
+    v
+Normalizacao de periodos:
+    |-- Periodo 1-10 --> mantem
+    |-- Periodo 97, 100, 999 --> normaliza para 0
+    |
+    v
+setDisciplinasPreview(64 disciplinas) --> mostra na tela
+        </pre>
+      </div>
+    </div>
+
+    <div class="flow-step" data-step="4">
+      <h3>Usuario revisa e confirma</h3>
+      <div class="card">
+        <pre>
+Tela de preview mostra:
+    |-- Filtros: [x] Obrigatorias (51) | [x] Optativas (13)
+    |-- Lista por periodo (1o Semestre, 2o Semestre, etc.)
+    |-- Cada disciplina com: nome, status, nota, tipo
+    |-- Marcacao de duplicatas (ja existem no banco)
+    |
+    v
+Usuario clica "Importar X Cadeiras"
+    |
+    v
+confirmarImportacao() -- mapeia para schema do Supabase:
+    {
+        nome, periodo, creditos, cargaHoraria,
+        notaMinima: 6.0, faltas: 0,
+        status: 'APROVADA' | 'EM_CURSO' | 'NAO_INICIADA',
+        ga, gb, notaFinal, semestreCursado,
+        observacao: ''
+    }
+    |
+    v
+Botao mostra "Salvando..." com spinner
+        </pre>
+      </div>
+    </div>
+
+    <div class="flow-step" data-step="5">
+      <h3>Salva no Supabase (bulk insert)</h3>
+      <div class="card">
+        <pre>
+onImport(disciplinas) --> handleImportarDisciplinas()
+    |
+    v
+importarDisciplinas(array) -- useNotas.js
+    |
+    v
+supabase.from('disciplinas').insert([
+    { ...disciplina1, user_id: user.id, created_at: now },
+    { ...disciplina2, user_id: user.id, created_at: now },
+    ... (64 disciplinas em 1 request)
+]).select()
+    |
+    v
+Supabase insere tudo no PostgreSQL
+    |
+    v
+setDisciplinasState(prev => [...prev, ...data])
+    |
+    v
+Modal fecha --> grade atualiza com todas as disciplinas
+        </pre>
+      </div>
+    </div>
+
+    <!-- 5. Operacoes do Dia-a-Dia -->
+    <h2 id="daily">5. Operacoes do Dia-a-Dia</h2>
+    <div class="card">
+      <pre>
+Editar notas:
+    SistemaNotas --> atualizarDisciplina(id, { ga: 8.5, gb: 7.0 })
+    --> supabase.update().eq('id', id).eq('user_id', user.id)
+
+Iniciar disciplina:
+    --> atualizarDisciplina(id, { status: 'EM_CURSO', semestreCursado: '2026/1' })
+
+Remover disciplina:
+    --> supabase.delete().eq('id', id).eq('user_id', user.id)
+
+Adicionar manualmente:
+    --> adicionarDisciplina({ nome, periodo, ... })
+    --> supabase.insert([...])
+      </pre>
+    </div>
+
+    <!-- 6. Seguranca -->
+    <h2 id="security">6. Seguranca</h2>
+    <table>
+      <tr><th>Camada</th><th>Protecao</th></tr>
+      <tr><td><span class="badge badge-green">Supabase RLS</span></td><td>Cada user so acessa suas proprias disciplinas</td></tr>
+      <tr><td><span class="badge badge-blue">JWT Token</span></td><td>Frontend envia token em cada request a API</td></tr>
+      <tr><td><span class="badge badge-blue">auth.js middleware</span></td><td>Backend valida token antes de processar</td></tr>
+      <tr><td><span class="badge badge-yellow">Helmet</span></td><td>Headers de seguranca HTTP no Express</td></tr>
+      <tr><td><span class="badge badge-yellow">CORS</span></td><td>So aceita requests de notas-faculdade-app.vercel.app</td></tr>
+      <tr><td><span class="badge badge-red">Credenciais portal</span></td><td>Nunca salvas &mdash; usadas uma vez e descartadas</td></tr>
+    </table>
+
+    <!-- 7. Arquivos-Chave -->
+    <h2 id="files">7. Arquivos-Chave</h2>
+    <h3>Frontend (src/)</h3>
+    <table>
+      <tr><th>Arquivo</th><th>Responsabilidade</th></tr>
+      <tr><td><code>App.jsx</code></td><td>Roteamento, verifica auth</td></tr>
+      <tr><td><code>AuthContext.jsx</code></td><td>Estado de autenticacao global</td></tr>
+      <tr><td><code>SistemaNotas.jsx</code></td><td>Tela principal, orquestra tudo</td></tr>
+      <tr><td><code>useNotas.js</code></td><td>Hook: CRUD no Supabase</td></tr>
+      <tr><td><code>ImportModal.jsx</code></td><td>Modal de importacao (3 abas: Texto, PDF, Portal Auto)</td></tr>
+      <tr><td><code>supabaseClient.js</code></td><td>Configuracao do cliente Supabase</td></tr>
+    </table>
+    <h3>Backend (api/src/)</h3>
+    <table>
+      <tr><th>Arquivo</th><th>Responsabilidade</th></tr>
+      <tr><td><code>server.js</code></td><td>Servidor Express</td></tr>
+      <tr><td><code>services/portal.service.js</code></td><td>Scraping com Playwright</td></tr>
+      <tr><td><code>services/parser.service.js</code></td><td>Parser dos dados TOTVS</td></tr>
+      <tr><td><code>middleware/auth.js</code></td><td>Validacao JWT</td></tr>
+      <tr><td><code>config/index.js</code></td><td>Variaveis de ambiente</td></tr>
+      <tr><td><code>Dockerfile</code></td><td>Container para deploy no Render</td></tr>
+    </table>
+
+    <!-- 8. Variaveis de Ambiente -->
+    <h2 id="env">8. Variaveis de Ambiente</h2>
+    <h3>Frontend (Vercel)</h3>
+    <div class="card">
+      <pre>
+VITE_SUPABASE_URL=https://tagjmtiiamdpkhltheyv.supabase.co
+VITE_SUPABASE_ANON_KEY=&lt;anon key&gt;
+VITE_API_URL=https://notas-faculdade-api.onrender.com
+      </pre>
+    </div>
+    <h3>Backend (Render)</h3>
+    <div class="card">
+      <pre>
+PORT=3001
+SUPABASE_URL=https://tagjmtiiamdpkhltheyv.supabase.co
+SUPABASE_SERVICE_KEY=&lt;service role key&gt;
+CORS_ORIGIN=https://notas-faculdade-app.vercel.app
+PORTAL_BASE_URL=https://portal.asav.org.br
+      </pre>
+    </div>
+
+    <!-- 9. Limitacoes -->
+    <h2 id="limits">9. Limitacoes do Plano Free</h2>
+    <table>
+      <tr><th>Servico</th><th>Limitacao</th></tr>
+      <tr>
+        <td><span class="badge badge-yellow">Render Free</span></td>
+        <td>Adormece apos 15min sem uso. Primeira request demora ~50s para acordar</td>
+      </tr>
+      <tr>
+        <td><span class="badge badge-green">Vercel Hobby</span></td>
+        <td>100GB bandwidth/mes, sem limite pratico para uso normal</td>
+      </tr>
+      <tr>
+        <td><span class="badge badge-green">Supabase Free</span></td>
+        <td>500MB banco, 50k auth users, 2GB transfer &mdash; mais que suficiente</td>
+      </tr>
+    </table>
+
+    <!-- 10. Campos TOTVS -->
+    <h2 id="totvs">10. Campos do Portal TOTVS (referencia)</h2>
+    <h3>APRESENTACAOHISTORICO (dados brutos)</h3>
+    <table>
+      <tr><th>Campo TOTVS</th><th>Descricao</th><th>Exemplo</th></tr>
+      <tr><td><code>CODDISC</code></td><td>Codigo da disciplina</td><td>"060964"</td></tr>
+      <tr><td><code>DISCIPLINA</code></td><td>Nome</td><td>"Algoritmos e Programacao: Fundamentos"</td></tr>
+      <tr><td><code>STATUS</code></td><td>Situacao TOTVS</td><td>"Aprovado", "*Equiv."</td></tr>
+      <tr><td><code>PLETIVO</code></td><td>Semestre cursado</td><td>"2023/2"</td></tr>
+      <tr><td><code>NOTA</code></td><td>Nota final</td><td>"8,3"</td></tr>
+      <tr><td><code>FALTAS</code></td><td>Faltas</td><td>"2"</td></tr>
+      <tr><td><code>NUMCREDITOS</code></td><td>Creditos</td><td>"4"</td></tr>
+      <tr><td><code>CH</code></td><td>Carga horaria</td><td>"60"</td></tr>
+      <tr><td><code>CODPERIODO</code></td><td>Periodo na grade</td><td>1-8, 97, 100, 999</td></tr>
+      <tr><td><code>SUBGRUPO</code></td><td>Identificador de optativa</td><td>"Grupo optativas / eletivas : ..."</td></tr>
+      <tr><td><code>TIPOENUM</code></td><td>Tipo</td><td>1=regular, 2=equiv, 4=complementar, 5=extra</td></tr>
+    </table>
+
+    <h3>Mapeamento de Status</h3>
+    <table>
+      <tr><th>TOTVS</th><th>App</th></tr>
+      <tr><td>"Aprovado"</td><td><span class="badge badge-green">APROVADA</span></td></tr>
+      <tr><td>"Em Curso"</td><td><span class="badge badge-blue">EM_CURSO</span></td></tr>
+      <tr><td>"Reprovado"</td><td><span class="badge badge-red">REPROVADA</span></td></tr>
+      <tr><td>"*Equiv."</td><td><span class="badge badge-yellow">DISPENSADA</span></td></tr>
+      <tr><td>""(vazio)</td><td>NAO_INICIADA</td></tr>
+    </table>
+
+    <div class="divider"></div>
+    <p style="text-align: center; color: #64748b; font-size: 0.85rem;">
+      Documentacao gerada em Fevereiro 2026 &mdash; Sistema de Notas Faculdade
+    </p>
+
+  </div>
+</body>
+</html>

@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Clock, Edit2, Calculator, MapPin, Monitor, CalendarDays, Loader2, X, Eye, EyeOff } from 'lucide-react';
+import CalendarioSemanal from '../widgets/CalendarioSemanal';
 import { STATUS } from '../ui/STATUS';
 import GlassCard from '../ui/GlassCard';
 import { staggerContainer, staggerItem } from '../../utils/animations';
@@ -167,6 +168,9 @@ export default function EmCursoTab({ disciplinas, setShowSimulador, startEditNot
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Calendário semanal */}
+      <CalendarioSemanal horarios={horarios} />
 
       {emCurso.length === 0 ? (
         <GlassCard className="p-8 text-center" hover={false}>
