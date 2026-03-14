@@ -87,3 +87,27 @@ ON CONFLICT (email) DO NOTHING;
 -- 2. Habilite Email e Google
 -- 3. Configure as credenciais do Google OAuth
 -- ============================================
+
+-- Tabela para persistir horários do portal
+CREATE TABLE IF NOT EXISTS horarios_usuario (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL UNIQUE,
+  dados JSONB NOT NULL DEFAULT '[]',
+  atualizado_em TIMESTAMPTZ DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_horarios_user_id ON horarios_usuario(user_id);
+
+ALTER TABLE horarios_usuario ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Usuário vê seus próprios horários"
+  ON horarios_usuario FOR SELECT USING (auth.uid() = user_id);
+
+CREATE POLICY "Usuário insere seus horários"
+  ON horarios_usuario FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Usuário atualiza seus horários"
+  ON horarios_usuario FOR UPDATE USING (auth.uid() = user_id);
+
+CREATE POLICY "Usuário deleta seus horários"
+  ON horarios_usuario FOR DELETE USING (auth.uid() = user_id);

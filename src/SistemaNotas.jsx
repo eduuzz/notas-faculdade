@@ -112,10 +112,37 @@ export default function SistemaNotas({ onOpenAdmin }) {
     } catch { return []; }
   });
 
-  const saveHorarios = useCallback((data) => {
+  // Carrega horários do Supabase quando usuário loga
+  useEffect(() => {
+    if (!user) return;
+    (async () => {
+      try {
+        const { data, error } = await supabase
+          .from('horarios_usuario')
+          .select('dados')
+          .eq('user_id', user.id)
+          .single();
+        if (!error && data?.dados?.length > 0) {
+          setHorarios(data.dados);
+          localStorage.setItem('horarios', JSON.stringify(data.dados));
+        }
+      } catch { /* silencioso */ }
+    })();
+  }, [user]);
+
+  const saveHorarios = useCallback(async (data) => {
     setHorarios(data);
     localStorage.setItem('horarios', JSON.stringify(data));
-  }, []);
+    // Persiste no Supabase se logado
+    if (user) {
+      try {
+        await supabase.from('horarios_usuario').upsert(
+          { user_id: user.id, dados: data, atualizado_em: new Date().toISOString() },
+          { onConflict: 'user_id' }
+        );
+      } catch { /* silencioso */ }
+    }
+  }, [user]);
 
   useEffect(() => {
     if (!loading && user && !userCurso) {
