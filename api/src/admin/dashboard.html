@@ -168,13 +168,17 @@
     </div>
     <div class="tabs" id="logTabs">
       <button class="tab active" data-tab="recent">Recentes</button>
-      <button class="tab" data-tab="errors">Erros</button>
+      <button class="tab" data-tab="errors">Erros HTTP</button>
+      <button class="tab" data-tab="portal">Portal / Scraping</button>
     </div>
     <div id="tab-recent" class="tab-content active">
       <div class="table-wrap" id="logs"><div class="skeleton" style="height:200px"></div></div>
     </div>
     <div id="tab-errors" class="tab-content">
       <div class="table-wrap" id="errorLogs"><div class="skeleton" style="height:200px"></div></div>
+    </div>
+    <div id="tab-portal" class="tab-content">
+      <div class="table-wrap" id="portalLogs"><div class="skeleton" style="height:200px"></div></div>
     </div>
   </div>
 
@@ -581,6 +585,42 @@ function runTest() {
 }
 
 /* ── Refresh ── */
+function renderPortalLogs(logs) {
+  const el = document.getElementById('portalLogs');
+  if (!el) return;
+  if (!logs || logs.length === 0) {
+    el.innerHTML = '<p style="color:#666;padding:16px;text-align:center">Nenhum log de portal encontrado</p>';
+    return;
+  }
+  const rows = logs.map(function(l) {
+    const ts = l.created_at || l.timestamp || '';
+    const time = ts ? new Date(ts).toLocaleString('pt-BR') : '-';
+    const status = l.success
+      ? '<span style="color:#4ade80;font-weight:600">✓ OK</span>'
+      : '<span style="color:#f87171;font-weight:600">✗ Erro</span>';
+    const dur = (l.duration_ms || l.duration || 0);
+    const durStr = dur > 1000 ? (dur/1000).toFixed(1)+'s' : dur+'ms';
+    const err = l.error_msg || l.error || '';
+    return '<tr>'
+      + '<td>' + time + '</td>'
+      + '<td>' + (l.ra_masked || l.ra || '-') + '</td>'
+      + '<td>' + (l.tipo || 'horarios') + '</td>'
+      + '<td>' + status + '</td>'
+      + '<td>' + durStr + '</td>'
+      + '<td style="color:#f87171;max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="' + err + '">' + err + '</td>'
+      + '</tr>';
+  }).join('');
+  el.innerHTML = '<table style="width:100%;border-collapse:collapse;font-size:12px">'
+    + '<thead><tr style="color:#888;border-bottom:1px solid #333">'
+    + '<th style="text-align:left;padding:6px">Horário</th>'
+    + '<th style="text-align:left;padding:6px">RA</th>'
+    + '<th style="text-align:left;padding:6px">Tipo</th>'
+    + '<th style="text-align:left;padding:6px">Status</th>'
+    + '<th style="text-align:left;padding:6px">Duração</th>'
+    + '<th style="text-align:left;padding:6px">Erro</th>'
+    + '</tr></thead><tbody>' + rows + '</tbody></table>';
+}
+
 function refreshUsers() {
   api('/users').catch(function() { return { total: 0, active: 0, withProfile: 0, recent: [] }; }).then(renderUsers);
 }
@@ -593,6 +633,7 @@ function refreshAll() {
     api('/users').catch(function() { return { total: 0, active: 0, withProfile: 0, recent: [] }; }),
     api('/logs?limit=100').catch(function() { return []; }),
     api('/errors?limit=50').catch(function() { return []; }),
+    api('/portal-logs?limit=50').catch(function() { return []; }),
     api('/stats').catch(function() { return {}; }),
     api('/stats/hourly').catch(function() { return []; }),
     api('/env').catch(function() { return {}; }),
@@ -602,6 +643,7 @@ function refreshAll() {
     renderUsers(results[2]);
     renderLogsTable(results[3], 'logs');
     renderLogsTable(results[4], 'errorLogs');
+    renderPortalLogs(results[8]);
     renderReqStats(results[5]);
     renderHourlyChart(results[6]);
     renderAnalytics(results[5]);

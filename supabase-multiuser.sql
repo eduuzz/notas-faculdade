@@ -111,3 +111,20 @@ CREATE POLICY "Usuário atualiza seus horários"
 
 CREATE POLICY "Usuário deleta seus horários"
   ON horarios_usuario FOR DELETE USING (auth.uid() = user_id);
+
+-- Tabela de logs do portal (scraping)
+CREATE TABLE IF NOT EXISTS portal_logs (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  ra_masked TEXT,
+  tipo TEXT DEFAULT 'horarios',
+  success BOOLEAN NOT NULL,
+  error_msg TEXT,
+  duration_ms INTEGER
+);
+
+CREATE INDEX IF NOT EXISTS idx_portal_logs_created ON portal_logs(created_at DESC);
+
+-- Apenas service role pode acessar (admin only)
+ALTER TABLE portal_logs ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "service_only" ON portal_logs USING (false);

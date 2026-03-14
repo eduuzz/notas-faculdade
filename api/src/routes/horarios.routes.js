@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { PortalService } from '../services/portal.service.js';
+import { logPortalRequest } from '../utils/portalLogger.js';
 
 const router = Router();
 
@@ -28,7 +29,28 @@ router.post('/horarios', async (req, res, next) => {
     }
 
     const ci = cursoIndex !== undefined && cursoIndex !== null ? parseInt(cursoIndex, 10) : null;
-    const result = await PortalService.fetchHorarios(ra.trim(), senha, ci);
+    const start = Date.now();
+    let result;
+    try {
+      result = await PortalService.fetchHorarios(ra.trim(), senha, ci);
+    } catch (err) {
+      await logPortalRequest({
+        ra: ra.trim(),
+        tipo: 'horarios',
+        success: false,
+        error: err.message || String(err),
+        duration: Date.now() - start,
+      });
+      throw err;
+    }
+
+    await logPortalRequest({
+      ra: ra.trim(),
+      tipo: 'horarios',
+      success: true,
+      error: null,
+      duration: Date.now() - start,
+    });
 
     res.json({
       success: true,

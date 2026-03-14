@@ -3,6 +3,7 @@ import { createClient } from '@supabase/supabase-js';
 import { config } from '../config/index.js';
 import { getProcessStats } from '../utils/processStats.js';
 import { getRecentLogs, getRequestStats, getErrorLogs, getHourlyHistory, clearLogs } from '../middleware/requestLogger.js';
+import { getPortalLogs } from '../utils/portalLogger.js';
 import { readFileSync } from 'fs';
 import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
@@ -274,6 +275,28 @@ router.delete('/logs', (req, res) => {
 /**
  * GET /api/admin/stats
  */
+/**
+ * GET /api/admin/portal-logs
+ * Retorna logs de importações do portal (horarios, cadeiras, notas)
+ */
+router.get('/portal-logs', async (req, res) => {
+  const limit = Math.min(parseInt(req.query.limit) || 50, 200);
+
+  // Tenta buscar do Supabase primeiro (persistido), fallback para memória
+  if (supabase) {
+    try {
+      const { data, error } = await supabase
+        .from('portal_logs')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(limit);
+      if (!error && data) return res.json(data);
+    } catch { /* fallback para memória */ }
+  }
+
+  res.json(getPortalLogs(limit));
+});
+
 router.get('/stats', (req, res) => {
   res.json(getRequestStats());
 });
