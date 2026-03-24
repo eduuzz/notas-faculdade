@@ -10,6 +10,7 @@ const Login = React.lazy(() => import('./Login'))
 const ResetPassword = React.lazy(() => import('./ResetPassword'))
 const AdminPanel = React.lazy(() => import('./AdminPanel'))
 const SharedGrade = React.lazy(() => import('./SharedGrade'))
+const LancadorNotas = React.lazy(() => import('./LancadorNotas'))
 
 import { ADMIN_EMAIL } from './supabaseClient';
 
@@ -68,6 +69,19 @@ function AppContent() {
     return (
       <Suspense fallback={<LoadingSpinner />}>
         <SharedGrade token={shareMatch[1]} />
+      </Suspense>
+    );
+  }
+
+  if (window.location.pathname === '/lancador') {
+    if (!user) return (
+      <Suspense fallback={<LoadingSpinner />}>
+        <Login />
+      </Suspense>
+    );
+    return (
+      <Suspense fallback={<LoadingSpinner />}>
+        <LancadorNotas />
       </Suspense>
     );
   }
