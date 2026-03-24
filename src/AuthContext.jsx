@@ -297,7 +297,7 @@ export const AuthProvider = ({ children }) => {
     setAuthError(null);
     return await supabase.auth.signInWithOAuth({
       provider: 'google',
-      options: { redirectTo: window.location.origin },
+      options: { redirectTo: window.location.origin + window.location.pathname },
     });
   };
 
