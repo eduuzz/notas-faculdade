@@ -6,13 +6,16 @@ import { CheckCircle2, XCircle, Loader2, BookOpen, ArrowLeft, Save } from 'lucid
 
 function StatusBadge({ status }) {
   const map = {
-    aprovado:   { label: 'Aprovado',   cls: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30' },
-    reprovado:  { label: 'Reprovado',  cls: 'bg-red-500/15 text-red-400 border-red-500/30' },
-    cursando:   { label: 'Cursando',   cls: 'bg-blue-500/15 text-blue-400 border-blue-500/30' },
-    pendente:   { label: 'Pendente',   cls: 'bg-zinc-500/15 text-zinc-400 border-zinc-500/30' },
-    dispensado: { label: 'Dispensado', cls: 'bg-amber-500/15 text-amber-400 border-amber-500/30' },
+    APROVADA:    { label: 'Aprovada',   cls: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30' },
+    REPROVADA:   { label: 'Reprovada',  cls: 'bg-red-500/15 text-red-400 border-red-500/30' },
+    EM_CURSO:    { label: 'Em Curso',   cls: 'bg-blue-500/15 text-blue-400 border-blue-500/30' },
+    NAO_INICIADA:{ label: 'Pendente',   cls: 'bg-zinc-500/15 text-zinc-400 border-zinc-500/30' },
+    // legado lowercase
+    aprovado:    { label: 'Aprovada',   cls: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30' },
+    reprovado:   { label: 'Reprovada',  cls: 'bg-red-500/15 text-red-400 border-red-500/30' },
+    cursando:    { label: 'Em Curso',   cls: 'bg-blue-500/15 text-blue-400 border-blue-500/30' },
   }
-  const s = map[status] || map.pendente
+  const s = map[status] || { label: status || 'Pendente', cls: 'bg-zinc-500/15 text-zinc-400 border-zinc-500/30' }
   return (
     <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full border ${s.cls}`}>
       {s.label}
@@ -116,7 +119,7 @@ export default function LancadorNotas() {
     const media = notaFinal ?? (ga !== null && gb !== null ? (ga + gb) / 2 : null)
     if (media !== null) {
       const minima = disc.notaMinima ?? 6
-      updates.status = media >= minima ? 'aprovado' : 'reprovado'
+      updates.status = media >= minima ? 'APROVADA' : 'REPROVADA'
     }
 
     setSaving(prev => ({ ...prev, [disc.id]: 'saving' }))
@@ -151,11 +154,11 @@ export default function LancadorNotas() {
 
   // Filtros
   const filtros = [
-    { key: 'all',      label: 'Todas' },
-    { key: 'cursando', label: 'Em Curso' },
-    { key: 'aprovado', label: 'Aprovadas' },
-    { key: 'reprovado',label: 'Reprovadas' },
-    { key: 'pendente', label: 'Pendentes' },
+    { key: 'all',         label: 'Todas' },
+    { key: 'EM_CURSO',    label: 'Em Curso' },
+    { key: 'APROVADA',    label: 'Aprovadas' },
+    { key: 'REPROVADA',   label: 'Reprovadas' },
+    { key: 'NAO_INICIADA',label: 'Pendentes' },
   ]
 
   const discsFiltradas = disciplinas.filter(d =>
