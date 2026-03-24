@@ -39,7 +39,7 @@ function NotaInput({ value, onChange, placeholder = '—', disabled }) {
 }
 
 export default function LancadorNotas() {
-  const { user } = useAuth()
+  const { user, loading: authLoading } = useAuth()
   const [disciplinas, setDisciplinas] = useState([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState({})   // { [id]: 'saving' | 'ok' | 'err' }
@@ -48,7 +48,10 @@ export default function LancadorNotas() {
 
   // Carrega disciplinas
   useEffect(() => {
-    if (!user || !supabase) return
+    if (!user || !supabase) {
+      if (!user) setLoading(false)
+      return
+    }
     setLoading(true)
     supabase
       .from('disciplinas')
@@ -56,10 +59,12 @@ export default function LancadorNotas() {
       .eq('user_id', user.id)
       .order('periodo', { ascending: true })
       .then(({ data, error }) => {
-        if (!error && data) setDisciplinas(data)
+        console.log('[LancadorNotas] disciplinas:', data?.length, 'erro:', error)
+        if (error) console.error('[LancadorNotas] erro Supabase:', error)
+        if (data) setDisciplinas(data)
         setLoading(false)
       })
-  }, [user])
+  }, [user?.id])
 
   // Draft helpers
   const getDraft = (disc) => {
@@ -157,12 +162,17 @@ export default function LancadorNotas() {
     filter === 'all' ? true : d.status === filter
   )
 
-  if (loading) {
+  if (authLoading || loading) {
     return (
       <div className="min-h-screen bg-zinc-950 flex items-center justify-center">
         <Loader2 className="animate-spin text-indigo-400" size={32} />
       </div>
     )
+  }
+
+  if (!user) {
+    window.location.href = '/'
+    return null
   }
 
   return (
