@@ -73,6 +73,10 @@ function AppContent() {
     );
   }
 
+  if (loading || checkingRecovery) {
+    return <LoadingSpinner />;
+  }
+
   if (window.location.pathname === '/lancador') {
     if (!user) return (
       <Suspense fallback={<LoadingSpinner />}>
@@ -84,10 +88,6 @@ function AppContent() {
         <LancadorNotas />
       </Suspense>
     );
-  }
-
-  if (loading || checkingRecovery) {
-    return <LoadingSpinner />;
   }
 
   if (isRecoveryMode) {
