@@ -3,8 +3,9 @@ import { supabase } from './supabaseClient'
 import { useAuth } from './AuthContext'
 import { getFreshToken } from './useNotas'
 import {
-  CheckCircle2, XCircle, Loader2, BookOpen, ArrowLeft, Save,
-  Search, ChevronDown, ChevronRight, SaveAll, AlertTriangle
+  CheckCircle2, XCircle, Loader2, BookOpen, Save,
+  Search, ChevronDown, ChevronRight, SaveAll, AlertTriangle,
+  RefreshCw, X, ArrowRightLeft, Plus, Eye, EyeOff
 } from 'lucide-react'
 
 /* ── Status helpers ── */
@@ -101,6 +102,13 @@ export default function LancadorNotas() {
   const [search, setSearch] = useState('')
   const [collapsedSemesters, setCollapsedSemesters] = useState({})
   const [savingAll, setSavingAll] = useState(false)
+  const [syncModal, setSyncModal] = useState(false)
+  const [syncRA, setSyncRA] = useState('')
+  const [syncSenha, setSyncSenha] = useState('')
+  const [syncing, setSyncing] = useState(false)
+  const [syncStatus, setSyncStatus] = useState('')
+  const [syncResults, setSyncResults] = useState(null) // { novas, alteradas, semMudanca }
+  const [syncError, setSyncError] = useState('')
   const inputRefs = useRef({})
 
   // Warn on exit with unsaved changes
@@ -236,6 +244,136 @@ export default function LancadorNotas() {
     }
   }, [disciplinas, drafts, salvar])
 
+  // Sync with portal
+  const sincronizar = useCallback(async () => {
+    if (!syncRA.trim() || !syncSenha) return
+    setSyncing(true)
+    setSyncError('')
+    setSyncResults(null)
+    setSyncStatus('Conectando ao servidor...')
+
+    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001'
+    try {
+      const token = supabase ? await getFreshToken(supabase) : null
+      const headers = {
+        'Content-Type': 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      }
+
+      // Wake up server
+      for (let i = 1; i <= 3; i++) {
+        try {
+          const r = await fetch(`${apiUrl}/api/health`, { signal: AbortSignal.timeout(15000), mode: 'cors' })
+          if (r.ok) break
+        } catch {
+          if (i === 3) throw new Error('WAKE_FAIL')
+          setSyncStatus('Servidor inicializando...')
+          await new Promise(r => setTimeout(r, 2000))
+        }
+      }
+
+      setSyncStatus('Buscando dados do portal...')
+      const res = await fetch(`${apiUrl}/api/portal/historico`, {
+        method: 'POST', headers,
+        body: JSON.stringify({ ra: syncRA.trim(), senha: syncSenha }),
+        signal: AbortSignal.timeout(180000),
+      })
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}))
+        throw new Error(err.error?.message || err.error || `Erro HTTP ${res.status}`)
+      }
+
+      const { data: portalDiscs } = await res.json()
+      if (!portalDiscs?.length) throw new Error('Nenhuma disciplina encontrada no portal.')
+
+      // Filter out metadata entries
+      const reais = portalDiscs.filter(d => {
+        const nome = (d.nome || '').toLowerCase()
+        const codigo = d.codigo || ''
+        if (nome.includes('<i>') || nome.includes('</i>')) return false
+        if (nome.startsWith('total ch') || codigo.toLowerCase() === 'totchintegralizada') return false
+        if (codigo === '-1' || codigo.toLowerCase() === 'totaismodalidade') return false
+        if (nome.startsWith('modalidade:')) return false
+        if (!codigo.trim() || !d.nome?.trim()) return false
+        return true
+      })
+
+      // Deduplicate (keep best entry per name)
+      const porNome = {}
+      for (const d of reais) {
+        const key = d.nome.toLowerCase().trim()
+        if (!porNome[key]) porNome[key] = []
+        porNome[key].push(d)
+      }
+      const dedup = []
+      for (const entries of Object.values(porNome)) {
+        const cursadas = entries.filter(e => e.semestreCursado)
+        if (cursadas.length > 0) {
+          const aprovadas = cursadas.filter(e => e.status === 'APROVADA')
+          const comNota = aprovadas.filter(e => e.notaFinal != null)
+          const best = comNota[0] || aprovadas[0] || cursadas.find(e => e.status === 'EM_CURSO') || cursadas[cursadas.length - 1]
+          dedup.push(best)
+        } else {
+          dedup.push(entries[0])
+        }
+      }
+
+      // Compare with local disciplines
+      setSyncStatus('Comparando com suas disciplinas...')
+      const novas = []
+      const alteradas = []
+      let semMudanca = 0
+
+      for (const pd of dedup) {
+        const local = disciplinas.find(d => d.nome?.toLowerCase().trim() === pd.nome?.toLowerCase().trim())
+        if (!local) {
+          novas.push(pd)
+        } else {
+          const mudancas = []
+          if (pd.notaFinal != null && pd.notaFinal !== local.notaFinal) mudancas.push({ campo: 'Nota Final', de: local.notaFinal, para: pd.notaFinal })
+          if (pd.ga != null && pd.ga !== local.ga) mudancas.push({ campo: 'GA', de: local.ga, para: pd.ga })
+          if (pd.gb != null && pd.gb !== local.gb) mudancas.push({ campo: 'GB', de: local.gb, para: pd.gb })
+          if (pd.status && pd.status !== normalizeStatus(local.status)) mudancas.push({ campo: 'Status', de: normalizeStatus(local.status), para: pd.status })
+          if (pd.faltas != null && pd.faltas !== local.faltas) mudancas.push({ campo: 'Faltas', de: local.faltas, para: pd.faltas })
+          if (mudancas.length > 0) {
+            alteradas.push({ local, portal: pd, mudancas })
+          } else {
+            semMudanca++
+          }
+        }
+      }
+
+      setSyncResults({ novas, alteradas, semMudanca, totalPortal: dedup.length })
+      setSyncStatus('')
+    } catch (err) {
+      const msg = err.message || ''
+      if (msg === 'WAKE_FAIL') setSyncError('Servidor indisponível. Tente novamente em 30s.')
+      else if (msg.includes('401') || msg.includes('Login') || msg.includes('Credenciais')) setSyncError('RA ou senha incorretos.')
+      else if (msg.includes('timeout') || msg.includes('aborted')) setSyncError('Tempo esgotado. O portal pode estar lento.')
+      else if (msg.includes('Nenhuma')) setSyncError(msg)
+      else setSyncError(`Erro: ${msg}`)
+    } finally {
+      setSyncing(false)
+    }
+  }, [syncRA, syncSenha, disciplinas])
+
+  // Apply a portal change as draft
+  const aplicarMudanca = useCallback((localId, campo, valor) => {
+    const fieldMap = { 'Nota Final': 'notaFinal', 'GA': 'ga', 'GB': 'gb', 'Status': 'status' }
+    const field = fieldMap[campo]
+    if (field) setDraft(localId, field, String(valor ?? ''))
+  }, [setDraft])
+
+  const aplicarTodas = useCallback(() => {
+    if (!syncResults) return
+    for (const { local, mudancas } of syncResults.alteradas) {
+      for (const m of mudancas) {
+        aplicarMudanca(local.id, m.campo, m.para)
+      }
+    }
+  }, [syncResults, aplicarMudanca])
+
   // Keyboard navigation: Tab/Enter between inputs
   const handleKeyDown = useCallback((e, discId, field, discIndex, fields) => {
     if (e.key === 'Enter') {
@@ -303,20 +441,12 @@ export default function LancadorNotas() {
         <div className="max-w-5xl mx-auto px-4 py-3">
           {/* Top row */}
           <div className="flex items-center gap-3 flex-wrap">
-            <button
-              onClick={() => window.history.back()}
-              className="flex items-center gap-1.5 text-sm text-zinc-400 hover:text-white transition-colors"
-            >
-              <ArrowLeft size={16} />
-              <span className="hidden sm:inline">Voltar</span>
-            </button>
-
             <div className="flex items-center gap-2 flex-1 min-w-0">
               <BookOpen size={20} className="text-indigo-400 flex-shrink-0" />
               <h1 className="text-lg font-semibold truncate">Lançador de Notas</h1>
             </div>
 
-            {/* Dirty count + save all */}
+            {/* Actions */}
             <div className="flex items-center gap-2">
               {dirtyCount > 0 && (
                 <span className="text-xs text-amber-400 flex items-center gap-1">
@@ -325,6 +455,14 @@ export default function LancadorNotas() {
                   <span className="sm:hidden">{dirtyCount}</span>
                 </span>
               )}
+              <button
+                onClick={() => { setSyncModal(true); setSyncResults(null); setSyncError('') }}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors
+                           bg-cyan-500/10 text-cyan-400 border border-cyan-500/30 hover:bg-cyan-500/20"
+              >
+                <RefreshCw size={14} />
+                <span className="hidden sm:inline">Sincronizar Portal</span>
+              </button>
               <button
                 onClick={salvarTudo}
                 disabled={dirtyCount === 0 || savingAll}
@@ -460,6 +598,192 @@ export default function LancadorNotas() {
           </p>
         </div>
       </div>
+
+      {/* ── Sync Modal ── */}
+      {syncModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div className="bg-zinc-900 border border-zinc-700 rounded-2xl w-full max-w-lg max-h-[85vh] overflow-y-auto shadow-2xl">
+            {/* Modal header */}
+            <div className="flex items-center justify-between px-5 py-4 border-b border-zinc-800">
+              <div className="flex items-center gap-2">
+                <RefreshCw size={18} className="text-cyan-400" />
+                <h2 className="text-base font-semibold">Sincronizar com Portal</h2>
+              </div>
+              <button onClick={() => setSyncModal(false)} className="p-1 rounded-lg hover:bg-zinc-800 text-zinc-400 hover:text-white transition-colors">
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="px-5 py-4 space-y-4">
+              {/* Login fields */}
+              {!syncResults && (
+                <>
+                  <p className="text-xs text-zinc-400">
+                    Busca as disciplinas no portal UNISINOS e compara com as que você já tem cadastradas.
+                    Mostra o que mudou para você revisar antes de aplicar.
+                  </p>
+                  <div>
+                    <label className="text-xs text-zinc-500 mb-1 block">RA (login do portal)</label>
+                    <input
+                      type="text"
+                      value={syncRA}
+                      onChange={e => setSyncRA(e.target.value)}
+                      placeholder="Ex: 1234567"
+                      className="w-full px-3 py-2 rounded-lg bg-zinc-800 border border-zinc-700 text-sm text-white placeholder:text-zinc-500 focus:outline-none focus:border-cyan-500 transition-colors"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs text-zinc-500 mb-1 block">Senha do portal</label>
+                    <input
+                      type="password"
+                      value={syncSenha}
+                      onChange={e => setSyncSenha(e.target.value)}
+                      placeholder="Sua senha"
+                      className="w-full px-3 py-2 rounded-lg bg-zinc-800 border border-zinc-700 text-sm text-white placeholder:text-zinc-500 focus:outline-none focus:border-cyan-500 transition-colors"
+                    />
+                  </div>
+
+                  {syncError && (
+                    <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/30 text-red-400 text-sm">
+                      {syncError}
+                    </div>
+                  )}
+
+                  {syncStatus && (
+                    <div className="flex items-center gap-2 text-sm text-cyan-400">
+                      <Loader2 size={14} className="animate-spin" />
+                      {syncStatus}
+                    </div>
+                  )}
+
+                  <button
+                    onClick={sincronizar}
+                    disabled={syncing || !syncRA.trim() || !syncSenha}
+                    className={`w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+                      syncing || !syncRA.trim() || !syncSenha
+                        ? 'bg-zinc-800 text-zinc-600 cursor-not-allowed'
+                        : 'bg-cyan-500 text-white hover:bg-cyan-400'
+                    }`}
+                  >
+                    {syncing ? <Loader2 size={16} className="animate-spin" /> : <RefreshCw size={16} />}
+                    {syncing ? 'Buscando...' : 'Buscar e Comparar'}
+                  </button>
+                </>
+              )}
+
+              {/* Results */}
+              {syncResults && (
+                <>
+                  {/* Summary */}
+                  <div className="grid grid-cols-3 gap-2 text-center">
+                    <div className="p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
+                      <div className="text-lg font-bold text-emerald-400">{syncResults.semMudanca}</div>
+                      <div className="text-[10px] text-zinc-400">Iguais</div>
+                    </div>
+                    <div className="p-3 rounded-lg bg-amber-500/10 border border-amber-500/20">
+                      <div className="text-lg font-bold text-amber-400">{syncResults.alteradas.length}</div>
+                      <div className="text-[10px] text-zinc-400">Com diferenças</div>
+                    </div>
+                    <div className="p-3 rounded-lg bg-blue-500/10 border border-blue-500/20">
+                      <div className="text-lg font-bold text-blue-400">{syncResults.novas.length}</div>
+                      <div className="text-[10px] text-zinc-400">Novas no portal</div>
+                    </div>
+                  </div>
+
+                  <p className="text-[11px] text-zinc-500">
+                    {syncResults.totalPortal} disciplinas no portal · {disciplinas.length} cadastradas localmente
+                  </p>
+
+                  {/* Changed disciplines */}
+                  {syncResults.alteradas.length > 0 && (
+                    <div>
+                      <div className="flex items-center justify-between mb-2">
+                        <h3 className="text-sm font-semibold text-amber-400 flex items-center gap-1.5">
+                          <ArrowRightLeft size={14} /> Diferenças encontradas
+                        </h3>
+                        <button
+                          onClick={() => { aplicarTodas(); setSyncModal(false) }}
+                          className="text-xs px-2.5 py-1 rounded-lg bg-amber-500/15 text-amber-400 border border-amber-500/30 hover:bg-amber-500/25 transition-colors"
+                        >
+                          Aplicar todas
+                        </button>
+                      </div>
+                      <div className="space-y-2">
+                        {syncResults.alteradas.map(({ local, portal, mudancas }, i) => (
+                          <div key={i} className="p-3 rounded-lg bg-zinc-800 border border-zinc-700">
+                            <p className="text-sm font-medium text-white truncate mb-2">{local.nome}</p>
+                            {mudancas.map((m, j) => (
+                              <div key={j} className="flex items-center justify-between text-xs mb-1 last:mb-0">
+                                <span className="text-zinc-400 w-16">{m.campo}</span>
+                                <div className="flex items-center gap-2 flex-1 justify-end">
+                                  <span className="text-red-400/70 line-through">{m.de ?? '—'}</span>
+                                  <span className="text-zinc-600">→</span>
+                                  <span className="text-emerald-400 font-medium">{m.para ?? '—'}</span>
+                                  <button
+                                    onClick={() => { aplicarMudanca(local.id, m.campo, m.para); setSyncModal(false) }}
+                                    className="ml-1 text-[10px] px-1.5 py-0.5 rounded bg-cyan-500/15 text-cyan-400 border border-cyan-500/30 hover:bg-cyan-500/25 transition-colors"
+                                  >
+                                    Aplicar
+                                  </button>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* New disciplines */}
+                  {syncResults.novas.length > 0 && (
+                    <div>
+                      <h3 className="text-sm font-semibold text-blue-400 flex items-center gap-1.5 mb-2">
+                        <Plus size={14} /> Novas no portal (não cadastradas)
+                      </h3>
+                      <div className="space-y-1">
+                        {syncResults.novas.map((d, i) => (
+                          <div key={i} className="flex items-center justify-between p-2 rounded-lg bg-zinc-800 border border-zinc-700 text-sm">
+                            <div className="min-w-0 flex-1">
+                              <span className="text-white truncate block">{d.nome}</span>
+                              <span className="text-[10px] text-zinc-500">{d.periodo ? `${d.periodo}º sem` : ''} · {d.status || 'Pendente'}</span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                      <p className="text-[10px] text-zinc-500 mt-2">
+                        Para adicionar disciplinas novas, use a importação na tela principal.
+                      </p>
+                    </div>
+                  )}
+
+                  {syncResults.alteradas.length === 0 && syncResults.novas.length === 0 && (
+                    <div className="text-center py-4 text-sm text-emerald-400">
+                      <CheckCircle2 size={24} className="mx-auto mb-2" />
+                      Tudo sincronizado! Nenhuma diferença encontrada.
+                    </div>
+                  )}
+
+                  {/* Actions */}
+                  <div className="flex gap-2 pt-2">
+                    <button
+                      onClick={() => setSyncResults(null)}
+                      className="flex-1 px-3 py-2 rounded-lg text-sm bg-zinc-800 text-zinc-400 hover:bg-zinc-700 transition-colors"
+                    >
+                      Buscar novamente
+                    </button>
+                    <button
+                      onClick={() => setSyncModal(false)}
+                      className="flex-1 px-3 py-2 rounded-lg text-sm bg-cyan-500 text-white hover:bg-cyan-400 transition-colors"
+                    >
+                      Fechar
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
